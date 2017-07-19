@@ -8,14 +8,14 @@ class Game {
 	private:
 		// These contain the assets loaded in from the gamedata.
 		std::vector<Sound> _sounds;
-		std::vector<Sprite> _sounds;
-		std::vector<Background> _sounds;
-		std::vector<Path> _sounds;
-		std::vector<Script> _sounds;
-		std::vector<Font> _sounds;
-		std::vector<Timeline> _sounds;
-		std::vector<Object> _sounds;
-		std::vector<Room> _sounds;
+		std::vector<Sprite> _sprites;
+		std::vector<Background> _backgrounds;
+		std::vector<Path> _paths;
+		std::vector<Script> _scripts;
+		std::vector<Font> _fonts;
+		std::vector<Timeline> _timelines;
+		std::vector<Object> _objects;
+		std::vector<Room> _rooms;
 
 	public:
 		Game();

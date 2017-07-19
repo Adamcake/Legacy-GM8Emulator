@@ -5,7 +5,12 @@ int main(int argc, char** argv) {
 
 	Game* game = new Game();
 
-
+	// If you want the runner to load the data from itself (like how normal gm8 games do it), set the game name to argv[0].
+	if (!game->Load("game.exe")) {
+		// Load failed
+		delete game;
+		return 1;
+	}
 
 	SDL_Window* test;
 	SDL_Event event;
@@ -24,4 +29,6 @@ int main(int argc, char** argv) {
 	}
 
 	SDL_DestroyWindow(test);
+	delete game;
+	return 0;
 }
