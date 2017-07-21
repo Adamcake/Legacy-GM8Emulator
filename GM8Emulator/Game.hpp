@@ -6,16 +6,17 @@
 // This is the overall structure for the game state.
 class Game {
 	private:
+
 		// These contain the assets loaded in from the gamedata.
-		std::vector<Sound> _sounds;
-		std::vector<Sprite> _sprites;
-		std::vector<Background> _backgrounds;
-		std::vector<Path> _paths;
-		std::vector<Script> _scripts;
-		std::vector<Font> _fonts;
-		std::vector<Timeline> _timelines;
-		std::vector<Object> _objects;
-		std::vector<Room> _rooms;
+		std::vector<Sound*> _sounds;
+		std::vector<Sprite*> _sprites;
+		std::vector<Background*> _backgrounds;
+		std::vector<Path*> _paths;
+		std::vector<Script*> _scripts;
+		std::vector<Font*> _fonts;
+		std::vector<Timeline*> _timelines;
+		std::vector<Object*> _objects;
+		std::vector<Room*> _rooms;
 
 	public:
 		Game();
