@@ -11,6 +11,13 @@ The runner is essentially what you would expect to find in a windows executable:
 Most Windows executables just contain the machine code necessary for them to run... Not these ones. GameMaker 8 executables have the gamedata appended to the end of the file. The gamedata is where you will find all the game's assets - all the sprites, objects, scripts, sounds, and so on. The runner loads the entire exe file into memory, parses the gamedata and uses it to play the game. The entirety of your game project is contained within the gamedata: if you wished to recover any or all of your assets, or indeed your entire project file, then you would require the gamedata and nothing more.
 
 ## So what's a GM8 Emulator?
-Put simply, the aim of this project is to emulate the GM8 runner. We are creating an application will be able to parse GM8-format gamedata and run the game for which it was created, in an identical manner to the existing runner described above.
+Put simply, the aim of this project is to emulate the GM8 runner. We are creating an application which will be able to parse GM8-format gamedata and run the game for which it was created, in an identical manner to the existing runner described above.
 
-Fortunately, the format of the gamedata can be found "documented" in the behaviour of [WastedMeerkat's Decompiler](https://github.com/WastedMeerkat/gm81decompiler). Documentation on the runner's behaviour, however, is very sparse. As far as I am aware, this will be the first project to delve into it.
+Strictly speaking, "emulator" is not a correct term. In computing, an emulator is a piece of software on a computer system which emulates the behaviour of a different computer system. We aren't emulating any computer system - just the GM8 engine. A more accurate term would be "sourceport" but emulator sounds cooler.
+
+## Notes
+Fortunately, the format of the gamedata can be found "documented" in the behaviour of [WastedMeerkat's Decompiler](https://github.com/WastedMeerkat/gm81decompiler). Documentation on the runner's behaviour, however, is very sparse.
+
+Want to help us? We have an unending amount of research that needs doing! If you have some free time and want to help us document GM8's frame cycle, either by observation or debugging, please do get involved.
+
+If you have any questions or comments you can contact us at gm8emulator@gmail.com.

@@ -1,6 +1,8 @@
 #include "Game.hpp"
+#include <zconf.h>
+#include <zlib.h>
 
-// Helper functions for parsing the filestream - no need for these to be member functions.
+#pragma region Helper functions for parsing the filestream - no need for these to be member functions.
 
 // Reads a dword from the given position in the byte stream
 unsigned int ReadDword(const unsigned char* pStream, unsigned int* pPos) {
@@ -96,6 +98,7 @@ bool Decrypt81(unsigned char* pStream, unsigned int pStreamLength, unsigned int*
 	return true;
 }
 
+#pragma endregion
 
 ////////////////////////////////
 // Game class implementations //
@@ -187,7 +190,7 @@ bool Game::Load(const char * pFilename)
 
 	//Read all the data
 
-	// Settings header - tbd
+	// Settings Data Chunk
 
 	free(buffer);
 	return true;
