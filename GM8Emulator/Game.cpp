@@ -1,7 +1,7 @@
 #include "Game.hpp"
 #include "zlib\zlib.h"
 
-#define ZLIB_CHUNK 65536
+#define ZLIB_BUF_START 65536
 
 #pragma region Helper functions for parsing the filestream - no need for these to be member functions.
 
@@ -98,22 +98,18 @@ bool Decrypt81(unsigned char* pStream, unsigned int pStreamLength, unsigned int*
 }
 
 // Read and inflate a data block from the data stream
-bool InflateBlock(const unsigned char* pStream, unsigned int* pPos, unsigned char* pInBuffer, unsigned char* pOutBuffer, unsigned char** pOut, unsigned int* pOutSize)
+// OutBuffer must already be initialized and the size of it must be passed in OutSize. A bigger buffer will result in less iterations, thus a faster return.
+// On success, the function will overwrite OutBuffer and OutSize with the new buffer and size.
+bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pOutBuffer, unsigned int* pOutSize)
 {
 	// The first dword is always 0x320. Maybe we could actually check this value if we want strict integrity checking but it isn't needed.
 	(*pPos) += 4;
 
 	// Next dword is the length in bytes of the compressed data following it.
 	unsigned int len = ReadDword(pStream, pPos);
-	unsigned char* data = (unsigned char*) malloc(len);
 
-	// Read bytes
-	memcpy(data, (pStream + *pPos), len);
-	(*pPos) += len;
-
-	// Inflate data
+	// Start inflation
 	z_stream strm;
-	unsigned char* inflatedData = nullptr;
 	unsigned char* inflatedDataTmp;
 	unsigned int inflatedDataSize = 0;
 	int ret;
@@ -124,122 +120,69 @@ bool InflateBlock(const unsigned char* pStream, unsigned int* pPos, unsigned cha
 
 	if (inflateInit(&strm) != Z_OK) {
 		// Error starting inflation
-		free(data);
 		return false;
 	}
 
-	unsigned int chunksSent = 0;
-	while (len > 0) {
-		if (len > ZLIB_CHUNK) {
-			//Not the final input chunk
-			
-			memcpy(pInBuffer, (data + (chunksSent * ZLIB_CHUNK)), ZLIB_CHUNK);
+	// Input chunk
+	strm.next_in = pStream + (*pPos);
+	strm.avail_in = len;
+	strm.next_out = (*pOutBuffer);
+	strm.avail_out = (*pOutSize);
 
-			strm.next_in = pInBuffer;
-			strm.avail_in = ZLIB_CHUNK;
-			strm.next_out = pOutBuffer;
-			strm.avail_out = ZLIB_CHUNK;
-
-			if (inflate(&strm, Z_NO_FLUSH) != Z_OK) {
-				// Error inflating
-
-				inflateEnd(&strm);
-				free(data);
-
-				if (inflatedData != nullptr) free(inflatedData);
-				return false;
-			}
-
-			// Copy new data to inflatedData
-			if (inflatedData == nullptr) {
-				inflatedData = (unsigned char*) malloc(strm.avail_out);
-				memcpy(inflatedData, pOutBuffer, strm.avail_out);
-			}
-			else {
-				inflatedDataTmp = (unsigned char*) malloc(inflatedDataSize + strm.avail_out);
-				memcpy(inflatedDataTmp, inflatedData, inflatedDataSize);
-				memcpy((inflatedDataTmp + inflatedDataSize), pOutBuffer, strm.avail_out);
-				free(inflatedData);
-				inflatedData = inflatedDataTmp;
-			}
-
-			len -= ZLIB_CHUNK;
-			chunksSent++;
-		}
-		else {
-			// Final input chunk
-
-			memcpy(pInBuffer, (data + (chunksSent * ZLIB_CHUNK)), len);
-
-			strm.next_in = pInBuffer;
-			strm.avail_in = len;
-			strm.next_out = pOutBuffer;
-			strm.avail_out = ZLIB_CHUNK;
-
-			ret = inflate(&strm, Z_NO_FLUSH);
-			if ((ret != Z_OK) && (ret != Z_STREAM_END)) {
-				// Error inflating
-
-				inflateEnd(&strm);
-				free(data);
-
-				if (inflatedData != nullptr) free(inflatedData);
-				return false;
-			}
-
-			// Copy new data to inflatedData
-			if (inflatedData == nullptr) {
-				inflatedData = (unsigned char*)malloc(strm.avail_out);
-				memcpy(inflatedData, pOutBuffer, strm.avail_out);
-			}
-			else {
-				inflatedDataTmp = (unsigned char*)malloc(inflatedDataSize + strm.avail_out);
-				memcpy(inflatedDataTmp, inflatedData, inflatedDataSize);
-				memcpy((inflatedDataTmp + inflatedDataSize), pOutBuffer, strm.avail_out);
-				free(inflatedData);
-				inflatedData = inflatedDataTmp;
-			}
-
-			break;
-		}
+	ret = inflate(&strm, Z_NO_FLUSH);
+	if (ret == Z_STREAM_END) {
+		// Success - output stream already ended, let's go home early
+		inflateEnd(&strm);
+		(*pOutSize) = strm.avail_out;
+		return true;
 	}
+	else if (ret != Z_OK) {
+		// Error inflating
+		inflateEnd(&strm);
+		return false;
+	}
+
+	// Copy new data to inflatedData
+	unsigned char* inflatedData = (unsigned char*)malloc(strm.avail_out);
+	memcpy(inflatedData, pOutBuffer, strm.avail_out);
+	inflatedDataSize = strm.avail_out;
 
 	// There may be more data to be output by inflate(), so we grab that until Z_STREAM_END if we don't have it already.
 	while (ret != Z_STREAM_END) {
-		strm.next_in = pInBuffer;
+		strm.next_in = nullptr;
 		strm.avail_in = 0;
-		strm.next_out = pOutBuffer;
-		strm.avail_out = ZLIB_CHUNK;
 
 		ret = inflate(&strm, Z_NO_FLUSH);
-		if (ret != Z_OK) {
+		if ((ret != Z_OK) && (ret != Z_STREAM_END)) {
 			// Error inflating
-
 			inflateEnd(&strm);
-			free(data);
-
-			if (inflatedData != nullptr) free(inflatedData);
+			free(inflatedData);
 			return false;
 		}
 
 		// Copy new data to inflatedData
-		if (inflatedData == nullptr) {
-			inflatedData = (unsigned char*)malloc(strm.avail_out);
-			memcpy(inflatedData, pOutBuffer, strm.avail_out);
-		}
-		else {
-			inflatedDataTmp = (unsigned char*)malloc(inflatedDataSize + strm.avail_out);
-			memcpy(inflatedDataTmp, inflatedData, inflatedDataSize);
-			memcpy((inflatedDataTmp + inflatedDataSize), pOutBuffer, strm.avail_out);
-			free(inflatedData);
-			inflatedData = inflatedDataTmp;
-		}
+		inflatedDataTmp = (unsigned char*) malloc(inflatedDataSize + strm.avail_out);
+		memcpy(inflatedDataTmp, inflatedData, inflatedDataSize);
+		memcpy((inflatedDataTmp + inflatedDataSize), pOutBuffer, strm.avail_out);
+		free(inflatedData);
+		inflatedData = inflatedDataTmp;
+		inflatedDataSize += strm.avail_out;
+	}
+
+	// Final sanity check
+	if (inflatedData == nullptr) {
+		// We never received any inflated data so this warrants returning false.
+		inflateEnd(&strm);
+		free(inflatedData);
+		return false;
 	}
 
 	// Clean up and exit
+	(*pOutBuffer) = inflatedData;
+	(*pOutSize) = inflatedDataSize;
+
 	inflateEnd(&strm);
-	free(data);
-	if (inflatedData != nullptr) free(inflatedData);
+	(*pPos) += len;
 	return true;
 }
 
@@ -334,13 +277,20 @@ bool Game::Load(const char * pFilename)
 	}
 
 	// Read all the data blocks.
-	unsigned char* zlibIn = (unsigned char*) malloc(ZLIB_CHUNK);
-	unsigned char* zlibOut = (unsigned char*) malloc(ZLIB_CHUNK);
+
+	// Init variables
+	unsigned int dataLength = ZLIB_BUF_START;
+	unsigned char* data = (unsigned char*) malloc(dataLength);
 
 	// Settings Data Chunk
-	unsigned char* data;
-	unsigned int dataLength;
-	InflateBlock(buffer, &pos, zlibIn, zlibOut, &data, &dataLength);
+	bool success = InflateBlock(buffer, &pos, &data, &dataLength);
+
+	if (!success) {
+		// Error reading settings block
+		free(data);
+		free(buffer);
+		return false;
+	}
 
 	FILE* f;
 	f = fopen("settings.b", "wb");
@@ -348,8 +298,7 @@ bool Game::Load(const char * pFilename)
 	fclose(f);
 
 	//Cleaning up
-	free(zlibIn);
-	free(zlibOut);
+	free(data);
 	free(buffer);
 	return true;
 }
