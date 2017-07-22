@@ -74,7 +74,7 @@ bool Decrypt81(unsigned char* pStream, unsigned int pStreamLength, unsigned int*
 	unsigned int seed1 = ReadDword(pStream, pPos);
 
 	// Skip the part that's not gm81-encrypted
-	unsigned int encPos = (*pPos) + (seed2 & 0xFF) + 6;
+	unsigned int encPos = (*pPos) + (seed2 & 0xFF) + 0xA;
 
 	// Decrypt the rest of the stream
 	while (encPos < pStreamLength) {
@@ -133,7 +133,7 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 	if (ret == Z_STREAM_END) {
 		// Success - output stream already ended, let's go home early
 		inflateEnd(&strm);
-		(*pOutSize) = strm.avail_out;
+		(*pOutSize) -= strm.avail_out;
 		return true;
 	}
 	else if (ret != Z_OK) {
@@ -143,9 +143,10 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 	}
 
 	// Copy new data to inflatedData
-	unsigned char* inflatedData = (unsigned char*)malloc(strm.avail_out);
-	memcpy(inflatedData, pOutBuffer, strm.avail_out);
-	inflatedDataSize = strm.avail_out;
+	unsigned int availOut = (*pOutSize) - strm.avail_out;
+	unsigned char* inflatedData = (unsigned char*)malloc(availOut);
+	memcpy(inflatedData, pOutBuffer, availOut);
+	inflatedDataSize = availOut;
 
 	// There may be more data to be output by inflate(), so we grab that until Z_STREAM_END if we don't have it already.
 	while (ret != Z_STREAM_END) {
@@ -161,12 +162,12 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 		}
 
 		// Copy new data to inflatedData
-		inflatedDataTmp = (unsigned char*) malloc(inflatedDataSize + strm.avail_out);
+		inflatedDataTmp = (unsigned char*) malloc(inflatedDataSize + availOut);
 		memcpy(inflatedDataTmp, inflatedData, inflatedDataSize);
-		memcpy((inflatedDataTmp + inflatedDataSize), pOutBuffer, strm.avail_out);
+		memcpy((inflatedDataTmp + inflatedDataSize), pOutBuffer, availOut);
 		free(inflatedData);
 		inflatedData = inflatedDataTmp;
-		inflatedDataSize += strm.avail_out;
+		inflatedDataSize += availOut;
 	}
 
 	// Final sanity check
@@ -283,19 +284,18 @@ bool Game::Load(const char * pFilename)
 	unsigned char* data = (unsigned char*) malloc(dataLength);
 
 	// Settings Data Chunk
-	bool success = InflateBlock(buffer, &pos, &data, &dataLength);
-
-	if (!success) {
+	if (!InflateBlock(buffer, &pos, &data, &dataLength)) {
 		// Error reading settings block
 		free(data);
 		free(buffer);
 		return false;
 	}
-
-	FILE* f;
-	f = fopen("settings.b", "wb");
-	fwrite(data, sizeof(unsigned char), dataLength, f);
-	fclose(f);
+	else {
+		unsigned int settingsPos = 0;
+		//settings.fullscreen = ReadDword(data, &settingsPos);
+		//settings.interpolate = ReadDword(data, &settingsPos);
+		//etc
+	}
 
 	//Cleaning up
 	free(data);
