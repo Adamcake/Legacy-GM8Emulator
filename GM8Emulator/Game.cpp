@@ -118,6 +118,10 @@ bool InflateBlock(const unsigned char* pStream, unsigned int* pPos, unsigned cha
 	unsigned int inflatedDataSize = 0;
 	int ret;
 
+	strm.zalloc = Z_NULL;
+	strm.zfree = Z_NULL;
+	strm.opaque = Z_NULL;
+
 	if (inflateInit(&strm) != Z_OK) {
 		// Error starting inflation
 		free(data);
@@ -337,6 +341,11 @@ bool Game::Load(const char * pFilename)
 	unsigned char* data;
 	unsigned int dataLength;
 	InflateBlock(buffer, &pos, zlibIn, zlibOut, &data, &dataLength);
+
+	FILE* f;
+	f = fopen("settings.b", "wb");
+	fwrite(data, sizeof(unsigned char), dataLength, f);
+	fclose(f);
 
 	//Cleaning up
 	free(zlibIn);
