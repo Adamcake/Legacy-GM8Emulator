@@ -1,6 +1,5 @@
 #include "Game.hpp"
-#include <zconf.h>
-#include <zlib.h>
+#include "zlib\zlib.h"
 
 #define ZLIB_CHUNK 65536
 

@@ -72,13 +72,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)zlib/;$(SolutionDir)SDL2/include/;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)zlib/;$(SolutionDir)SDL2/lib/x86/;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)SDL2/include/;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)SDL2/lib/x86/;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)zlib/;$(SolutionDir)SDL2/include/;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)SDL2/lib/x64/;$(SolutionDir)zlib/;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)SDL2/include/;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)SDL2/lib/x64/;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -100,7 +100,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>SDL2.lib;SDL2main.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>SDL2.lib;SDL2main.lib;zlib\zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -113,7 +113,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>SDL2.lib;SDL2main.lib;zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>SDL2.lib;SDL2main.lib;zlib\zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
