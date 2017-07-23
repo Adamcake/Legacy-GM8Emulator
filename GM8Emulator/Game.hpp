@@ -46,6 +46,9 @@ struct Settings {
 class Game {
 	private:
 		// These contain the assets loaded in from the gamedata.
+		std::vector<Trigger*> _triggers;
+		std::vector<Constant*> _constants;
+
 		std::vector<Sound*> _sounds;
 		std::vector<Sprite*> _sprites;
 		std::vector<Background*> _backgrounds;

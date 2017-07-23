@@ -1,27 +1,54 @@
 #include <string.h>
+#include <windows.h>
 #include "Assets.hpp"
 
-Asset::Asset(const char* pName) {
-	unsigned int len = strlen(name);
-	this->name = new char[len + 1];
-	memcpy(this->name, name, len + 1);
+Asset::Asset(char* pName) {
+	name = pName;
 }
 
 Asset::~Asset() {
-	delete[] name;
+	free(name);
 }
 
 
 
-Sound::Sound(const char * pName) : Asset(pName)
+Trigger::Trigger(char * pName) : Asset(pName)
 {
+	condition = NULL;
+	constantName = NULL;
+}
+
+Trigger::~Trigger()
+{
+	free(condition);
+	free(constantName);
+}
+
+Constant::Constant(char * pName) : Asset(pName)
+{
+	value = NULL;
+}
+
+Constant::~Constant()
+{
+	free(value);
+}
+
+Sound::Sound(char * pName) : Asset(pName)
+{
+	fileType = NULL;
+	fileName = NULL;
+	data = NULL;
 }
 
 Sound::~Sound()
 {
+	free(fileType);
+	free(fileName);
+	free(data);
 }
 
-Sprite::Sprite(const char * pName) : Asset(pName)
+Sprite::Sprite(char * pName) : Asset(pName)
 {
 }
 
@@ -29,7 +56,7 @@ Sprite::~Sprite()
 {
 }
 
-Background::Background(const char * pName) : Asset(pName)
+Background::Background(char * pName) : Asset(pName)
 {
 }
 
@@ -37,7 +64,7 @@ Background::~Background()
 {
 }
 
-Path::Path(const char * pName) : Asset(pName)
+Path::Path(char * pName) : Asset(pName)
 {
 }
 
@@ -45,7 +72,7 @@ Path::~Path()
 {
 }
 
-Script::Script(const char * pName) : Asset(pName)
+Script::Script(char * pName) : Asset(pName)
 {
 }
 
@@ -53,7 +80,7 @@ Script::~Script()
 {
 }
 
-Font::Font(const char * pName) : Asset(pName)
+Font::Font(char * pName) : Asset(pName)
 {
 }
 
@@ -61,7 +88,7 @@ Font::~Font()
 {
 }
 
-Timeline::Timeline(const char * pName) : Asset(pName)
+Timeline::Timeline(char * pName) : Asset(pName)
 {
 }
 
@@ -69,7 +96,7 @@ Timeline::~Timeline()
 {
 }
 
-Object::Object(const char * pName) : Asset(pName)
+Object::Object(char * pName) : Asset(pName)
 {
 }
 
@@ -77,7 +104,7 @@ Object::~Object()
 {
 }
 
-Room::Room(const char * pName) : Asset(pName)
+Room::Room(char * pName) : Asset(pName)
 {
 }
 

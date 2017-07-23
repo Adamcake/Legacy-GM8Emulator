@@ -1,6 +1,8 @@
 #include "Game.hpp"
 #include "zlib\zlib.h"
 
+#include <iostream>
+
 #define ZLIB_BUF_START 65536
 
 #pragma region Helper functions for parsing the filestream - no need for these to be member functions.
@@ -10,6 +12,24 @@ unsigned int ReadDword(const unsigned char* pStream, unsigned int* pPos) {
 	unsigned int val = pStream[(*pPos)] + (pStream[(*pPos) + 1] << 8) + (pStream[(*pPos) + 2] << 16) + (pStream[(*pPos) + 3] << 24);
 	(*pPos) += 4;
 	return val;
+}
+
+// Reads a double from the given position in the byte stream
+double ReadDouble(const unsigned char* pStream, unsigned int* pPos) {
+	double val = *(double*)(pStream + (*pPos));
+	(*pPos) += 4;
+	return val;
+}
+
+// Reads a null-terminated string from the given position in the byte stream
+// This allocates space for the string, so you should always give it to an object whose destructor will free it.
+char* ReadString(const unsigned char* pStream, unsigned int* pPos) {
+	unsigned int length = ReadDword(pStream, pPos);
+	char* str = (char*) malloc(length + 1);
+	memcpy(str, (pStream + *pPos), length);
+	str[length] = '\0';
+	(*pPos) += length;
+	return str;
 }
 
 // YYG's implementation of Crc32
@@ -168,13 +188,13 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 	strm.next_in = pStream + (*pPos);
 	strm.avail_in = len;
 	strm.next_out = (*pOutBuffer);
-	strm.avail_out = (*pOutSize);
+	strm.avail_out = (*pOutBufferSize);
 
 	ret = inflate(&strm, Z_NO_FLUSH);
 	if (ret == Z_STREAM_END) {
 		// Success - output stream already ended, let's go home early
 		inflateEnd(&strm);
-		(*pOutSize) -= strm.avail_out;
+		(*pOutSize) = (*pOutBufferSize) - strm.avail_out;
 		(*pPos) += len;
 		return true;
 	}
@@ -185,7 +205,7 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 	}
 
 	// Copy new data to inflatedData
-	unsigned int availOut = (*pOutSize) - strm.avail_out;
+	unsigned int availOut = (*pOutBufferSize) - strm.avail_out;
 	unsigned char* inflatedData = (unsigned char*)malloc(availOut);
 	memcpy(inflatedData, (*pOutBuffer), availOut);
 	inflatedDataSize = availOut;
@@ -193,7 +213,7 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 	// There may be more data to be output by inflate(), so we grab that until Z_STREAM_END if we don't have it already.
 	while (ret != Z_STREAM_END) {
 		strm.next_out = (*pOutBuffer);
-		strm.avail_out = (*pOutSize);
+		strm.avail_out = (*pOutBufferSize);
 		strm.next_in = pStream + (*pPos) + (len - strm.avail_in);
 
 		ret = inflate(&strm, Z_NO_FLUSH);
@@ -205,7 +225,13 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 		}
 
 		// Copy new data to inflatedData
-		availOut = (*pOutSize) - strm.avail_out;
+		availOut = (*pOutBufferSize) - strm.avail_out;
+		inflatedDataTmp = (unsigned char*)malloc(availOut + inflatedDataSize);
+		memcpy(inflatedDataTmp, inflatedData, inflatedDataSize);
+		memcpy((inflatedDataTmp + inflatedDataSize), (*pOutBuffer), availOut);
+		free(inflatedData);
+		inflatedData = inflatedDataTmp;
+		inflatedDataSize += availOut;
 	}
 
 	// Clean up and exit
@@ -216,18 +242,6 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 	inflateEnd(&strm);
 	(*pPos) += len;
 	return true;
-}
-
-// Read a data paragraph from the main data stream
-// OutBuffer must already be initialized and the size of it must be passed in OutSize. A bigger buffer will result in less iterations, thus a faster return.
-// On success, the function will overwrite OutBuffer and OutBufferSize with the new buffer and max size. OutSize contains the number of bytes in the output.
-bool ReadParagraph(unsigned char* pStream, unsigned int* pPos, unsigned char** pOutBuffer, unsigned int* pOutBufferSize, unsigned int* pOutSize) {
-	// Skip the version identifier - always 0x320
-	// We can check this if we want strict integrity checking but it isn't important.
-	(*pPos) += 4;
-
-	// And the rest is a zlib data block.
-	return InflateBlock(pStream, pPos, pOutBuffer, pOutBufferSize, pOutSize);
 }
 
 #pragma endregion
@@ -328,7 +342,8 @@ bool Game::Load(const char * pFilename)
 	unsigned int outputSize;
 
 	// Settings Data Chunk
-	if (!ReadParagraph(buffer, &pos, &data, &dataLength, &outputSize)) {
+	pos += 4;
+	if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
 		// Error reading settings block
 		free(data);
 		free(buffer);
@@ -447,8 +462,129 @@ bool Game::Load(const char * pFilename)
 	// Garbage fields
 	pos += (ReadDword(buffer, &pos) + 6) * 4;
 
-	// Extensions
-	
+	// Extensions - there's zero documentation on how these work, they have their own encryption, and they're not in common use. So I won't support them for now.
+	pos += 4;
+	for (unsigned int count = ReadDword(buffer, &pos); count > 0; count--) {
+		ReadDword(buffer, &pos); // Data version - 700
+		pos += ReadDword(buffer, &pos); // Extension name
+		pos += ReadDword(buffer, &pos); // Some kind of extension ID? eg. "GMPrint123"
+
+		// A list of things inside the extension, seems to refer to external files.
+		for (unsigned int i = ReadDword(buffer, &pos); i > 0; i--) {
+			ReadDword(buffer, &pos); // Data version, 700
+			pos += ReadDword(buffer, &pos); // Filename, eg "Printing.dll" - can be either .dll or .gml
+			ReadDword(buffer, &pos); // Some kind of sequence id?
+			pos += ReadDword(buffer, &pos); // Extern init function name, eg "__tr_init"
+			pos += ReadDword(buffer, &pos); // Always blank?
+
+			// "compiled data" according to zach
+
+			unsigned int ii = ReadDword(buffer, &pos);
+			for (; ii; ii--) {
+				ReadDword(buffer, &pos);
+				pos += ReadDword(buffer, &pos);
+				ReadString(buffer, &pos);
+				ReadDword(buffer, &pos);
+				ReadDword(buffer, &pos);
+				ReadDword(buffer, &pos);
+
+				for (unsigned int j = 0; j < 17; j++) {
+					ReadDword(buffer, &pos);
+				}
+
+				ReadDword(buffer, &pos);
+			}
+
+			unsigned int iii = ReadDword(buffer, &pos);
+			for (; iii; iii--) {
+				ReadDword(buffer, &pos);
+				ReadString(buffer, &pos);
+				ReadString(buffer, &pos);
+			}
+		}
+
+		pos += ReadDword(buffer, &pos);
+	}
+
+
+	// Triggers
+
+	Trigger* trigger;
+	pos += 4;
+	for (unsigned int count = ReadDword(buffer, &pos); count > 0; count--) {
+
+		if (! InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
+			// Error reading trigger
+			free(data);
+			free(buffer);
+			return true;
+		}
+
+		unsigned int dataPos = 4;
+		trigger = new Trigger(ReadString(data, &dataPos));
+		trigger->condition = ReadString(data, &dataPos);
+		trigger->checkMoment = ReadDword(data, &dataPos);
+		trigger->constantName = ReadString(data, &dataPos);
+		_triggers.push_back(trigger);
+	}
+
+
+	// Constants
+
+	Constant* constant;
+	pos += 4;
+	for (unsigned int count = ReadDword(buffer, &pos); count > 0; count--) {
+		constant = new Constant(ReadString(buffer, &pos));
+		constant->value = ReadString(buffer, &pos);
+		_constants.push_back(constant);
+	}
+
+
+	// Sounds
+
+	Sound* sound;
+	pos += 4;
+	for (unsigned int count = ReadDword(buffer, &pos); count > 0; count--) {
+
+		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
+			// Error reading sound
+			free(data);
+			free(buffer);
+			return true;
+		}
+
+		unsigned int dataPos = 0;
+		if (! ReadDword(data, &dataPos)) {
+			_sounds.push_back(NULL);
+			continue;
+		}
+
+		sound = new Sound(ReadString(data, &dataPos));
+		pos += 4;
+		sound->kind = ReadDword(data, &dataPos);
+		sound->fileType = ReadString(data, &dataPos);
+		sound->fileName = ReadString(data, &dataPos);
+
+		if (ReadDword(buffer, &pos)) {
+			unsigned int l = ReadDword(data, &dataPos);
+			sound->data = (unsigned char*) malloc(l);
+			memcpy(sound->data, (data + dataPos), l);
+		}
+		else {
+			sound->data = NULL;
+			sound->dataLength = 0;
+		}
+
+		unsigned int effects = ReadDword(data, &dataPos);
+
+		std::cout << "Sound " << sound->getName() << " =" << effects << std::endl;
+
+
+		sound->volume = ReadDouble(data, &dataPos);
+		sound->pan = ReadDouble(data, &dataPos);
+		sound->preload = ReadDword(data, &dataPos);
+		_sounds.push_back(sound);
+	}
 
 	//Cleaning up
 	free(data);
