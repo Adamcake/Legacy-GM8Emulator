@@ -1,5 +1,6 @@
 #include <string.h>
 #include <windows.h>
+#include "SDL\SDL.h"
 #include "Assets.hpp"
 
 Asset::Asset(char* pName) {
@@ -50,10 +51,27 @@ Sound::~Sound()
 
 Sprite::Sprite(char * pName) : Asset(pName)
 {
+	images = NULL;
 }
 
 Sprite::~Sprite()
 {
+	if (separateCollision) {
+		for (unsigned int i = 0; i < frames; i++) {
+			delete[]((CollisionMap*)(images[i]->userdata))->collision;
+			delete[] images[i]->userdata;
+			SDL_FreeSurface(images[i]);
+		}
+	}
+	else {
+		delete[]((CollisionMap*)(images[0]->userdata))->collision;
+		delete[] images[0]->userdata;
+		for (unsigned int i = 0; i < frames; i++) {
+			SDL_FreeSurface(images[i]);
+		}
+	}
+
+	delete[] images;
 }
 
 Background::Background(char * pName) : Asset(pName)

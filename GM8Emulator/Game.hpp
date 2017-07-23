@@ -68,6 +68,10 @@ class Game {
 		// Load in game data from a file stream. Returns true on success, false on failure.
 		// The Game object should be deleted on failure as it will be in an undefined state.
 		bool Load(const char* filename);
+
+		// Call this every time you want a frame advance. Check what the FPS is supposed to be with Game.getFPS().
+		// Returns false if the game should exit, otherwise true.
+		bool Frame(SDL_Surface* surface, unsigned int frame);
 };
 
 #endif

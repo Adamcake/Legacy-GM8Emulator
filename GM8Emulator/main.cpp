@@ -1,4 +1,4 @@
-#include <SDL/SDL.h>
+#include "SDL/SDL.h"
 #include "Game.hpp"
 
 int main(int argc, char** argv) {
@@ -12,23 +12,27 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	SDL_Window* test;
+	SDL_Window* window;
 	SDL_Event event;
 
 	SDL_Init(SDL_INIT_EVERYTHING);
-	test = SDL_CreateWindow(argv[0], SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_OPENGL);
+	window = SDL_CreateWindow(argv[0], SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_OPENGL);
 	
-	while (1) {
-		if (SDL_PollEvent(&event)) {
-			if (event.type == SDL_QUIT) {
-				SDL_Quit();
-				return 0;
-			}
+	unsigned int frame = 0;
+
+	while (true) {
+		if (!game->Frame(SDL_GetWindowSurface(window), frame)) {
+			break;
 		}
+
+		frame++;
+
+		SDL_UpdateWindowSurface(window);
 		SDL_Delay(1);
 	}
 
-	SDL_DestroyWindow(test);
+	SDL_DestroyWindow(window);
 	delete game;
+	SDL_Quit();
 	return 0;
 }

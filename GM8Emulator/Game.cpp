@@ -1,7 +1,6 @@
 #include "Game.hpp"
 #include "zlib\zlib.h"
-
-#include <iostream>
+#include "SDL\SDL.h"
 
 #define ZLIB_BUF_START 65536
 
@@ -17,7 +16,7 @@ unsigned int ReadDword(const unsigned char* pStream, unsigned int* pPos) {
 // Reads a double from the given position in the byte stream
 double ReadDouble(const unsigned char* pStream, unsigned int* pPos) {
 	double val = *(double*)(pStream + (*pPos));
-	(*pPos) += 4;
+	(*pPos) += 8;
 	return val;
 }
 
@@ -560,12 +559,12 @@ bool Game::Load(const char * pFilename)
 		}
 
 		sound = new Sound(ReadString(data, &dataPos));
-		pos += 4;
+		dataPos += 4;
 		sound->kind = ReadDword(data, &dataPos);
 		sound->fileType = ReadString(data, &dataPos);
 		sound->fileName = ReadString(data, &dataPos);
 
-		if (ReadDword(buffer, &pos)) {
+		if (ReadDword(data, &dataPos)) {
 			unsigned int l = ReadDword(data, &dataPos);
 			sound->data = (unsigned char*) malloc(l);
 			memcpy(sound->data, (data + dataPos), l);
@@ -575,10 +574,7 @@ bool Game::Load(const char * pFilename)
 			sound->dataLength = 0;
 		}
 
-		unsigned int effects = ReadDword(data, &dataPos);
-
-		std::cout << "Sound " << sound->getName() << " =" << effects << std::endl;
-
+		dataPos += 4; // Not sure what this is, appears to be unused
 
 		sound->volume = ReadDouble(data, &dataPos);
 		sound->pan = ReadDouble(data, &dataPos);
@@ -586,8 +582,120 @@ bool Game::Load(const char * pFilename)
 		_sounds.push_back(sound);
 	}
 
+
+	// Sprites
+
+	Sprite* sprite;
+	CollisionMap* map;
+	pos += 4;
+	for (unsigned int count = ReadDword(buffer, &pos); count > 0; count--) {
+
+		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
+			// Error reading sprite
+			free(data);
+			free(buffer);
+			return true;
+		}
+
+		unsigned int dataPos = 0;
+		if (!ReadDword(data, &dataPos)) {
+			_sprites.push_back(NULL);
+			continue;
+		}
+
+		sprite = new Sprite(ReadString(data, &dataPos));
+		dataPos += 4;
+
+		sprite->originX = ReadDword(data, &dataPos);
+		sprite->originY = ReadDword(data, &dataPos);
+
+		sprite->frames = ReadDword(data, &dataPos);
+		if (sprite->frames) {
+			sprite->images = (SDL_Surface**) malloc(sizeof(SDL_Surface*) * sprite->frames);
+
+			// Frame data
+			unsigned int i;
+			for (i = 0; i < sprite->frames; i++) {
+				dataPos += 4;
+
+				unsigned int w = ReadDword(data, &dataPos);
+				unsigned int h = ReadDword(data, &dataPos);
+
+				sprite->images[i] = SDL_CreateRGBSurface(0, w, h, 32, 0, 0, 0, 0);
+				SDL_SetSurfaceBlendMode(sprite->images[i], SDL_BLENDMODE_BLEND);
+				unsigned int pixelDataLength = ReadDword(data, &dataPos);
+				memcpy(sprite->images[i]->pixels, (data + dataPos), pixelDataLength);
+				dataPos += pixelDataLength;
+			}
+
+			// Collision data
+			sprite->separateCollision = ReadDword(data, &dataPos);
+			if (sprite->separateCollision) {
+				// Separate maps
+				for (i = 0; i < sprite->frames; i++) {
+					dataPos += 4;
+
+					map = new CollisionMap();
+					map->width = ReadDword(data, &dataPos);
+					map->height = ReadDword(data, &dataPos);
+					map->left = ReadDword(data, &dataPos);
+					map->right = ReadDword(data, &dataPos);
+					map->bottom = ReadDword(data, &dataPos);
+					map->top = ReadDword(data, &dataPos);
+
+					unsigned int maskSize = map->width * map->height;
+					map->collision = new bool[maskSize];
+					for (unsigned int ii = 0; ii < maskSize; ii++) {
+						map->collision[ii] = ReadDword(data, &dataPos);
+					}
+
+					sprite->images[i]->userdata = map;
+				}
+			}
+			else {
+				// One map
+
+				dataPos += 4;
+
+				map = new CollisionMap();
+				map->width = ReadDword(data, &dataPos);
+				map->height = ReadDword(data, &dataPos);
+				map->left = ReadDword(data, &dataPos);
+				map->right = ReadDword(data, &dataPos);
+				map->bottom = ReadDword(data, &dataPos);
+				map->top = ReadDword(data, &dataPos);
+
+				unsigned int maskSize = map->width * map->height;
+				map->collision = new bool[maskSize];
+				for (unsigned int ii = 0; ii < maskSize; ii++) {
+					map->collision[ii] = ReadDword(data, &dataPos);
+				}
+
+				for (i = 0; i < sprite->frames; i++) {
+					sprite->images[i]->userdata = map;
+				}
+			}
+		}
+
+		_sprites.push_back(sprite);
+	}
+
 	//Cleaning up
 	free(data);
 	free(buffer);
+	return true;
+}
+
+
+
+bool Game::Frame(SDL_Surface* surface, unsigned int frame) {
+	SDL_Event event;
+	if (SDL_PollEvent(&event)) {
+		if (event.type == SDL_QUIT) {
+			return false;
+		}
+	}
+
+	SDL_BlitSurface(_sprites[0]->images[frame % _sprites[0]->frames], NULL, surface, NULL);
 	return true;
 }
