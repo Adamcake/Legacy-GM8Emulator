@@ -38,13 +38,13 @@ struct Settings {
 	bool errorDisplay;				// Display error messages
 	bool errorLog;					// Write error messages to game_errors.log
 	bool errorAbort;				// Abort on all error messages
-	unsigned int treatAsZero;		// Treat uninitialized variables as 0
+	bool treatAsZero;				// Treat uninitialized variables as 0
+	bool errorOnUninitialization;	// Throw an error when script arguments aren't initialized correctly
 };
 
 // This is the overall structure for the game state.
 class Game {
 	private:
-
 		// These contain the assets loaded in from the gamedata.
 		std::vector<Sound*> _sounds;
 		std::vector<Sprite*> _sprites;

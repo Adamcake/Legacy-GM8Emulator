@@ -7,8 +7,7 @@
 
 // Reads a dword from the given position in the byte stream
 unsigned int ReadDword(const unsigned char* pStream, unsigned int* pPos) {
-	unsigned int position = *pPos;
-	unsigned int val = pStream[position] + (pStream[position + 1] << 8) + (pStream[position + 2] << 16) + (pStream[position + 3] << 24);
+	unsigned int val = pStream[(*pPos)] + (pStream[(*pPos) + 1] << 8) + (pStream[(*pPos) + 2] << 16) + (pStream[(*pPos) + 3] << 24);
 	(*pPos) += 4;
 	return val;
 }
@@ -97,15 +96,57 @@ bool Decrypt81(unsigned char* pStream, unsigned int pStreamLength, unsigned int*
 	return true;
 }
 
-// Read and inflate a data block from the data stream
-// OutBuffer must already be initialized and the size of it must be passed in OutSize. A bigger buffer will result in less iterations, thus a faster return.
-// On success, the function will overwrite OutBuffer and OutSize with the new buffer and size.
-bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pOutBuffer, unsigned int* pOutSize)
-{
-	// The first dword is always 0x320. Maybe we could actually check this value if we want strict integrity checking but it isn't needed.
-	(*pPos) += 4;
+// Decrypt the asset data paragraphs (this exists in all gm8 versions, and on top of 8.1 encryption)
+bool DecryptData(unsigned char* pStream, unsigned int* pPos) {
+	unsigned char swapTable[256];
+	unsigned char reverseTable[256];
+	unsigned int i;
 
-	// Next dword is the length in bytes of the compressed data following it.
+	// The swap table is between two garbage tables, these dwords specify the length.
+	unsigned int garbageTable1Size = 4 * ReadDword(pStream, pPos);
+	unsigned int garbageTable2Size = 4 * ReadDword(pStream, pPos);
+
+	// Get the swap table, skip garbage.
+	(*pPos) += garbageTable1Size;
+	memcpy(swapTable, (pStream + (*pPos)), 256);
+	(*pPos) += garbageTable2Size + 256;
+
+	// Fill the reverse table
+	for (i = 0; i < 256; i++) {
+		reverseTable[swapTable[i]] = i;
+	}
+
+	// Get length of encrypted area
+	unsigned int len = ReadDword(pStream, pPos);
+
+	// Decryption first pass
+	for (i = (*pPos) + len; i > (*pPos) + 1; i--) {
+		pStream[i - 1] = reverseTable[pStream[i - 1]] - (pStream[i - 2] + (i - ((*pPos) + 1)));
+	}
+
+	// Decryption second pass
+	unsigned char a;
+	int b;
+	
+	for (i = (*pPos) + len - 1; i > (*pPos); i--) {
+		b = i - (int)swapTable[(i - (*pPos)) & 0xFF];
+		if (b < (*pPos)) b = (*pPos);
+
+		a = pStream[i];
+		pStream[i] = pStream[b];
+		pStream[b] = a;
+	}
+
+	return true;
+}
+
+
+// Read and inflate a data block from a byte stream
+// OutBuffer must already be initialized and the size of it must be passed in OutSize. A bigger buffer will result in less iterations, thus a faster return.
+// On success, the function will overwrite OutBuffer and OutBufferSize with the new buffer and max size. OutSize contains the number of bytes in the output.
+bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pOutBuffer, unsigned int* pOutBufferSize, unsigned int* pOutSize)
+{
+	// The first dword is the length in bytes of the compressed data following it.
 	unsigned int len = ReadDword(pStream, pPos);
 
 	// Start inflation
@@ -134,6 +175,7 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 		// Success - output stream already ended, let's go home early
 		inflateEnd(&strm);
 		(*pOutSize) -= strm.avail_out;
+		(*pPos) += len;
 		return true;
 	}
 	else if (ret != Z_OK) {
@@ -145,13 +187,14 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 	// Copy new data to inflatedData
 	unsigned int availOut = (*pOutSize) - strm.avail_out;
 	unsigned char* inflatedData = (unsigned char*)malloc(availOut);
-	memcpy(inflatedData, pOutBuffer, availOut);
+	memcpy(inflatedData, (*pOutBuffer), availOut);
 	inflatedDataSize = availOut;
 
 	// There may be more data to be output by inflate(), so we grab that until Z_STREAM_END if we don't have it already.
 	while (ret != Z_STREAM_END) {
-		strm.next_in = nullptr;
-		strm.avail_in = 0;
+		strm.next_out = (*pOutBuffer);
+		strm.avail_out = (*pOutSize);
+		strm.next_in = pStream + (*pPos) + (len - strm.avail_in);
 
 		ret = inflate(&strm, Z_NO_FLUSH);
 		if ((ret != Z_OK) && (ret != Z_STREAM_END)) {
@@ -162,29 +205,29 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 		}
 
 		// Copy new data to inflatedData
-		inflatedDataTmp = (unsigned char*) malloc(inflatedDataSize + availOut);
-		memcpy(inflatedDataTmp, inflatedData, inflatedDataSize);
-		memcpy((inflatedDataTmp + inflatedDataSize), pOutBuffer, availOut);
-		free(inflatedData);
-		inflatedData = inflatedDataTmp;
-		inflatedDataSize += availOut;
-	}
-
-	// Final sanity check
-	if (inflatedData == nullptr) {
-		// We never received any inflated data so this warrants returning false.
-		inflateEnd(&strm);
-		free(inflatedData);
-		return false;
+		availOut = (*pOutSize) - strm.avail_out;
 	}
 
 	// Clean up and exit
 	(*pOutBuffer) = inflatedData;
+	(*pOutBufferSize) = inflatedDataSize;
 	(*pOutSize) = inflatedDataSize;
 
 	inflateEnd(&strm);
 	(*pPos) += len;
 	return true;
+}
+
+// Read a data paragraph from the main data stream
+// OutBuffer must already be initialized and the size of it must be passed in OutSize. A bigger buffer will result in less iterations, thus a faster return.
+// On success, the function will overwrite OutBuffer and OutBufferSize with the new buffer and max size. OutSize contains the number of bytes in the output.
+bool ReadParagraph(unsigned char* pStream, unsigned int* pPos, unsigned char** pOutBuffer, unsigned int* pOutBufferSize, unsigned int* pOutSize) {
+	// Skip the version identifier - always 0x320
+	// We can check this if we want strict integrity checking but it isn't important.
+	(*pPos) += 4;
+
+	// And the rest is a zlib data block.
+	return InflateBlock(pStream, pPos, pOutBuffer, pOutBufferSize, pOutSize);
 }
 
 #pragma endregion
@@ -205,7 +248,7 @@ bool Game::Load(const char * pFilename)
 {
 	// Load the entirety of the file into a memory buffer
 
-	FILE* exe = fopen(pFilename, "r");
+	FILE* exe = fopen(pFilename, "rb");
 
 	if (exe == NULL) {
 		// Error accessing file
@@ -223,7 +266,7 @@ bool Game::Load(const char * pFilename)
 		return false;
 	}
 
-	fread(buffer, fsize, 1, exe);
+	size_t read = fread(buffer, 1, fsize, exe);
 	fclose(exe);
 
 	// Check if this is a valid exe
@@ -282,9 +325,10 @@ bool Game::Load(const char * pFilename)
 	// Init variables
 	unsigned int dataLength = ZLIB_BUF_START;
 	unsigned char* data = (unsigned char*) malloc(dataLength);
+	unsigned int outputSize;
 
 	// Settings Data Chunk
-	if (!InflateBlock(buffer, &pos, &data, &dataLength)) {
+	if (!ReadParagraph(buffer, &pos, &data, &dataLength, &outputSize)) {
 		// Error reading settings block
 		free(data);
 		free(buffer);
@@ -292,10 +336,119 @@ bool Game::Load(const char * pFilename)
 	}
 	else {
 		unsigned int settingsPos = 0;
-		//settings.fullscreen = ReadDword(data, &settingsPos);
-		//settings.interpolate = ReadDword(data, &settingsPos);
-		//etc
+		settings.fullscreen = ReadDword(data, &settingsPos);
+		settings.interpolate = ReadDword(data, &settingsPos);
+		settings.drawBorder = !ReadDword(data, &settingsPos);
+		settings.displayCursor = ReadDword(data, &settingsPos);
+		settings.scaling = ReadDword(data, &settingsPos);
+		settings.allowWindowResize = ReadDword(data, &settingsPos);
+		settings.onTop = ReadDword(data, &settingsPos);
+		settings.colourOutsideRoom = ReadDword(data, &settingsPos);
+		settings.setResolution = ReadDword(data, &settingsPos);
+		settings.colourDepth = ReadDword(data, &settingsPos);
+		settings.resolution = ReadDword(data, &settingsPos);
+		settings.frequency = ReadDword(data, &settingsPos);
+		settings.showButtons = !ReadDword(data, &settingsPos);
+		settings.vsync = ReadDword(data, &settingsPos);
+		settings.disableScreen = ReadDword(data, &settingsPos);
+		settings.letF4 = ReadDword(data, &settingsPos);
+		settings.letF1 = ReadDword(data, &settingsPos);
+		settings.letEsc = ReadDword(data, &settingsPos);
+		settings.letF5 = ReadDword(data, &settingsPos);
+		settings.letF9 = ReadDword(data, &settingsPos);
+		settings.treatCloseAsEsc = ReadDword(data, &settingsPos);
+		settings.priority = ReadDword(data, &settingsPos);
+		settings.freeze = ReadDword(data, &settingsPos);
+
+		settings.loadingBar = ReadDword(data, &settingsPos);
+		if (settings.loadingBar) {
+			unsigned int loadingDataLength = ZLIB_BUF_START;
+			unsigned char* loadingData = (unsigned char*)malloc(loadingDataLength);
+
+			if (ReadDword(data, &settingsPos)) {
+				// read backdata
+				if (! InflateBlock(data, &settingsPos, &loadingData, &loadingDataLength, &outputSize)) {
+					// Error reading backdata
+					free(loadingData);
+					free(data);
+					free(buffer);
+					return false;
+				}
+
+				// BackData is in loadingData and has length of loadingDataLength. Do whatever with it
+				// But don't keep it there because it will be overwritten and then freed.
+			}
+			if (ReadDword(data, &settingsPos)) {
+				// read frontdata
+				if (! InflateBlock(data, &settingsPos, &loadingData, &loadingDataLength, &outputSize)) {
+					// Error reading frontdata
+					free(loadingData);
+					free(data);
+					free(buffer);
+					return false;
+				}
+
+				// FrontData is in loadingData and has length of loadingDataLength. Do whatever with it
+				// But don't keep it there because it will be freed.
+			}
+
+			free(loadingData);
+		}
+
+		settings.customLoadImage = ReadDword(data, &settingsPos);
+		if (settings.customLoadImage) {
+			// Read load image data
+			unsigned int imageDataLength = ZLIB_BUF_START;
+			unsigned char* imageData = (unsigned char*)malloc(imageDataLength);
+
+			if (!InflateBlock(data, &settingsPos, &imageData, &imageDataLength, &outputSize)) {
+				// Error reading frontdata
+				free(imageData);
+				free(data);
+				free(buffer);
+				return false;
+			}
+
+			// Custom image data is loaded, do whatever with it but don't keep it there because it will be freed.
+
+			free(imageData);
+		}
+
+		settings.transparent = ReadDword(data, &settingsPos);
+		settings.translucency = ReadDword(data, &settingsPos);
+		settings.scaleProgressBar = ReadDword(data, &settingsPos);
+		settings.errorDisplay = ReadDword(data, &settingsPos);
+		settings.errorLog = ReadDword(data, &settingsPos);
+		settings.errorAbort = ReadDword(data, &settingsPos);
+
+		unsigned int uninit = ReadDword(data, &settingsPos);
+		if (version == 810) {
+			settings.treatAsZero = uninit & 1;
+			settings.errorOnUninitialization = uninit & 2;
+		}
+		else {
+			settings.treatAsZero = uninit;
+			settings.errorOnUninitialization = true;
+		}
 	}
+
+	// Skip over the D3D wrapper
+	pos += ReadDword(buffer, &pos);
+	pos += ReadDword(buffer, &pos);
+
+	// There's yet another encryption layer on the rest of the data paragraphs.
+	if (!DecryptData(buffer, &pos)) {
+		// Error decrypting
+		free(data);
+		free(buffer);
+		return false;
+	}
+
+	// Garbage fields
+	pos += (ReadDword(buffer, &pos) + 6) * 4;
+
+	// Extensions
+	
 
 	//Cleaning up
 	free(data);
