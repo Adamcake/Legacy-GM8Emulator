@@ -1,0 +1,67 @@
+This file is going to be a huge unorganized list of our observations on the engine. Any arbitrary information that will or might be useful for later implementation can be dumped here.
+
+=========
+COLLISION
+=========
+
+The collision function starts at 0x0x60F020. First there's an AABB, then if that passes there's a precise check.
+Elsewhere before this, each object's top, left, right and bottom are calculated. This is done as follows:
+- calculate the 4 corners of the object using its origin and mask dimensions, also multiplying over xscale and yscale
+- rotate these corners around its origin mathematically
+- find the highest and lowest x and y values.
+
+Out of interest, the function for this calculation is at 0x60C7C8.
+Note, these 4 values represent the edge pixels actually occupied by the object. So 32-pixel block whose "top" is 0 will have a "bottom" of 31.
+The 4 buffers for these numbers are ints, but the objects x and y are floats, and obviously after being rotated around a point they'll be floats. They get converted to ints using the x86 FISTP operator. This works quite uniquely. Here's a function for replicating it. Feel free to suggest optimizations...
+
+int FISTP(double x)
+{
+    int down = (int)x;
+    if ((x - down) < 0.5) return down;
+    if ((x - down) > 0.5) return (down + 1);
+    return (down & 1) ? (down + 1) : down;
+}
+
+Then the AABB is done. AABB fails (ie. no collision) if ANY of the following conditions are TRUE:
+(self.right + 1) <= other.left
+(other.right + 1) <= self.left
+(self.bottom + 1) <= other.top
+(other.bottom + 1) <= self.top
+
+After that comes the pixel perfect collision check... haven't looked into this yet. I can't think of any way of doing it that's going to be pleasant. I assume it does something like checks every pixel in the intersection of the two aabb's, then checks if that pixel is supposed to have collision on each mask by rotating it back to 0, scaling it back to 1, then checking that point of the original mask.
+
+
+===
+RNG
+===
+
+Delphi uses this Linear Congruential Generator for RNG:
+seed = seed * 134775813  + 1;
+(seed must be a signed int32)
+
+This is wrapped by its user-level functions. Here are some notes on every RNG function I know of.
+
+random(n):
+- generate new seed
+- multiply new seed by const 1/(2^32) to give a number 0-1
+- multiply that value by n
+
+irandom(n):
+- generate new seed
+- multiply new seed by n (stored in a uint64)
+- new value is shifted left 32 bits
+
+random_range(a,b):
+- random(b-a)+a
+
+irandom_range(a,b):
+- irandom(b-a)+a
+
+choose()
+- Just calls irandom(). No surprise there.
+
+
+=============
+MISCELLANEOUS
+=============
+The "call ebx" at 0x58683E is part of the compiled script interpreter. It appears to be called once for each function call in a script being executed. We can use this to find the source code for internal commands easily.
