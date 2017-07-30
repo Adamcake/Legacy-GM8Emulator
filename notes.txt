@@ -19,7 +19,7 @@ int FISTP(double x)
     int down = (int)x;
     if ((x - down) < 0.5) return down;
     if ((x - down) > 0.5) return (down + 1);
-    return (down & 1) ? (down + 1) : down;
+    return down + (down & 1);
 }
 
 Then the AABB is done. AABB fails (ie. no collision) if ANY of the following conditions are TRUE:
@@ -28,7 +28,11 @@ Then the AABB is done. AABB fails (ie. no collision) if ANY of the following con
 (self.bottom + 1) <= other.top
 (other.bottom + 1) <= self.top
 
-After that comes the pixel perfect collision check... haven't looked into this yet. I can't think of any way of doing it that's going to be pleasant. I assume it does something like checks every pixel in the intersection of the two aabb's, then checks if that pixel is supposed to have collision on each mask by rotating it back to 0, scaling it back to 1, then checking that point of the original mask.
+After that comes the pixel perfect collision check. This is done by taking every pixel in the intersection of the two aabb's, then in the context of each mask, rotating that pixel back to 0, scaling it back to 1, and checking if that pixel is supposed to have collision. If both masks have collision there, the check returns true. If all pixels are checked and there's no collision, it's false.
+
+Pixel perfect collision is done mostly with integers, since each pixel in the intersection is going to have integer X and Y. The only two places where subpixels come into it are as follows:
+- Rotating each point back to 0. After rotation they are immediately rounded with FISTP to give an integer pixel coordinate.
+- Each object's X and Y coordinate. These are kept as doubles for the purposes of rotating around them, but rounded with FISTP when calculating the collision mask's pixel placement.
 
 
 ===
@@ -37,7 +41,7 @@ RNG
 
 Delphi uses this Linear Congruential Generator for RNG:
 seed = seed * 134775813  + 1;
-(seed must be a signed int32)
+(seed must be an unsigned int32)
 
 This is wrapped by its user-level functions. Here are some notes on every RNG function I know of.
 
@@ -49,7 +53,7 @@ random(n):
 irandom(n):
 - generate new seed
 - multiply new seed by n (stored in a uint64)
-- new value is shifted left 32 bits
+- new value is shifted right 32 bits
 
 random_range(a,b):
 - random(b-a)+a
