@@ -65,7 +65,47 @@ choose()
 - Just calls irandom(). No surprise there.
 
 
+============
+EVENT ORDERS
+============
+
+Normal frame cycle:
+- every instance's "begin step" event gets run
+- All alarm variables are decremented and the event are run if the value hit 0
+- Each trigger is checked for each instance - this is done by trigger order and then instance order, ie. trigger0 is checked for all instances, trigger1 is checked for all instances, etc.
+- every instance's "step" event gets run
+- every instance gets moved: xprevious/yprevious set; friction subtracted from speed (toward 0); hspeed and vspeed recalculated; gravity applied to hspeed and vspeed (with gravity_direction); hspeed/vspeed applied to x/y.
+- every instance's "outside room" event gets checked and run
+- every instance's "intersect boundary" event gets run if relevant
+- every instance's collision events get checked and run
+- every instance's "end step" event gets run
+ENTRY POINT
+- every instance's "draw" event gets run if the object is visible - this is done in order of depth, followed by order of object id, and finally order of creation I think...
+- Screen gets drawn
+- Go to start
+
+
+When starting the game:
+- every instance in the first room has its creation code run, followed by its create event
+- every instance in the first room has its "game start" event run
+- first room's creation code is run
+- every instance's "room start" event is run
+- Go to "ENTRY POINT" in frame cycle
+
+When room gets changed:
+- every instance has its "room end" event called, then is deleted if it's not persistent. (destroy event is NOT called.)
+- every instance in the next room has its creation code run, followed by its create event - UNLESS an instance with its instance id already exists, in which case it won't create it again. (this is how persistence is handled)
+- new room's creation code is run
+- every instance's "room start" event is run (remember this includes persistent instances from the previous room)
+- go to ENTRY POINT in frame cycle
+
+Interestingly, this means that when you change room, the rest of the step gets skipped. If you change room in the "begin step" event every frame, then a persistent object will never move even if it has speed and gravity, and its alarms will never get updated. For the same reason, changing room every frame also prevents GM8 hotkeys from working, so for example, you will be unable to toggle fullscreen with F4, or to close the game with Esc.
+
+
 =============
 MISCELLANEOUS
 =============
-The "call ebx" at 0x58683E is part of the compiled script interpreter. It appears to be called once for each function call in a script being executed. We can use this to find the source code for internal commands easily.
+- The "call ebx" at 0x58683E is part of the compiled script interpreter. It appears to be called once for each function call in a script being executed. We can use this to find the source code for internal commands easily.
+- You can change the "depth" and "visible" variables in the draw event, but this won't take effect until the next frame. This is because the draw list for this frame has already been ordered and can't be changed anymore.
+- Changing room can happen by "room = ", room_goto() or room_goto_next(). There is no functional difference between these.
+- Changing room causes your existing keyboard state to get dropped. So any keys you're holding down won't be registered as being held anymore, until windows decides to inform the application about it. (You know when you're in a text box and you hold the left arrow key to move your cursor along? The cursor moves one character each time windows informs the application about a key press. So that's how often the game gets informed.)
