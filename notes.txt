@@ -69,18 +69,26 @@ choose()
 EVENT ORDERS
 ============
 
+All the places below where it says something about "every instance": unless stated otherwise, the instances are iterated in order of their instance ID. Instance IDs are unique.
+
 Normal frame cycle:
 - every instance's "begin step" event gets run
 - All alarm variables are decremented and the event are run if the value hit 0
+- all "keyboard" events are run for each instance - this means the "left" event is checked for every instance, then the "right" event is run for each instance, etc. for every keyboard event, top to bottom as listed in the IDE.
+- all "mouse" events are run for each instance, in the same manner as above.
+- all "key press" events are run for each instance, in the same manner as above.
+- all "key release" events are run for each instance, in the same manner as above.
 - Each trigger is checked for each instance - this is done by trigger order and then instance order, ie. trigger0 is checked for all instances, trigger1 is checked for all instances, etc.
 - every instance's "step" event gets run
 - every instance gets moved: xprevious/yprevious set; friction subtracted from speed (toward 0); hspeed and vspeed recalculated; gravity applied to hspeed and vspeed (with gravity_direction); hspeed/vspeed applied to x/y.
 - every instance's "outside room" event gets checked and run
 - every instance's "intersect boundary" event gets run if relevant
+- if a view is in use, every instance's "outside view x" event gets checked
+- if a view is in use, every instance's "intersect boundary view x" event gets checked
 - every instance's collision events get checked and run
 - every instance's "end step" event gets run
 ENTRY POINT
-- every instance's "draw" event gets run if the object is visible - this is done in order of depth, followed by order of object id, and finally order of creation I think...
+- every instance's "draw" event gets run if the object is visible - this is done in order of depth, followed by order of OBJECT ID, and finally order of INSTANCE ID.
 - Screen gets drawn
 - Go to start
 
@@ -92,7 +100,7 @@ When starting the game:
 - every instance's "room start" event is run
 - Go to "ENTRY POINT" in frame cycle
 
-When room gets changed:
+When room gets changed (can happen in any code block):
 - every instance has its "room end" event called, then is deleted if it's not persistent. (destroy event is NOT called.)
 - every instance in the next room has its creation code run, followed by its create event - UNLESS an instance with its instance id already exists, in which case it won't create it again. (this is how persistence is handled)
 - new room's creation code is run
@@ -102,6 +110,7 @@ When room gets changed:
 Interestingly, this means that when you change room, the rest of the step gets skipped. If you change room in the "begin step" event every frame, then a persistent object will never move even if it has speed and gravity, and its alarms will never get updated. For the same reason, changing room every frame also prevents GM8 hotkeys from working, so for example, you will be unable to toggle fullscreen with F4, or to close the game with Esc.
 
 
+
 =============
 MISCELLANEOUS
 =============
@@ -109,3 +118,5 @@ MISCELLANEOUS
 - You can change the "depth" and "visible" variables in the draw event, but this won't take effect until the next frame. This is because the draw list for this frame has already been ordered and can't be changed anymore.
 - Changing room can happen by "room = ", room_goto() or room_goto_next(). There is no functional difference between these.
 - Changing room causes your existing keyboard state to get dropped. So any keys you're holding down won't be registered as being held anymore, until windows decides to inform the application about it. (You know when you're in a text box and you hold the left arrow key to move your cursor along? The cursor moves one character each time windows informs the application about a key press. So that's how often the game gets informed.)
+- Before running all the keyboard events, the keyboard state gets copied. So after this has started the inputs can't be changed, either by releasing the button or by dropping the keyboard state (can be done with show_message or by de-focusing the window.) The same is true of the mouse events and the key press and key release events, although tthe keyboard state is copied again before the press events and again before the release events.
+- When you change room, the frame cycle skips ahead to drawing. If you change room in the "begin step" event every frame, then a (persistent) object will never move even if it has speed and gravity, and its alarms will never get updated. For the same reason, changing room every frame also prevents GM8 hotkeys from working- so for example, you will be unable to toggle fullscreen with F4, or to close the game with Esc.
