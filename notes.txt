@@ -69,6 +69,8 @@ choose()
 EVENT ORDERS
 ============
 
+TODO: Timeline progression; begin step triggers; end step triggers
+
 All the places below where it says something about "every instance": unless stated otherwise, the instances are iterated in order of their instance ID. Instance IDs are unique.
 
 Normal frame cycle:
@@ -78,7 +80,7 @@ Normal frame cycle:
 - all "mouse" events are run for each instance, in the same manner as above.
 - all "key press" events are run for each instance, in the same manner as above.
 - all "key release" events are run for each instance, in the same manner as above.
-- Each trigger is checked for each instance - this is done by trigger order and then instance order, ie. trigger0 is checked for all instances, trigger1 is checked for all instances, etc.
+- Each "normal step" trigger is checked for each instance - this is done by trigger order and then instance order, ie. trigger0 is checked for all instances, trigger1 is checked for all instances, etc.
 - every instance's "step" event gets run
 - every instance gets moved: xprevious/yprevious set; friction subtracted from speed (toward 0); hspeed and vspeed recalculated; gravity applied to hspeed and vspeed (with gravity_direction); hspeed/vspeed applied to x/y.
 - every instance's "outside room" event gets checked and run
@@ -107,7 +109,46 @@ When room gets changed (can happen in any code block):
 - every instance's "room start" event is run (remember this includes persistent instances from the previous room)
 - go to ENTRY POINT in frame cycle
 
-Interestingly, this means that when you change room, the rest of the step gets skipped. If you change room in the "begin step" event every frame, then a persistent object will never move even if it has speed and gravity, and its alarms will never get updated. For the same reason, changing room every frame also prevents GM8 hotkeys from working, so for example, you will be unable to toggle fullscreen with F4, or to close the game with Esc.
+
+======================
+COMPILED OBJECT EVENTS
+======================
+
+There are 12 types of event. These are referred to by the code consts:
+ev_create (0)
+ev_destroy (1)
+ev_alarms (2)
+ev_step (3)
+ev_collision (4)
+ev_keyboard (5)
+ev_mouse (6)
+ev_other (7)
+ev_draw (8)
+ev_keypress (9)
+ev_keyrelease (10)
+ev_trigger (11)
+
+In the gamedata, each Object has 12 lists of events. These are always in the order above, but each individual list is unordered. The list elements can be differentiated by their index. Indexes will always be unique per list.
+For example, the ev_step list could have 3 events in it: normal step, begin step and end step. These would have an index of 0, 1 and 2 respectively (code consts ev_step_normal, ev_step_begin and ev_step_end respectively.)
+In the ev_collision list, the index refers to the object id of the target object of the collision event.
+The ev_create, ev_destroy and ev_draw lists will only ever have 0 or 1 element.
+When reading event lists from gamedata, the index is read first. Reading an index of -1 signals the end of the list.
+Note that this is closely tied to the behaviour of event_perform() in GML. event_perform() takes two arguments, the first must one of those consts (ie. which event list to look in) and the second is an index.
+
+Full list of events and their index meaning:
+ev_create:      id=0
+ev_destroy:     id=0
+ev_alarms:      id = alarm id
+ev_step:        id = ev_step_begin, ev_step_normal, ev_step_end
+ev_collision:   id = target object index
+ev_keyboard:    id = vk_ constants [including vk_anykey and vk_nokey] and ord()
+ev_mouse:       id = everything in the list can be accounted for by an ev_ const, but it's not standardized
+ev_other:       id = each thing in the list in the gui. There are consts for each one. Not sure about the sub-lists.
+ev_draw:        id=0
+ev_keypress:    id = same as ev_keyboard
+ev_keyrelease:  id = same as ev_keyboard
+ev_trigger:     id = trigger index
+
 
 
 
