@@ -1,0 +1,163 @@
+This file is going to be a huge unorganized list of our observations on the engine. Any arbitrary information that will or might be useful for later implementation can be dumped here.
+
+=========
+COLLISION
+=========
+
+The collision function starts at 0x0x60F020. First there's an AABB, then if that passes there's a precise check.
+Elsewhere before this, each object's top, left, right and bottom are calculated. This is done as follows:
+- calculate the 4 corners of the object using its origin and mask dimensions, also multiplying over xscale and yscale
+- rotate these corners around its origin mathematically
+- find the highest and lowest x and y values.
+
+Out of interest, the function for this calculation is at 0x60C7C8.
+Note, these 4 values represent the edge pixels actually occupied by the object. So 32-pixel block whose "top" is 0 will have a "bottom" of 31.
+The 4 buffers for these numbers are ints, but the objects x and y are floats, and obviously after being rotated around a point they'll be floats. They get converted to ints using the x86 FISTP operator. This works quite uniquely. Here's a function for replicating it. Feel free to suggest optimizations...
+
+int FISTP(double x)
+{
+    int down = (int)x;
+    if ((x - down) < 0.5) return down;
+    if ((x - down) > 0.5) return (down + 1);
+    return down + (down & 1);
+}
+
+Then the AABB is done. AABB fails (ie. no collision) if ANY of the following conditions are TRUE:
+(self.right + 1) <= other.left
+(other.right + 1) <= self.left
+(self.bottom + 1) <= other.top
+(other.bottom + 1) <= self.top
+
+After that comes the pixel perfect collision check. This is done by taking every pixel in the intersection of the two aabb's, then in the context of each mask, rotating that pixel back to 0, scaling it back to 1, and checking if that pixel is supposed to have collision. If both masks have collision there, the check returns true. If all pixels are checked and there's no collision, it's false.
+
+Pixel perfect collision is done mostly with integers, since each pixel in the intersection is going to have integer X and Y. The only two places where subpixels come into it are as follows:
+- Rotating each point back to 0. After rotation they are immediately rounded with FISTP to give an integer pixel coordinate.
+- Each object's X and Y coordinate. These are kept as doubles for the purposes of rotating around them, but rounded with FISTP when calculating the collision mask's pixel placement.
+
+
+===
+RNG
+===
+
+Delphi uses this Linear Congruential Generator for RNG:
+seed = seed * 134775813  + 1;
+(seed must be an unsigned int32)
+
+This is wrapped by its user-level functions. Here are some notes on every RNG function I know of.
+
+random(n):
+- generate new seed
+- multiply new seed by const 1/(2^32) to give a number 0-1
+- multiply that value by n
+
+irandom(n):
+- generate new seed
+- multiply new seed by n (stored in a uint64)
+- new value is shifted right 32 bits
+
+random_range(a,b):
+- random(b-a)+a
+
+irandom_range(a,b):
+- irandom(b-a)+a
+
+choose()
+- Just calls irandom(). No surprise there.
+
+
+============
+EVENT ORDERS
+============
+
+TODO: Timeline progression; begin step triggers; end step triggers
+
+All the places below where it says something about "every instance": unless stated otherwise, the instances are iterated in order of their instance ID. Instance IDs are unique.
+
+Normal frame cycle:
+- every instance's "begin step" event gets run
+- All alarm variables are decremented and the event are run if the value hit 0
+- all "keyboard" events are run for each instance - this means the "left" event is checked for every instance, then the "right" event is run for each instance, etc. for every keyboard event, top to bottom as listed in the IDE.
+- all "mouse" events are run for each instance, in the same manner as above.
+- all "key press" events are run for each instance, in the same manner as above.
+- all "key release" events are run for each instance, in the same manner as above.
+- Each "normal step" trigger is checked for each instance - this is done by trigger order and then instance order, ie. trigger0 is checked for all instances, trigger1 is checked for all instances, etc.
+- every instance's "step" event gets run
+- every instance gets moved: xprevious/yprevious set; friction subtracted from speed (toward 0); hspeed and vspeed recalculated; gravity applied to hspeed and vspeed (with gravity_direction); hspeed/vspeed applied to x/y.
+- every instance's "outside room" event gets checked and run
+- every instance's "intersect boundary" event gets run if relevant
+- if a view is in use, every instance's "outside view x" event gets checked
+- if a view is in use, every instance's "intersect boundary view x" event gets checked
+- every instance's collision events get checked and run
+- every instance's "end step" event gets run
+ENTRY POINT
+- every instance's "draw" event gets run if the object is visible - this is done in order of depth, followed by order of OBJECT ID, and finally order of INSTANCE ID.
+- Screen gets drawn
+- Go to start
+
+
+When starting the game:
+- every instance in the first room has its creation code run, followed by its create event
+- every instance in the first room has its "game start" event run
+- first room's creation code is run
+- every instance's "room start" event is run
+- Go to "ENTRY POINT" in frame cycle
+
+When room gets changed (can happen in any code block):
+- every instance has its "room end" event called, then is deleted if it's not persistent. (destroy event is NOT called.)
+- every instance in the next room has its creation code run, followed by its create event - UNLESS an instance with its instance id already exists, in which case it won't create it again. (this is how persistence is handled)
+- new room's creation code is run
+- every instance's "room start" event is run (remember this includes persistent instances from the previous room)
+- go to ENTRY POINT in frame cycle
+
+
+======================
+COMPILED OBJECT EVENTS
+======================
+
+There are 12 types of event. These are referred to by the code consts:
+ev_create (0)
+ev_destroy (1)
+ev_alarms (2)
+ev_step (3)
+ev_collision (4)
+ev_keyboard (5)
+ev_mouse (6)
+ev_other (7)
+ev_draw (8)
+ev_keypress (9)
+ev_keyrelease (10)
+ev_trigger (11)
+
+In the gamedata, each Object has 12 lists of events. These are always in the order above, but each individual list is unordered. The list elements can be differentiated by their index. Indexes will always be unique per list.
+For example, the ev_step list could have 3 events in it: normal step, begin step and end step. These would have an index of 0, 1 and 2 respectively (code consts ev_step_normal, ev_step_begin and ev_step_end respectively.)
+In the ev_collision list, the index refers to the object id of the target object of the collision event.
+The ev_create, ev_destroy and ev_draw lists will only ever have 0 or 1 element.
+When reading event lists from gamedata, the index is read first. Reading an index of -1 signals the end of the list.
+Note that this is closely tied to the behaviour of event_perform() in GML. event_perform() takes two arguments, the first must one of those consts (ie. which event list to look in) and the second is an index.
+
+Full list of events and their index meaning:
+ev_create:      id=0
+ev_destroy:     id=0
+ev_alarms:      id = alarm id
+ev_step:        id = ev_step_begin, ev_step_normal, ev_step_end
+ev_collision:   id = target object index
+ev_keyboard:    id = vk_ constants [including vk_anykey and vk_nokey] and ord()
+ev_mouse:       id = everything in the list can be accounted for by an ev_ const, but it's not standardized
+ev_other:       id = each thing in the list in the gui. There are consts for each one. Not sure about the sub-lists.
+ev_draw:        id=0
+ev_keypress:    id = same as ev_keyboard
+ev_keyrelease:  id = same as ev_keyboard
+ev_trigger:     id = trigger index
+
+
+
+
+=============
+MISCELLANEOUS
+=============
+- The "call ebx" at 0x58683E is part of the compiled script interpreter. It appears to be called once for each function call in a script being executed. We can use this to find the source code for internal commands easily.
+- You can change the "depth" and "visible" variables in the draw event, but this won't take effect until the next frame. This is because the draw list for this frame has already been ordered and can't be changed anymore.
+- Changing room can happen by "room = ", room_goto() or room_goto_next(). There is no functional difference between these.
+- Changing room causes your existing keyboard state to get dropped. So any keys you're holding down won't be registered as being held anymore, until windows decides to inform the application about it. (You know when you're in a text box and you hold the left arrow key to move your cursor along? The cursor moves one character each time windows informs the application about a key press. So that's how often the game gets informed.)
+- Before running all the keyboard events, the keyboard state gets copied. So after this has started the inputs can't be changed, either by releasing the button or by dropping the keyboard state (can be done with show_message or by de-focusing the window.) The same is true of the mouse events and the key press and key release events, although tthe keyboard state is copied again before the press events and again before the release events.
+- When you change room, the frame cycle skips ahead to drawing. If you change room in the "begin step" event every frame, then a (persistent) object will never move even if it has speed and gravity, and its alarms will never get updated. For the same reason, changing room every frame also prevents GM8 hotkeys from working- so for example, you will be unable to toggle fullscreen with F4, or to close the game with Esc.
