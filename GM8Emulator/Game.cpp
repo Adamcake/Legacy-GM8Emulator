@@ -1,35 +1,14 @@
+#include <list>
+
 #include "Game.hpp"
+#include "CodeAction.hpp"
+#include "StreamUtil.hpp"
 #include "zlib\zlib.h"
 #include "SDL\SDL.h"
 
 #define ZLIB_BUF_START 65536
 
 #pragma region Helper functions for parsing the filestream - no need for these to be member functions.
-
-// Reads a dword from the given position in the byte stream
-unsigned int ReadDword(const unsigned char* pStream, unsigned int* pPos) {
-	unsigned int val = pStream[(*pPos)] + (pStream[(*pPos) + 1] << 8) + (pStream[(*pPos) + 2] << 16) + (pStream[(*pPos) + 3] << 24);
-	(*pPos) += 4;
-	return val;
-}
-
-// Reads a double from the given position in the byte stream
-double ReadDouble(const unsigned char* pStream, unsigned int* pPos) {
-	double val = *(double*)(pStream + (*pPos));
-	(*pPos) += 8;
-	return val;
-}
-
-// Reads a null-terminated string from the given position in the byte stream
-// This allocates space for the string, so you should always give it to an object whose destructor will free it.
-char* ReadString(const unsigned char* pStream, unsigned int* pPos) {
-	unsigned int length = ReadDword(pStream, pPos);
-	char* str = (char*) malloc(length + 1);
-	memcpy(str, (pStream + *pPos), length);
-	str[length] = '\0';
-	(*pPos) += length;
-	return str;
-}
 
 // YYG's implementation of Crc32
 unsigned int Crc32(const void* tmpBuffer, size_t length, unsigned long* crcTable) {
@@ -69,7 +48,8 @@ bool Decrypt81(unsigned char* pStream, unsigned int pStreamLength, unsigned int*
 	char* buffer = new char[64];
 
 	// Convert hash key into UTF-16
-	sprintf(tmpBuffer, "_MJD%d#RWK", ReadDword(pStream, pPos));
+	// OLD WAY: sprintf(tmpBuffer, "_MJD%d#RWK", ReadDword(pStream, pPos));
+	sprintf_s(tmpBuffer, 64, "_MJD%d#RWK", ReadDword(pStream, pPos));
 	for (size_t i = 0; i < strlen(tmpBuffer); i++) {
 		buffer[i * 2] = tmpBuffer[i];
 		buffer[(i * 2) + 1] = 0;
@@ -145,7 +125,7 @@ bool DecryptData(unsigned char* pStream, unsigned int* pPos) {
 
 	// Decryption second pass
 	unsigned char a;
-	int b;
+	unsigned int b; //?
 	
 	for (i = (*pPos) + len - 1; i > (*pPos); i--) {
 		b = i - (int)swapTable[(i - (*pPos)) & 0xFF];
@@ -234,10 +214,17 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 	}
 
 	// Clean up and exit
-	(*pOutBuffer) = inflatedData;
-	(*pOutBufferSize) = inflatedDataSize;
-	(*pOutSize) = inflatedDataSize;
+	if (inflatedDataSize > (*pOutBufferSize)) {
+		free(*pOutBuffer);
+		(*pOutBuffer) = inflatedData;
+		(*pOutBufferSize) = inflatedDataSize;
+	}
+	else {
+		memcpy((*pOutBuffer), inflatedData, inflatedDataSize);
+		free(inflatedData);
+	}
 
+	(*pOutSize) = inflatedDataSize;
 	inflateEnd(&strm);
 	(*pPos) += len;
 	return true;
@@ -251,19 +238,41 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 
 Game::Game()
 {
+	info.caption = NULL;
+	info.gameInfo = NULL;
 }
 
 Game::~Game()
 {
+	// Destroy all loaded assets, this also calls their destructors.
+	_triggers.clear();
+	_constants.clear();
+	_sounds.clear();
+	_sprites.clear();
+	_backgrounds.clear();
+	_paths.clear();
+	_scripts.clear();
+	_fonts.clear();
+	_timelines.clear();
+	_objects.clear();
+	_rooms.clear();
+
+	// Destroy game data
+	free(info.caption);
+	free(info.gameInfo);
+
+	// Destroy room order
+	delete[] roomOrder;
 }
 
 bool Game::Load(const char * pFilename)
 {
 	// Load the entirety of the file into a memory buffer
 
-	FILE* exe = fopen(pFilename, "rb");
+	FILE* exe;
+	int err = fopen_s(&exe, pFilename, "rb");
 
-	if (exe == NULL) {
+	if ((exe == NULL) || (err != 0)) {
 		// Error accessing file
 		return false;
 	}
@@ -349,6 +358,7 @@ bool Game::Load(const char * pFilename)
 		return false;
 	}
 	else {
+
 		unsigned int settingsPos = 0;
 		settings.fullscreen = ReadDword(data, &settingsPos);
 		settings.interpolate = ReadDword(data, &settingsPos);
@@ -463,7 +473,8 @@ bool Game::Load(const char * pFilename)
 
 	// Extensions - there's zero documentation on how these work, they have their own encryption, and they're not in common use. So I won't support them for now.
 	pos += 4;
-	for (unsigned int count = ReadDword(buffer, &pos); count > 0; count--) {
+	unsigned int count = ReadDword(buffer, &pos);
+	for (; count > 0; count--) {
 		ReadDword(buffer, &pos); // Data version - 700
 		pos += ReadDword(buffer, &pos); // Extension name
 		pos += ReadDword(buffer, &pos); // Some kind of extension ID? eg. "GMPrint123"
@@ -482,7 +493,7 @@ bool Game::Load(const char * pFilename)
 			for (; ii; ii--) {
 				ReadDword(buffer, &pos);
 				pos += ReadDword(buffer, &pos);
-				ReadString(buffer, &pos);
+				pos += ReadDword(buffer, &pos);
 				ReadDword(buffer, &pos);
 				ReadDword(buffer, &pos);
 				ReadDword(buffer, &pos);
@@ -497,8 +508,8 @@ bool Game::Load(const char * pFilename)
 			unsigned int iii = ReadDword(buffer, &pos);
 			for (; iii; iii--) {
 				ReadDword(buffer, &pos);
-				ReadString(buffer, &pos);
-				ReadString(buffer, &pos);
+				pos += ReadDword(buffer, &pos);
+				pos += ReadDword(buffer, &pos);
 			}
 		}
 
@@ -508,9 +519,10 @@ bool Game::Load(const char * pFilename)
 
 	// Triggers
 
-	Trigger* trigger;
 	pos += 4;
-	for (unsigned int count = ReadDword(buffer, &pos); count > 0; count--) {
+	count = ReadDword(buffer, &pos);
+	_triggers.reserve(count);
+	for (; count > 0; count--) {
 
 		if (! InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
 			// Error reading trigger
@@ -519,31 +531,41 @@ bool Game::Load(const char * pFilename)
 			return true;
 		}
 
-		unsigned int dataPos = 4;
-		trigger = new Trigger(ReadString(data, &dataPos));
+		unsigned int dataPos = 0;
+		if (!ReadDword(data, &dataPos)) {
+			_triggers.push_back(Trigger());
+			continue;
+		}
+
+		_triggers.push_back(Trigger());
+		Trigger* trigger = _triggers._Mylast() - 1;
+		dataPos += 4;
+		trigger->name = ReadString(data, &dataPos);
 		trigger->condition = ReadString(data, &dataPos);
 		trigger->checkMoment = ReadDword(data, &dataPos);
 		trigger->constantName = ReadString(data, &dataPos);
-		_triggers.push_back(trigger);
 	}
 
 
 	// Constants
 
-	Constant* constant;
 	pos += 4;
-	for (unsigned int count = ReadDword(buffer, &pos); count > 0; count--) {
-		constant = new Constant(ReadString(buffer, &pos));
+	count = ReadDword(buffer, &pos);
+	_constants.reserve(count);
+	for (; count > 0; count--) {
+		_constants.push_back(Constant());
+		Constant* constant = _constants._Mylast() - 1;
+		constant->name = ReadString(buffer, &pos);
 		constant->value = ReadString(buffer, &pos);
-		_constants.push_back(constant);
 	}
 
 
 	// Sounds
 
-	Sound* sound;
 	pos += 4;
-	for (unsigned int count = ReadDword(buffer, &pos); count > 0; count--) {
+	count = ReadDword(buffer, &pos);
+	_sounds.reserve(count);
+	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
 			// Error reading sound
@@ -554,11 +576,13 @@ bool Game::Load(const char * pFilename)
 
 		unsigned int dataPos = 0;
 		if (! ReadDword(data, &dataPos)) {
-			_sounds.push_back(NULL);
+			_sounds.push_back(Sound());
 			continue;
 		}
 
-		sound = new Sound(ReadString(data, &dataPos));
+		_sounds.push_back(Sound());
+		Sound* sound = _sounds._Mylast() - 1;
+		sound->name = ReadString(data, &dataPos);
 		dataPos += 4;
 		sound->kind = ReadDword(data, &dataPos);
 		sound->fileType = ReadString(data, &dataPos);
@@ -579,16 +603,15 @@ bool Game::Load(const char * pFilename)
 		sound->volume = ReadDouble(data, &dataPos);
 		sound->pan = ReadDouble(data, &dataPos);
 		sound->preload = ReadDword(data, &dataPos);
-		_sounds.push_back(sound);
 	}
 
 
 	// Sprites
 
-	Sprite* sprite;
-	CollisionMap* map;
 	pos += 4;
-	for (unsigned int count = ReadDword(buffer, &pos); count > 0; count--) {
+	count = ReadDword(buffer, &pos);
+	_sprites.reserve(count);
+	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
 			// Error reading sprite
@@ -599,11 +622,13 @@ bool Game::Load(const char * pFilename)
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_sprites.push_back(NULL);
+			_sprites.push_back(Sprite());
 			continue;
 		}
 
-		sprite = new Sprite(ReadString(data, &dataPos));
+		_sprites.push_back(Sprite());
+		Sprite* sprite = _sprites._Mylast() - 1;
+		sprite->name = ReadString(data, &dataPos);
 		dataPos += 4;
 
 		sprite->originX = ReadDword(data, &dataPos);
@@ -621,21 +646,23 @@ bool Game::Load(const char * pFilename)
 				unsigned int w = ReadDword(data, &dataPos);
 				unsigned int h = ReadDword(data, &dataPos);
 
-				sprite->images[i] = SDL_CreateRGBSurface(0, w, h, 32, 0, 0, 0, 0);
-				SDL_SetSurfaceBlendMode(sprite->images[i], SDL_BLENDMODE_BLEND);
+
+				sprite->images[i] = SDL_CreateRGBSurface(0, w, h, 32, 0xFF0000, 0xFF00, 0xFF, 0xFF000000);
 				unsigned int pixelDataLength = ReadDword(data, &dataPos);
 				memcpy(sprite->images[i]->pixels, (data + dataPos), pixelDataLength);
 				dataPos += pixelDataLength;
+				SDL_SetSurfaceBlendMode(sprite->images[i], SDL_BLENDMODE_BLEND);
 			}
 
 			// Collision data
 			sprite->separateCollision = ReadDword(data, &dataPos);
 			if (sprite->separateCollision) {
 				// Separate maps
+				sprite->collisionMaps = new CollisionMap[sprite->frames];
 				for (i = 0; i < sprite->frames; i++) {
 					dataPos += 4;
 
-					map = new CollisionMap();
+					CollisionMap* map = &(sprite->collisionMaps[i]);
 					map->width = ReadDword(data, &dataPos);
 					map->height = ReadDword(data, &dataPos);
 					map->left = ReadDword(data, &dataPos);
@@ -648,8 +675,6 @@ bool Game::Load(const char * pFilename)
 					for (unsigned int ii = 0; ii < maskSize; ii++) {
 						map->collision[ii] = ReadDword(data, &dataPos);
 					}
-
-					sprite->images[i]->userdata = map;
 				}
 			}
 			else {
@@ -657,7 +682,8 @@ bool Game::Load(const char * pFilename)
 
 				dataPos += 4;
 
-				map = new CollisionMap();
+				CollisionMap* map = new CollisionMap();
+				sprite->collisionMaps = map;
 				map->width = ReadDword(data, &dataPos);
 				map->height = ReadDword(data, &dataPos);
 				map->left = ReadDword(data, &dataPos);
@@ -670,14 +696,706 @@ bool Game::Load(const char * pFilename)
 				for (unsigned int ii = 0; ii < maskSize; ii++) {
 					map->collision[ii] = ReadDword(data, &dataPos);
 				}
+			}
+		}
+	}
 
-				for (i = 0; i < sprite->frames; i++) {
-					sprite->images[i]->userdata = map;
+
+	// Backgrounds
+
+	pos += 4;
+	count = ReadDword(buffer, &pos);
+	_backgrounds.reserve(count);
+	for (; count > 0; count--) {
+
+		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
+			// Error reading sprite
+			free(data);
+			free(buffer);
+			return true;
+		}
+
+		unsigned int dataPos = 0;
+		if (!ReadDword(data, &dataPos)) {
+			_backgrounds.push_back(Background());
+			continue;
+		}
+
+		_backgrounds.push_back(Background());
+		Background* background = _backgrounds._Mylast() - 1;
+		background->name = ReadString(data, &dataPos);
+		dataPos += 8;
+		background->width = ReadDword(data, &dataPos);
+		background->height = ReadDword(data, &dataPos);
+
+		if (background->width > 0 && background->height > 0) {
+			unsigned int len = ReadDword(data, &dataPos);
+			background->data = (unsigned char*)malloc(len);
+			memcpy(background->data, (data + dataPos), len);
+		}
+	}
+
+
+	// Paths
+
+	pos += 4;
+	count = ReadDword(buffer, &pos);
+	_paths.reserve(count);
+	for (; count > 0; count--) {
+
+		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
+			// Error reading sprite
+			free(data);
+			free(buffer);
+			return true;
+		}
+
+		unsigned int dataPos = 0;
+		if (!ReadDword(data, &dataPos)) {
+			_paths.push_back(Path());
+			continue;
+		}
+
+		_paths.push_back(Path());
+		Path* path = _paths._Mylast() - 1;
+		path->name = ReadString(data, &dataPos);
+
+		dataPos += 4;
+		path->kind = ReadDword(data, &dataPos);
+		path->closed = ReadDword(data, &dataPos);
+		path->precision = ReadDword(data, &dataPos);
+
+		path->pointCount = ReadDword(data, &dataPos);
+		path->points = new PathPoint[path->pointCount];
+		for (unsigned int i = 0; i < path->pointCount; i++) {
+			PathPoint* p = path->points + i;
+			p->x = ReadDouble(data, &dataPos);
+			p->y = ReadDouble(data, &dataPos);
+			p->speed = ReadDouble(data, &dataPos);
+		}
+	}
+
+
+	// Scripts
+
+	pos += 4;
+	count = ReadDword(buffer, &pos);
+	_scripts.reserve(count);
+	for (; count > 0; count--) {
+
+		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
+			// Error reading sprite
+			free(data);
+			free(buffer);
+			return true;
+		}
+
+		unsigned int dataPos = 0;
+		if (!ReadDword(data, &dataPos)) {
+			_scripts.push_back(Script());
+			continue;
+		}
+
+		_scripts.push_back(Script());
+		Script* script = _scripts._Mylast() - 1;
+		script->name = ReadString(data, &dataPos);
+
+		dataPos += 4;
+		script->code = ReadString(data, &dataPos);
+	}
+
+
+	// Fonts
+
+	pos += 4;
+	count = ReadDword(buffer, &pos);
+	_fonts.reserve(count);
+	for (; count > 0; count--) {
+
+		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
+			// Error reading sprite
+			free(data);
+			free(buffer);
+			return true;
+		}
+
+		unsigned int dataPos = 0;
+		if (!ReadDword(data, &dataPos)) {
+			_fonts.push_back(Font());
+			continue;
+		}
+
+		_fonts.push_back(Font());
+		Font* font = _fonts._Mylast() - 1;
+		font->name = ReadString(data, &dataPos);
+
+		dataPos += 4;
+		font->fontName = ReadString(data, &dataPos);
+		font->size = ReadDword(data, &dataPos);
+		font->bold = ReadDword(data, &dataPos);
+		font->italic = ReadDword(data, &dataPos);
+		font->rangeBegin = ReadDword(data, &dataPos);
+		font->rangeEnd = ReadDword(data, &dataPos);
+
+		// todo - the rest of the stream contains font sprite data but I don't know the format.
+	}
+
+
+	// Timelines
+
+	pos += 4;
+	count = ReadDword(buffer, &pos);
+	_timelines.reserve(count);
+	for (; count > 0; count--) {
+
+		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
+			// Error reading sprite
+			free(data);
+			free(buffer);
+			return true;
+		}
+
+		unsigned int dataPos = 0;
+		if (!ReadDword(data, &dataPos)) {
+			_timelines.push_back(Timeline());
+			continue;
+		}
+
+		_timelines.push_back(Timeline());
+		Timeline* timeline = _timelines._Mylast() - 1;
+		timeline->name = ReadString(data, &dataPos);
+
+		dataPos += 4;
+		timeline->momentCount = ReadDword(data, &dataPos);
+		timeline->moments = new IndexedEvent[timeline->momentCount];
+
+		for (unsigned int i = 0; i < timeline->momentCount; i++) {
+			timeline->moments[i].index = ReadDword(data, &dataPos);
+			dataPos += 4;
+
+			timeline->moments[i].actionCount = ReadDword(data, &dataPos);
+			timeline->moments[i].actions = new CodeAction[timeline->moments[i].actionCount];
+
+			for (unsigned int j = 0; j < timeline->moments[i].actionCount; j++) {
+				if (!timeline->moments[i].actions[j].read(data, &dataPos)) {
+					// Error reading action
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
+		}
+	}
+
+
+	// Objects
+
+	pos += 4;
+	count = ReadDword(buffer, &pos);
+	_objects.reserve(count);
+	for (; count > 0; count--) {
+
+		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
+			// Error reading sprite
+			free(data);
+			free(buffer);
+			return true;
+		}
+
+		unsigned int dataPos = 0;
+		if (!ReadDword(data, &dataPos)) {
+			_objects.push_back(Object());
+			continue;
+		}
+
+		_objects.push_back(Object());
+		Object* object = _objects._Mylast() - 1;
+		object->name = ReadString(data, &dataPos);
+		dataPos += 4;
+
+		object->spriteIndex = (int)ReadDword(data, &dataPos);
+		object->solid = ReadDword(data, &dataPos);
+		object->visible = ReadDword(data, &dataPos);
+		object->depth = (int)ReadDword(data, &dataPos);
+		object->persistent = ReadDword(data, &dataPos);
+		object->parentIndex = (int)ReadDword(data, &dataPos);
+		object->maskIndex = (int)ReadDword(data, &dataPos);
+
+		dataPos += 4; // This skips a counter for the number of event lists. Should always be 11.
+
+		IndexedEvent e;
+
+		// Create event
+		if ((int)(ReadDword(data, &dataPos)) != -1) {
+			dataPos += 4;
+			object->evCreateActionCount = ReadDword(data, &dataPos);
+			object->evCreate = new CodeAction[object->evCreateActionCount];
+			for (unsigned int i = 0; i < object->evCreateActionCount; i++) {
+				if (!object->evCreate[i].read(data, &dataPos)) {
+					// Error reading action
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
+			dataPos += 4; // Should always be -1, otherwise this object has more than one create event.
+		}
+		
+		// Destroy event
+		if ((int)(ReadDword(data, &dataPos)) != -1) {
+			dataPos += 4;
+			object->evDestroyActionCount = ReadDword(data, &dataPos);
+			object->evDestroy = new CodeAction[object->evDestroyActionCount];
+			for (unsigned int i = 0; i < object->evDestroyActionCount; i++) {
+				if (!object->evDestroy[i].read(data, &dataPos)) {
+					// Error reading action
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
+			dataPos += 4; // Should always be -1, otherwise this object has more than one destroy event.
+		}
+
+		// Alarm events
+		while (true) {
+			unsigned int index = ReadDword(data, &dataPos);
+			if (index == -1) break;
+			e.index = index;
+
+			dataPos += 4;
+			e.actionCount = ReadDword(data, &dataPos);
+			e.actions = new CodeAction[e.actionCount];
+			for (unsigned int i = 0; i < e.actionCount; i++) {
+
+				if (!e.actions[i].read(data, &dataPos)) {
+					// Error reading action
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
+
+			object->evAlarm.push_back(e);
+		}
+
+		// Step events
+		while (true) {
+			unsigned int index = ReadDword(data, &dataPos);
+			if (index == -1) break;
+			else if (index == 0) {
+				// Step
+				if (object->evStep != NULL) {
+					// Two step events for this object?
+					free(data);
+					free(buffer);
+					return false;
+				}
+
+				dataPos += 4;
+				object->evStepActionCount = ReadDword(data, &dataPos);
+				object->evStep = new CodeAction[object->evStepActionCount];
+				for (unsigned int i = 0; i < object->evStepActionCount; i++) {
+					object->evStep[i].read(data, &dataPos);
+				}
+			}
+			else if (index == 1) {
+				// Begin Step
+				if (object->evStepBegin != NULL) {
+					// Two begin step events for this object?
+					free(data);
+					free(buffer);
+					return false;
+				}
+
+				dataPos += 4;
+				object->evStepBeginActionCount = ReadDword(data, &dataPos);
+				object->evStepBegin = new CodeAction[object->evStepBeginActionCount];
+				for (unsigned int i = 0; i < object->evStepBeginActionCount; i++) {
+					object->evStepBegin[i].read(data, &dataPos);
+				}
+			}
+			else if (index == 2) {
+				// End Step
+				if (object->evStepEnd != NULL) {
+					// Two begin step events for this object?
+					free(data);
+					free(buffer);
+					return false;
+				}
+
+				dataPos += 4;
+				object->evStepEndActionCount = ReadDword(data, &dataPos);
+				object->evStepEnd = new CodeAction[object->evStepEndActionCount];
+				for (unsigned int i = 0; i < object->evStepEndActionCount; i++) {
+					object->evStepEnd[i].read(data, &dataPos);
 				}
 			}
 		}
 
-		_sprites.push_back(sprite);
+		// Collision events
+		while (true) {
+			unsigned int index = ReadDword(data, &dataPos);
+			if (index == -1) break;
+			e.index = index;
+
+			dataPos += 4;
+			e.actionCount = ReadDword(data, &dataPos);
+			e.actions = new CodeAction[e.actionCount];
+			for (unsigned int i = 0; i < e.actionCount; i++) {
+
+				if (!e.actions[i].read(data, &dataPos)) {
+					// Error reading action
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
+
+			object->evCollision.push_back(e);
+		}
+
+		// Keyboard events
+		while (true) {
+			unsigned int index = ReadDword(data, &dataPos);
+			if (index == -1) break;
+			e.index = index;
+
+			dataPos += 4;
+			e.actionCount = ReadDword(data, &dataPos);
+			e.actions = new CodeAction[e.actionCount];
+			for (unsigned int i = 0; i < e.actionCount; i++) {
+
+				if (!e.actions[i].read(data, &dataPos)) {
+					// Error reading action
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
+
+			object->evKeyboard.push_back(e);
+		}
+
+		// Mouse events
+		while (true) {
+			unsigned int index = ReadDword(data, &dataPos);
+			if (index == -1) break;
+			e.index = index;
+
+			dataPos += 4;
+			e.actionCount = ReadDword(data, &dataPos);
+			e.actions = new CodeAction[e.actionCount];
+			for (unsigned int i = 0; i < e.actionCount; i++) {
+
+				if (!e.actions[i].read(data, &dataPos)) {
+					// Error reading action
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
+
+			object->evMouse.push_back(e);
+		}
+
+		// Other events
+		while (true) {
+			unsigned int index = ReadDword(data, &dataPos);
+			if (index == -1) break;
+			e.index = index;
+
+			dataPos += 4;
+			e.actionCount = ReadDword(data, &dataPos);
+			e.actions = new CodeAction[e.actionCount];
+			for (unsigned int i = 0; i < e.actionCount; i++) {
+
+				if (!e.actions[i].read(data, &dataPos)) {
+					// Error reading action
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
+
+			object->evOther.push_back(e);
+		}
+
+		// Draw event
+		if ((int)(ReadDword(data, &dataPos)) != -1) {
+			dataPos += 4;
+			object->evDrawActionCount = ReadDword(data, &dataPos);
+			object->evDraw = new CodeAction[object->evDrawActionCount];
+			for (unsigned int i = 0; i < object->evDrawActionCount; i++) {
+				if (!object->evDraw[i].read(data, &dataPos)) {
+					// Error reading action
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
+			dataPos += 4; // Should always be -1, otherwise this object has more than one draw event.
+		}
+
+		// Key press events
+		while (true) {
+			unsigned int index = ReadDword(data, &dataPos);
+			if (index == -1) break;
+			e.index = index;
+
+			dataPos += 4;
+			e.actionCount = ReadDword(data, &dataPos);
+			e.actions = new CodeAction[e.actionCount];
+			for (unsigned int i = 0; i < e.actionCount; i++) {
+
+				if (!e.actions[i].read(data, &dataPos)) {
+					// Error reading action
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
+
+			object->evKeyPress.push_back(e);
+		}
+
+		// Key release events
+		while (true) {
+			unsigned int index = ReadDword(data, &dataPos);
+			if (index == -1) break;
+			e.index = index;
+
+			dataPos += 4;
+			e.actionCount = ReadDword(data, &dataPos);
+			e.actions = new CodeAction[e.actionCount];
+			for (unsigned int i = 0; i < e.actionCount; i++) {
+
+				if (!e.actions[i].read(data, &dataPos)) {
+					// Error reading action
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
+
+			object->evKeyRelease.push_back(e);
+		}
+
+		// Trigger events
+		while (true) {
+			unsigned int index = ReadDword(data, &dataPos);
+			if (index == -1) break;
+			e.index = index;
+
+			dataPos += 4;
+			e.actionCount = ReadDword(data, &dataPos);
+			e.actions = new CodeAction[e.actionCount];
+			for (unsigned int i = 0; i < e.actionCount; i++) {
+
+				if (!e.actions[i].read(data, &dataPos)) {
+					// Error reading action
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
+
+			object->evTrigger.push_back(e);
+		}
+
+		e.actions = NULL; // Prevents important memory getting destroyed along with this stack memory
+	}
+
+
+	// Rooms
+
+	pos += 4;
+	count = ReadDword(buffer, &pos);
+	_rooms.reserve(count);
+	for (; count > 0; count--) {
+
+		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
+			// Error reading sprite
+			free(data);
+			free(buffer);
+			return true;
+		}
+
+		unsigned int dataPos = 0;
+		if (!ReadDword(data, &dataPos)) {
+			_rooms.push_back(Room());
+			continue;
+		}
+
+		_rooms.push_back(Room());
+		Room* room = _rooms._Mylast() - 1;
+		room->name = ReadString(data, &dataPos);
+		dataPos += 4;
+
+		room->caption = ReadString(data, &dataPos);
+		room->width = ReadDword(data, &dataPos);
+		room->height = ReadDword(data, &dataPos);
+		room->speed = ReadDword(data, &dataPos);
+		room->persistent = ReadDword(data, &dataPos);
+		room->backgroundColour = ReadDword(data, &dataPos);
+		room->drawBackgroundColour = ReadDword(data, &dataPos);
+		room->creationCode = ReadString(data, &dataPos);
+
+		// Room backgrounds
+		room->backgroundCount = ReadDword(data, &dataPos);
+		room->backgrounds = new RoomBackground[room->backgroundCount];
+		for (unsigned int i = 0; i < room->backgroundCount; i++) {
+			RoomBackground* bg = room->backgrounds + i;
+			bg->visible = ReadDword(data, &dataPos);
+			bg->foreground = ReadDword(data, &dataPos);
+			bg->backgroundIndex = ReadDword(data, &dataPos);
+			bg->x = ReadDword(data, &dataPos);
+			bg->y = ReadDword(data, &dataPos);
+			bg->tileHor = ReadDword(data, &dataPos);
+			bg->tileVert = ReadDword(data, &dataPos);
+			bg->hSpeed = ReadDword(data, &dataPos);
+			bg->vSpeed = ReadDword(data, &dataPos);
+			bg->stretch = ReadDword(data, &dataPos);
+		}
+
+		// Room views
+		room->enableViews = ReadDword(data, &dataPos);
+		room->viewCount = ReadDword(data, &dataPos);
+		room->views = new RoomView[room->viewCount];
+		for (unsigned int i = 0; i < room->viewCount; i++) {
+			RoomView* view = room->views + i;
+			view->visible = ReadDword(data, &dataPos);
+			view->viewX = (int)ReadDword(data, &dataPos);
+			view->viewY = (int)ReadDword(data, &dataPos);
+			view->viewW = ReadDword(data, &dataPos);
+			view->viewH = ReadDword(data, &dataPos);
+			view->portX = ReadDword(data, &dataPos);
+			view->portY = ReadDword(data, &dataPos);
+			view->portW = ReadDword(data, &dataPos);
+			view->portH = ReadDword(data, &dataPos);
+			view->Hbor = ReadDword(data, &dataPos);
+			view->Vbor = ReadDword(data, &dataPos);
+			view->Hsp = ReadDword(data, &dataPos);
+			view->Vsp = ReadDword(data, &dataPos);
+			view->follow = ReadDword(data, &dataPos);
+		}
+
+		// Room instances
+		room->instanceCount = ReadDword(data, &dataPos);
+		room->instances = new RoomInstance[room->instanceCount];
+		for (unsigned int i = 0; i < room->instanceCount; i++) {
+			RoomInstance* instance = room->instances + i;
+			instance->x = (int)ReadDword(data, &dataPos);
+			instance->y = (int)ReadDword(data, &dataPos);
+			instance->objectIndex = ReadDword(data, &dataPos);
+			instance->id = ReadDword(data, &dataPos);
+			instance->creationCode = ReadString(data, &dataPos);
+		}
+
+		// Room tiles
+		room->tileCount = ReadDword(data, &dataPos);
+		room->tiles = new RoomTile[room->tileCount];
+		for (unsigned int i = 0; i < room->tileCount; i++) {
+			RoomTile* tile = room->tiles + i;
+			tile->x = (int)ReadDword(data, &dataPos);
+			tile->y = (int)ReadDword(data, &dataPos);
+			tile->backgroundIndex = ReadDword(data, &dataPos);
+			tile->tileX = ReadDword(data, &dataPos);
+			tile->tileY = ReadDword(data, &dataPos);
+			tile->width = ReadDword(data, &dataPos);
+			tile->height = ReadDword(data, &dataPos);
+			tile->depth = (int)ReadDword(data, &dataPos);
+			tile->id = ReadDword(data, &dataPos);
+		}
+	}
+
+
+	// ... not sure
+	pos += 8;
+
+	
+	// Include files
+
+	pos += 4;
+	count = ReadDword(buffer, &pos);
+	_includeFiles.reserve(count);
+	for (; count > 0; count--) {
+
+		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
+			// Error reading sprite
+			free(data);
+			free(buffer);
+			return true;
+		}
+
+		unsigned int dataPos = 0;
+		if (!ReadDword(data, &dataPos)) {
+			_includeFiles.push_back(IncludeFile());
+			continue;
+		}
+
+		_includeFiles.push_back(IncludeFile());
+		IncludeFile* file = _includeFiles._Mylast() - 1;
+		dataPos += 4;
+
+		file->filename = ReadString(data, &dataPos);
+		file->filepath = ReadString(data, &dataPos);
+		bool inExe = ReadDword(data, &dataPos);
+		file->originalSize = ReadDword(data, &dataPos);
+		inExe = inExe && ReadDword(data, &dataPos);
+
+		if (inExe) {
+			file->dataLength = ReadDword(data, &dataPos);
+			file->data = new unsigned char[file->dataLength];
+			memcpy(file->data, (data + dataPos), file->dataLength);
+		}
+
+		file->exportFlags = ReadDword(data, &dataPos);
+		file->exportFolder = ReadString(data, &dataPos);
+		file->overwrite = ReadDword(data, &dataPos);
+		file->freeMemory = ReadDword(data, &dataPos);
+		file->removeAtGameEnd = ReadDword(data, &dataPos);
+	}
+
+
+	// Game information data (the thing that comes up when you press F1)
+	pos += 4;
+	if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
+		// Error reading sprite
+		free(data);
+		free(buffer);
+		return true;
+	}
+
+	unsigned int dataPos = 0;
+	info.backgroundColour = ReadDword(data, &dataPos);
+	info.separateWindow = ReadDword(data, &dataPos);
+	info.caption = ReadString(data, &dataPos);
+	info.left = ReadDword(data, &dataPos);
+	info.top = ReadDword(data, &dataPos);
+	info.width = ReadDword(data, &dataPos);
+	info.height = ReadDword(data, &dataPos);
+	info.showBorder = ReadDword(data, &dataPos);
+	info.allowWindowResize = ReadDword(data, &dataPos);
+	info.onTop = ReadDword(data, &dataPos);
+	info.freezeGame = ReadDword(data, &dataPos);
+	info.gameInfo = ReadString(data, &dataPos);
+
+
+	// Garbage?
+	pos += 4;
+	count = ReadDword(buffer, &pos);
+	for (; count > 0; count--) {
+		pos += ReadDword(buffer, &pos);
+	}
+
+
+	// Room order
+	pos += 4;
+	count = ReadDword(buffer, &pos);
+	roomOrder = new unsigned int[count];
+	for (unsigned int i = 0; i < count; i++) {
+		roomOrder[i] = ReadDword(buffer, &pos);
 	}
 
 	//Cleaning up
@@ -686,9 +1404,15 @@ bool Game::Load(const char * pFilename)
 	return true;
 }
 
+void Game::loadFirstRoom(SDL_Window* window) {
+	SDL_SetWindowBordered(window, SDL_TRUE);
+	SDL_SetWindowTitle(window, _rooms[roomOrder[0]].caption);
+	SDL_SetWindowSize(window, _rooms[roomOrder[0]].width, _rooms[roomOrder[0]].height);
+}
 
 
-bool Game::Frame(SDL_Surface* surface, unsigned int frame) {
+
+bool Game::Frame(SDL_Window* window) {
 	SDL_Event event;
 	if (SDL_PollEvent(&event)) {
 		if (event.type == SDL_QUIT) {
@@ -696,6 +1420,7 @@ bool Game::Frame(SDL_Surface* surface, unsigned int frame) {
 		}
 	}
 
-	SDL_BlitSurface(_sprites[0]->images[frame % _sprites[0]->frames], NULL, surface, NULL);
+	SDL_GetRenderer(window);
+
 	return true;
 }

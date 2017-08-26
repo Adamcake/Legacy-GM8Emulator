@@ -152,12 +152,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Assets.cpp" />
+    <ClCompile Include="CodeAction.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="StreamUtil.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Assets.hpp" />
+    <ClInclude Include="CodeAction.hpp" />
     <ClInclude Include="Game.hpp" />
+    <ClInclude Include="StreamUtil.hpp" />
     <ClInclude Include="zlib\zconf.h" />
     <ClInclude Include="zlib\zlib.h" />
   </ItemGroup>

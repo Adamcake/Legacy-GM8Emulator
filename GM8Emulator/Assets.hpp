@@ -1,21 +1,13 @@
 #ifndef _GM8_ASSETS_HPP_
 #define _GM8_ASSETS_HPP_
 #include <vector>
-class SDL_Surface;
-
-// Abstract parent type for all 9 assets, just in case it's ever useful.
-class Asset {
-	private:
-		char* name;
-	public:
-		Asset(char* name);
-		virtual ~Asset();
-
-		virtual inline const char* getName() const { return name; }
-};
+#include <list>
+struct SDL_Surface;
+class CodeAction;
 
 
 // Subclasses used by main asset types
+
 struct CollisionMap {
 	unsigned int top;
 	unsigned int bottom;
@@ -26,30 +18,99 @@ struct CollisionMap {
 	bool* collision;
 };
 
-// And here are the 11 types of asset found in the gamedata (in order, incidentally.)
+struct PathPoint {
+	double x;
+	double y;
+	double speed;
+};
 
-class Trigger : public Asset {
+struct IndexedEvent {
+	unsigned int index;
+	unsigned int actionCount;
+	CodeAction* actions;
+
+	IndexedEvent();
+	~IndexedEvent();
+};
+
+struct RoomBackground {
+	bool visible;
+	bool foreground;
+	unsigned int backgroundIndex;
+	unsigned int x;
+	unsigned int y;
+	bool tileHor;
+	bool tileVert;
+	unsigned int hSpeed;
+	unsigned int vSpeed;
+	unsigned int stretch;
+};
+
+struct RoomView {
+	bool visible;
+	int viewX;
+	int viewY;
+	unsigned int viewW;
+	unsigned int viewH;
+	unsigned int portX;
+	unsigned int portY;
+	unsigned int portW;
+	unsigned int portH;
+	unsigned int Hbor;
+	unsigned int Vbor;
+	unsigned int Hsp;
+	unsigned int Vsp;
+	unsigned int follow;
+};
+
+struct RoomInstance {
+	int x;
+	int y;
+	unsigned int objectIndex;
+	unsigned int id;
+	char* creationCode;
+};
+
+struct RoomTile {
+	int x;
+	int y;
+	unsigned int backgroundIndex;
+	int tileX;
+	int tileY;
+	unsigned int width;
+	unsigned int height;
+	int depth;
+	unsigned int id;
+};
+
+
+// And here are the 12 types of asset found in the gamedata (in order, incidentally.)
+
+class Trigger {
 	public:
-		Trigger(char* name);
+		Trigger();
 		~Trigger();
+		char* name;
 
 		char* condition;
 		unsigned int checkMoment; // begin step, step, end step
 		char* constantName;
 };
 
-class Constant : public Asset {
+class Constant {
 	public:
-		Constant(char* name);
+		Constant();
 		~Constant();
+		char* name;
 
 		char* value;
 };
 
-class Sound : public Asset {
+class Sound {
 	public:
-		Sound(char* name);
+		Sound();
 		~Sound();
+		char* name;
 
 		unsigned int kind; // normal, background, 3d, use multimedia player
 		char* fileType;
@@ -64,10 +125,11 @@ class Sound : public Asset {
 		bool preload;
 };
 
-class Sprite : public Asset {
+class Sprite {
 	public:
-		Sprite(char* name);
+		Sprite();
 		~Sprite();
+		char* name;
 
 		unsigned int originX;
 		unsigned int originY;
@@ -76,48 +138,144 @@ class Sprite : public Asset {
 		SDL_Surface** images;
 
 		bool separateCollision;
+		CollisionMap* collisionMaps;
 };
 
-class Background : public Asset {
+class Background {
 	public:
-		Background(char* name);
+		Background();
 		~Background();
+		char* name;
+
+		unsigned int width;
+		unsigned int height;
+		unsigned char* data;
 };
 
-class Path : public Asset {
+class Path {
 	public:
-		Path(char* name);
+		Path();
 		~Path();
+		char* name;
+
+		unsigned int kind;
+		bool closed;
+		unsigned int precision;
+		
+		unsigned int pointCount;
+		PathPoint* points;
 };
 
-class Script : public Asset {
+class Script {
 	public:
-		Script(char* name);
+		Script();
 		~Script();
+		char* name;
+		char* code;
 };
 
-class Font : public Asset {
+class Font {
 	public:
-		Font(char* name);
+		Font();
 		~Font();
+		char* name;
+
+		char* fontName;
+		unsigned int size;
+		bool bold;
+		bool italic;
+		unsigned int rangeBegin;
+		unsigned int rangeEnd;
+		
 };
 
-class Timeline : public Asset {
+class Timeline {
 	public:
-		Timeline(char* name);
+		Timeline();
 		~Timeline();
+		char* name;
+
+		unsigned int momentCount;
+		IndexedEvent* moments;
 };
 
-class Object : public Asset {
+class Object {
 	public:
-		Object(char* name);
+		Object();
 		~Object();
+		char* name;
+
+		int spriteIndex;
+		bool solid;
+		bool visible;
+		int depth;
+		bool persistent;
+		int parentIndex;
+		int maskIndex;
+
+		unsigned int evCreateActionCount;
+		CodeAction* evCreate;
+		unsigned int evDestroyActionCount;
+		CodeAction* evDestroy;
+		unsigned int evStepActionCount;
+		CodeAction* evStep;
+		unsigned int evStepBeginActionCount;
+		CodeAction* evStepBegin;
+		unsigned int evStepEndActionCount;
+		CodeAction* evStepEnd;
+		unsigned int evDrawActionCount;
+		CodeAction* evDraw;
+
+		std::list<IndexedEvent> evAlarm;
+		std::list<IndexedEvent> evCollision;
+		std::list<IndexedEvent> evKeyboard;
+		std::list<IndexedEvent> evKeyPress;
+		std::list<IndexedEvent> evKeyRelease;
+		std::list<IndexedEvent> evMouse;
+		std::list<IndexedEvent> evOther;
+		std::list<IndexedEvent> evTrigger;
 };
 
-class Room : public Asset {
+class Room {
 	public:
-		Room(char* name);
+		Room();
 		~Room();
+		char* name;
+
+		char* caption;
+		unsigned int width;
+		unsigned int height;
+		unsigned int speed;
+		bool persistent;
+		unsigned int backgroundColour;
+		bool drawBackgroundColour;
+		char* creationCode;
+		bool enableViews;
+
+		unsigned int backgroundCount;
+		RoomBackground* backgrounds;
+		unsigned int viewCount;
+		RoomView* views;
+		unsigned int instanceCount;
+		RoomInstance* instances;
+		unsigned int tileCount;
+		RoomTile* tiles;
+};
+
+class IncludeFile {
+	public:
+		IncludeFile();
+		~IncludeFile();
+		char* filename;
+		char* filepath;
+		unsigned int dataLength;
+		unsigned char* data;
+		unsigned int originalSize;
+		unsigned int exportFlags;
+		char* exportFolder;
+		bool overwrite;
+		bool freeMemory;
+		bool removeAtGameEnd;
 };
 
 #endif

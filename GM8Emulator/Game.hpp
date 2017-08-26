@@ -2,6 +2,7 @@
 #define _GM8_GAME_HPP_
 #include <vector>
 #include "Assets.hpp"
+struct SDL_Window;
 
 // Wrapper for game settings
 struct Settings {
@@ -42,36 +43,64 @@ struct Settings {
 	bool errorOnUninitialization;	// Throw an error when script arguments aren't initialized correctly
 };
 
+// Wrapper for game information
+struct GameInfo {
+	unsigned int backgroundColour;
+	bool separateWindow;
+	char* caption;
+	unsigned int left;
+	unsigned int top;
+	unsigned int width;
+	unsigned int height;
+	bool showBorder;
+	bool allowWindowResize;
+	bool onTop;
+	bool freezeGame;
+	char* gameInfo;
+};
+
 // This is the overall structure for the game state.
 class Game {
 	private:
 		// These contain the assets loaded in from the gamedata.
-		std::vector<Trigger*> _triggers;
-		std::vector<Constant*> _constants;
+		std::vector<Trigger> _triggers;
+		std::vector<Constant> _constants;
 
-		std::vector<Sound*> _sounds;
-		std::vector<Sprite*> _sprites;
-		std::vector<Background*> _backgrounds;
-		std::vector<Path*> _paths;
-		std::vector<Script*> _scripts;
-		std::vector<Font*> _fonts;
-		std::vector<Timeline*> _timelines;
-		std::vector<Object*> _objects;
-		std::vector<Room*> _rooms;
+		std::vector<Sound> _sounds;
+		std::vector<Sprite> _sprites;
+		std::vector<Background> _backgrounds;
+		std::vector<Path> _paths;
+		std::vector<Script> _scripts;
+		std::vector<Font> _fonts;
+		std::vector<Timeline> _timelines;
+		std::vector<Object> _objects;
+		std::vector<Room> _rooms;
+		
+		std::vector<IncludeFile> _includeFiles;
+
+		// This refers to the "game information" text box that comes up if you press F1.
+		GameInfo info;
+
+		// Order in which rooms should be played (this is different than the resource tree order)
+		unsigned int* roomOrder;
 
 	public:
 		Game();
 		~Game();
 
+		// Wrapper for game settings
 		Settings settings;
 
 		// Load in game data from a file stream. Returns true on success, false on failure.
 		// The Game object should be deleted on failure as it will be in an undefined state.
 		bool Load(const char* filename);
 
-		// Call this every time you want a frame advance. Check what the FPS is supposed to be with Game.getFPS().
+		// Loads the first room of the game.
+		void loadFirstRoom(SDL_Window* renderer);
+
+		// Call this every time you want a frame advance.
 		// Returns false if the game should exit, otherwise true.
-		bool Frame(SDL_Surface* surface, unsigned int frame);
+		bool Frame(SDL_Window* surface);
 };
 
 #endif
