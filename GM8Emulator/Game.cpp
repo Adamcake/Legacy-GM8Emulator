@@ -245,6 +245,7 @@ Game::Game()
 Game::~Game()
 {
 	// Destroy all loaded assets, this also calls their destructors.
+	_extensions.clear();
 	_triggers.clear();
 	_constants.clear();
 	_sounds.clear();
@@ -471,50 +472,114 @@ bool Game::Load(const char * pFilename)
 	// Garbage fields
 	pos += (ReadDword(buffer, &pos) + 6) * 4;
 
-	// Extensions - there's zero documentation on how these work, they have their own encryption, and they're not in common use. So I won't support them for now.
+	// Extensions
+
 	pos += 4;
+	unsigned char* charTable = NULL;
 	unsigned int count = ReadDword(buffer, &pos);
+	if(count) charTable = (unsigned char*)malloc(0x200);
+	_extensions.reserve(count);
 	for (; count > 0; count--) {
-		ReadDword(buffer, &pos); // Data version - 700
-		pos += ReadDword(buffer, &pos); // Extension name
-		pos += ReadDword(buffer, &pos); // Some kind of extension ID? eg. "GMPrint123"
+		_extensions.push_back(Extension());
+		Extension* extension = _extensions._Mylast() - 1;
 
-		// A list of things inside the extension, seems to refer to external files.
-		for (unsigned int i = ReadDword(buffer, &pos); i > 0; i--) {
-			ReadDword(buffer, &pos); // Data version, 700
-			pos += ReadDword(buffer, &pos); // Filename, eg "Printing.dll" - can be either .dll or .gml
-			ReadDword(buffer, &pos); // Some kind of sequence id?
-			pos += ReadDword(buffer, &pos); // Extern init function name, eg "__tr_init"
-			pos += ReadDword(buffer, &pos); // Always blank?
+		pos += 4; // Data version, 700
+		extension->name = ReadString(buffer, &pos);
+		extension->folderName = ReadString(buffer, &pos);
 
-			// "compiled data" according to zach
+		// The list of files inside the extension
+		extension->fileCount = ReadDword(buffer, &pos);
+		extension->files = new ExtensionFile[extension->fileCount];
+		for (unsigned int i = 0; i < extension->fileCount; i++) {
+			ExtensionFile* extfile = extension->files + i;
 
-			unsigned int ii = ReadDword(buffer, &pos);
-			for (; ii; ii--) {
-				ReadDword(buffer, &pos);
-				pos += ReadDword(buffer, &pos);
-				pos += ReadDword(buffer, &pos);
-				ReadDword(buffer, &pos);
-				ReadDword(buffer, &pos);
-				ReadDword(buffer, &pos);
+			pos += 4; // Data version, 700
+			extfile->filename = ReadString(buffer, &pos);
+			extfile->kind = ReadDword(buffer, &pos);
+			extfile->initializer = ReadString(buffer, &pos);
+			extfile->finalizer = ReadString(buffer, &pos);
+
+			// Functions
+			extfile->functionCount = ReadDword(buffer, &pos);
+			extfile->functions = new ExtensionFileFunction[extfile->functionCount];
+			for (unsigned int ii = 0; ii < extfile->functionCount; ii++) {
+				pos += 4; // Data version 700
+				extfile->functions[ii].name = ReadString(buffer, &pos);
+				extfile->functions[ii].externalName = ReadString(buffer, &pos);
+				extfile->functions[ii].convention = ReadDword(buffer, &pos);
+				pos += 4; // always 0?
+				extfile->functions[ii].argCount = ReadDword(buffer, &pos);
 
 				for (unsigned int j = 0; j < 17; j++) {
-					ReadDword(buffer, &pos);
+					extfile->functions[ii].argTypes[j] = ReadDword(buffer, &pos); // arg type - 1 for string, 2 for real
 				}
 
-				ReadDword(buffer, &pos);
+				extfile->functions[ii].returnType = ReadDword(buffer, &pos); // function return type - 1 for string, 2 for real
 			}
 
-			unsigned int iii = ReadDword(buffer, &pos);
-			for (; iii; iii--) {
-				ReadDword(buffer, &pos);
-				pos += ReadDword(buffer, &pos);
-				pos += ReadDword(buffer, &pos);
+			// Constants
+			extfile->constCount = ReadDword(buffer, &pos);
+			extfile->consts = new ExtensionFileConst[extfile->constCount];
+			for (unsigned int ii = 0; ii < extfile->constCount; ii++) {
+				pos += 4; // Data version 700
+				extfile->consts[ii].name = ReadString(buffer, &pos);
+				extfile->consts[ii].value = ReadString(buffer, &pos);
 			}
 		}
 
-		pos += ReadDword(buffer, &pos);
+		// Actual file data, including decryption
+		unsigned int endpos = ReadDword(buffer, &pos);
+		unsigned int dataPos = pos;
+		pos += endpos;
+
+		// File decryption - generate byte table
+		int seed1 = ReadDword(buffer, &dataPos);
+		int seed2 = (seed1 % 0xFA) + 6;
+		seed1 /= 0xFA;
+		if (seed1 < 0) seed1 += 100;
+		if (seed2 < 0) seed2 += 100;
+
+		for (unsigned int i = 0; i < 0x200; i++) {
+			charTable[i] = i;
+		}
+
+		// File decryption - byte table first pass
+		for (unsigned int i = 1; i < 0x2711; i++) {
+			unsigned int AX = (((i * seed2) + seed1) % 0xFE) + 1;
+			unsigned char b1 = charTable[AX];
+			unsigned char b2 = charTable[AX + 1];
+			charTable[AX] = b2;
+			charTable[AX + 1] = b1;
+		}
+
+		// File decryption - byte table second pass
+		for (unsigned int i = 0; i < 0x100; i++) {
+			unsigned char DX = charTable[i + 1];
+			charTable[DX + 0x100] = i + 1;
+		}
+
+		// File decryption - decrypting data block
+		for (unsigned int i = dataPos + 1; i < pos; i++) {
+			buffer[i] = charTable[buffer[i] + 0x100];
+		}
+
+		// Read the files
+		for (unsigned int i = 0; i < extension->fileCount; i++) {
+			if (!InflateBlock(buffer, &dataPos, &data, &dataLength, &outputSize)) {
+				// Error reading trigger
+				free(data);
+				free(buffer);
+				free(charTable);
+				return true;
+			}
+
+			extension->files[i].dataLength = outputSize;
+			extension->files[i].data = (unsigned char*)malloc(outputSize);
+			memcpy(extension->files[i].data, data, outputSize);
+		}
+
 	}
+	free(charTable);
 
 
 	// Triggers
@@ -837,7 +902,17 @@ bool Game::Load(const char * pFilename)
 		font->rangeBegin = ReadDword(data, &dataPos);
 		font->rangeEnd = ReadDword(data, &dataPos);
 
-		// todo - the rest of the stream contains font sprite data but I don't know the format.
+		// Coordinate data for characters 0-255 in the bitmap.
+		unsigned int dmap[0x600];
+		for (unsigned int i = 0; i < 0x600; i++) {
+			dmap[i] = ReadDword(data, &dataPos); // Have to do it this way instead of a memcpy so it stays endian-safe.
+		}
+
+		unsigned int w = ReadDword(data, &dataPos);
+		unsigned int h = ReadDword(data, &dataPos);
+		unsigned int dlen = ReadDword(data, &dataPos);
+
+		// tbd - there are %dlen bytes here containing the font bitmap.
 	}
 
 
@@ -1406,8 +1481,8 @@ bool Game::Load(const char * pFilename)
 
 void Game::loadFirstRoom(SDL_Window* window) {
 	SDL_SetWindowBordered(window, SDL_TRUE);
-	SDL_SetWindowTitle(window, _rooms[roomOrder[0]].caption);
-	SDL_SetWindowSize(window, _rooms[roomOrder[0]].width, _rooms[roomOrder[0]].height);
+//	SDL_SetWindowTitle(window, _rooms[roomOrder[0]].caption);
+//	SDL_SetWindowSize(window, _rooms[roomOrder[0]].width, _rooms[roomOrder[0]].height);
 }
 
 

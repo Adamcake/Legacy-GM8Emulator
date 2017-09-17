@@ -63,6 +63,7 @@ struct GameInfo {
 class Game {
 	private:
 		// These contain the assets loaded in from the gamedata.
+		std::vector<Extension> _extensions;
 		std::vector<Trigger> _triggers;
 		std::vector<Constant> _constants;
 

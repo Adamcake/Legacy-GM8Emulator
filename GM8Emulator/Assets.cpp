@@ -17,6 +17,44 @@ IndexedEvent::~IndexedEvent()
 }
 
 
+Extension::Extension()
+{
+	name = NULL;
+	folderName = NULL;
+	fileCount = 0;
+	files = NULL;
+}
+
+Extension::~Extension()
+{
+	free(name);
+	free(folderName);
+
+	while (fileCount) {
+		fileCount--;
+		free(files[fileCount].filename);
+		free(files[fileCount].initializer);
+		free(files[fileCount].finalizer);
+		free(files[fileCount].data);
+
+		while (files[fileCount].functionCount) {
+			files[fileCount].functionCount--;
+			free(files[fileCount].functions[files[fileCount].functionCount].name);
+			free(files[fileCount].functions[files[fileCount].functionCount].externalName);
+		}
+		while (files[fileCount].constCount) {
+			files[fileCount].constCount--;
+			free(files[fileCount].consts[files[fileCount].constCount].name);
+			free(files[fileCount].consts[files[fileCount].constCount].value);
+		}
+
+		delete[] files[fileCount].functions;
+		delete[] files[fileCount].consts;
+	}
+
+	delete[] files;
+}
+
 Trigger::Trigger()
 {
 	name = NULL;

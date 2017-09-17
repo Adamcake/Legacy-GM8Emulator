@@ -83,8 +83,49 @@ struct RoomTile {
 	unsigned int id;
 };
 
+struct ExtensionFileFunction {
+	char* name;
+	char* externalName;
+	unsigned int convention; // stdcall or cdecl
+	unsigned int argCount;
+	unsigned int argTypes[17]; // 1=string, 2=real
+	unsigned int returnType; // 1=string, 2=real
+};
 
-// And here are the 12 types of asset found in the gamedata (in order, incidentally.)
+struct ExtensionFileConst {
+	char* name;
+	char* value;
+};
+
+struct ExtensionFile {
+	char* filename;
+	unsigned int kind; // 1=dll, 2=gml, 3=lib, 4=other
+	char* initializer;
+	char* finalizer;
+
+	unsigned int functionCount;
+	ExtensionFileFunction* functions;
+
+	unsigned int constCount;
+	ExtensionFileConst* consts;
+
+	unsigned int dataLength;
+	unsigned char* data;
+};
+
+
+// And here are the 13 types of asset found in the gamedata (in order, incidentally.)
+
+class Extension {
+	public:
+		Extension();
+		~Extension();
+		char* name;
+
+		char* folderName;
+		unsigned int fileCount;
+		ExtensionFile* files;
+};
 
 class Trigger {
 	public:

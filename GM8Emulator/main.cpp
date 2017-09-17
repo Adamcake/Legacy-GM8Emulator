@@ -1,4 +1,4 @@
-#define CHECK_MEMORY_LEAKS 1
+#define CHECK_MEMORY_LEAKS 0
 
 #include "SDL/SDL.h"
 #include "Game.hpp"
