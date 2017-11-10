@@ -69,12 +69,12 @@ choose()
 EVENT ORDERS
 ============
 
-TODO: Timeline progression; begin step triggers; end step triggers
-
 All the places below where it says something about "every instance": unless stated otherwise, the instances are iterated in order of their instance ID. Instance IDs are unique.
 
 Normal frame cycle:
+- Each "begin step" trigger is checked for each instance - this is done by trigger order and then instance order, ie. trigger0 is checked for all instances, trigger1 is checked for all instances, etc.
 - every instance's "begin step" event gets run
+- timeline_position is increased by timeline_speed (if timeline_running), and all timeline moments are run that are BELOW the current value, and GREATER THAN OR EQUAL TO the old value. For example, after increasing from 1 to 1.5 you would run moment "1", but when increasing from 1.5 to 2, you would not run any moments. When increasing from 0 to 1.1, you would run both moments "0" and "1".
 - All alarm variables are decremented and the event are run if the value hit 0
 - all "keyboard" events are run for each instance - this means the "left" event is checked for every instance, then the "right" event is run for each instance, etc. for every keyboard event, top to bottom as listed in the IDE.
 - all "mouse" events are run for each instance, in the same manner as above.
@@ -88,6 +88,7 @@ Normal frame cycle:
 - if a view is in use, every instance's "outside view x" event gets checked
 - if a view is in use, every instance's "intersect boundary view x" event gets checked
 - every instance's collision events get checked and run
+- Each "end step" trigger is checked for each instance - this is done by trigger order and then instance order, ie. trigger0 is checked for all instances, trigger1 is checked for all instances, etc.
 - every instance's "end step" event gets run
 ENTRY POINT
 - every instance's "draw" event gets run if the object is visible - this is done in order of depth, followed by order of OBJECT ID, and finally order of INSTANCE ID.
