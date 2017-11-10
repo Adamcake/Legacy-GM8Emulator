@@ -4,7 +4,6 @@
 #include "CodeAction.hpp"
 #include "StreamUtil.hpp"
 #include "zlib\zlib.h"
-#include "SDL\SDL.h"
 
 #define ZLIB_BUF_START 65536
 
@@ -240,6 +239,8 @@ Game::Game()
 {
 	info.caption = NULL;
 	info.gameInfo = NULL;
+	renderer = new GameRenderer();
+	roomId = 0xFFFFFFFF;
 }
 
 Game::~Game()
@@ -264,6 +265,9 @@ Game::~Game()
 
 	// Destroy room order
 	delete[] roomOrder;
+
+	// Destroy renderer
+	delete renderer;
 }
 
 bool Game::Load(const char * pFilename)
@@ -582,6 +586,34 @@ bool Game::Load(const char * pFilename)
 	free(charTable);
 
 
+	// The EXE data can contain non-existent (deleted) assets. These count as indexed assets, so we need to push these into the list, but also indicate that they don't really exist.
+	// We'll handle this by creating dummy objects here for later pushing.
+	Trigger dummyTrigger;
+	dummyTrigger.exists = false;
+	Constant dummyConstant;
+	dummyConstant.exists = false;
+	Sound dummySound;
+	dummySound.exists = false;
+	Sprite dummySprite;
+	dummySprite.exists = false;
+	Background dummyBackground;
+	dummyBackground.exists = false;
+	Path dummyPath;
+	dummyPath.exists = false;
+	Script dummyScript;
+	dummyScript.exists = false;
+	Font dummyFont;
+	dummyFont.exists = false;
+	Timeline dummyTimeline;
+	dummyTimeline.exists = false;
+	Object dummyObject;
+	dummyObject.exists = false;
+	Room dummyRoom;
+	dummyRoom.exists = false;
+	IncludeFile dummyIncludeFile;
+	dummyIncludeFile.exists = false;
+
+
 	// Triggers
 
 	pos += 4;
@@ -593,12 +625,12 @@ bool Game::Load(const char * pFilename)
 			// Error reading trigger
 			free(data);
 			free(buffer);
-			return true;
+			return false;
 		}
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_triggers.push_back(Trigger());
+			_triggers.push_back(dummyTrigger);
 			continue;
 		}
 
@@ -636,12 +668,12 @@ bool Game::Load(const char * pFilename)
 			// Error reading sound
 			free(data);
 			free(buffer);
-			return true;
+			return false;
 		}
 
 		unsigned int dataPos = 0;
 		if (! ReadDword(data, &dataPos)) {
-			_sounds.push_back(Sound());
+			_sounds.push_back(dummySound);
 			continue;
 		}
 
@@ -682,12 +714,12 @@ bool Game::Load(const char * pFilename)
 			// Error reading sprite
 			free(data);
 			free(buffer);
-			return true;
+			return false;
 		}
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_sprites.push_back(Sprite());
+			_sprites.push_back(dummySprite);
 			continue;
 		}
 
@@ -699,32 +731,29 @@ bool Game::Load(const char * pFilename)
 		sprite->originX = ReadDword(data, &dataPos);
 		sprite->originY = ReadDword(data, &dataPos);
 
-		sprite->frames = ReadDword(data, &dataPos);
-		if (sprite->frames) {
-			sprite->images = (SDL_Surface**) malloc(sizeof(SDL_Surface*) * sprite->frames);
+		sprite->frameCount = ReadDword(data, &dataPos);
+		if (sprite->frameCount) {
+			sprite->frames = (RImageIndex*) malloc(sizeof(RImageIndex*) * sprite->frameCount);
 
 			// Frame data
 			unsigned int i;
-			for (i = 0; i < sprite->frames; i++) {
+			for (i = 0; i < sprite->frameCount; i++) {
 				dataPos += 4;
 
 				unsigned int w = ReadDword(data, &dataPos);
 				unsigned int h = ReadDword(data, &dataPos);
 
-
-				sprite->images[i] = SDL_CreateRGBSurface(0, w, h, 32, 0xFF0000, 0xFF00, 0xFF, 0xFF000000);
 				unsigned int pixelDataLength = ReadDword(data, &dataPos);
-				memcpy(sprite->images[i]->pixels, (data + dataPos), pixelDataLength);
+				sprite->frames[i] = renderer->MakeImage(w, h, (data + dataPos));
 				dataPos += pixelDataLength;
-				SDL_SetSurfaceBlendMode(sprite->images[i], SDL_BLENDMODE_BLEND);
 			}
 
 			// Collision data
 			sprite->separateCollision = ReadDword(data, &dataPos);
 			if (sprite->separateCollision) {
 				// Separate maps
-				sprite->collisionMaps = new CollisionMap[sprite->frames];
-				for (i = 0; i < sprite->frames; i++) {
+				sprite->collisionMaps = new CollisionMap[sprite->frameCount];
+				for (i = 0; i < sprite->frameCount; i++) {
 					dataPos += 4;
 
 					CollisionMap* map = &(sprite->collisionMaps[i]);
@@ -774,15 +803,15 @@ bool Game::Load(const char * pFilename)
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
-			// Error reading sprite
+			// Error reading background
 			free(data);
 			free(buffer);
-			return true;
+			return false;
 		}
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_backgrounds.push_back(Background());
+			_backgrounds.push_back(dummyBackground);
 			continue;
 		}
 
@@ -809,15 +838,15 @@ bool Game::Load(const char * pFilename)
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
-			// Error reading sprite
+			// Error reading path
 			free(data);
 			free(buffer);
-			return true;
+			return false;
 		}
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_paths.push_back(Path());
+			_paths.push_back(dummyPath);
 			continue;
 		}
 
@@ -849,15 +878,15 @@ bool Game::Load(const char * pFilename)
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
-			// Error reading sprite
+			// Error reading script
 			free(data);
 			free(buffer);
-			return true;
+			return false;
 		}
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_scripts.push_back(Script());
+			_scripts.push_back(dummyScript);
 			continue;
 		}
 
@@ -878,15 +907,15 @@ bool Game::Load(const char * pFilename)
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
-			// Error reading sprite
+			// Error reading font
 			free(data);
 			free(buffer);
-			return true;
+			return false;
 		}
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_fonts.push_back(Font());
+			_fonts.push_back(dummyFont);
 			continue;
 		}
 
@@ -924,15 +953,15 @@ bool Game::Load(const char * pFilename)
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
-			// Error reading sprite
+			// Error reading timeline
 			free(data);
 			free(buffer);
-			return true;
+			return false;
 		}
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_timelines.push_back(Timeline());
+			_timelines.push_back(dummyTimeline);
 			continue;
 		}
 
@@ -971,15 +1000,15 @@ bool Game::Load(const char * pFilename)
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
-			// Error reading sprite
+			// Error reading object
 			free(data);
 			free(buffer);
-			return true;
+			return false;
 		}
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_objects.push_back(Object());
+			_objects.push_back(dummyObject);
 			continue;
 		}
 
@@ -1290,15 +1319,15 @@ bool Game::Load(const char * pFilename)
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
-			// Error reading sprite
+			// Error reading room
 			free(data);
 			free(buffer);
-			return true;
+			return false;
 		}
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_rooms.push_back(Room());
+			_rooms.push_back(dummyRoom);
 			continue;
 		}
 
@@ -1397,15 +1426,15 @@ bool Game::Load(const char * pFilename)
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
-			// Error reading sprite
+			// Error reading whatever this is
 			free(data);
 			free(buffer);
-			return true;
+			return false;
 		}
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_includeFiles.push_back(IncludeFile());
+			_includeFiles.push_back(dummyIncludeFile);
 			continue;
 		}
 
@@ -1436,10 +1465,10 @@ bool Game::Load(const char * pFilename)
 	// Game information data (the thing that comes up when you press F1)
 	pos += 4;
 	if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
-		// Error reading sprite
+		// Error reading game information
 		free(data);
 		free(buffer);
-		return true;
+		return false;
 	}
 
 	unsigned int dataPos = 0;
@@ -1473,29 +1502,57 @@ bool Game::Load(const char * pFilename)
 		roomOrder[i] = ReadDword(buffer, &pos);
 	}
 
-	//Cleaning up
+	// Cleaning up
 	free(data);
 	free(buffer);
+
 	return true;
 }
 
-void Game::loadFirstRoom(SDL_Window* window) {
-	SDL_SetWindowBordered(window, SDL_TRUE);
-//	SDL_SetWindowTitle(window, _rooms[roomOrder[0]].caption);
-//	SDL_SetWindowSize(window, _rooms[roomOrder[0]].width, _rooms[roomOrder[0]].height);
+bool Game::StartGame() {
+	// Clear out the instances if there were any
+	// TODO - once there's an instance list, call clear() on it here
+
+	// Reset the room to its default value so that LoadRoom() won't ever fail when restarting
+	roomId = 0xFFFFFFFF;
+
+	// Start up game window (this will safely destroy the old one if one existed)
+	if (!renderer->MakeGameWindow(&settings)) {
+		// Failed to create GLFW window
+		return false;
+	}
+
+	// Load first room
+	LoadRoom(0);
+
+	return true;
+}
+
+bool Game::LoadRoom(unsigned int id) {
+	// Exit if we're already in this room
+	if (id == roomId) return true;
+
+	// Check this id is a valid room
+	if (id >= _rooms.size()) return false;
+
+	// Get the Room object for the room we're going to
+	Room* room = &_rooms[roomOrder[id]];
+
+	// Check room exists
+	if (!room->exists) return false;
+
+	// Update renderer
+	renderer->ResizeGameWindow(room->width, room->height);
+	renderer->SetGameWindowTitle(room->caption);
+
+	// TODO: delete all non-persistent instances
+	// TODO: create all instances in new room
+
+	return true;
 }
 
 
 
-bool Game::Frame(SDL_Window* window) {
-	SDL_Event event;
-	if (SDL_PollEvent(&event)) {
-		if (event.type == SDL_QUIT) {
-			return false;
-		}
-	}
-
-	SDL_GetRenderer(window);
-
+bool Game::Frame() {
 	return true;
 }

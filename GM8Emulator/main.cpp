@@ -1,6 +1,6 @@
 #define CHECK_MEMORY_LEAKS 0
 
-#include "SDL/SDL.h"
+#include <GLFW\glfw3.h>
 #include "Game.hpp"
 
 #if CHECK_MEMORY_LEAKS
@@ -10,15 +10,10 @@
 #endif
 
 int main(int argc, char** argv) {
+	
+	glfwInit();
 
 	Game* game = new Game();
-
-	SDL_Init(SDL_INIT_EVERYTHING);
-	SDL_Window* window;
-	window = SDL_CreateWindow(argv[0], SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 332, 92, SDL_WINDOW_OPENGL);
-	SDL_SetWindowBordered(window, SDL_FALSE);
-	SDL_SetWindowResizable(window, SDL_FALSE);
-	SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
 	// If you want the runner to load the data from itself (like how normal gm8 games do it), set the game name to argv[0].
 	if (!game->Load("game.exe")) {
@@ -27,21 +22,21 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	game->loadFirstRoom(window);
-
-	while (true) {
-		if (!game->Frame(window)) {
-			break;
-		}
-
-		SDL_RenderPresent(renderer);
-		SDL_Delay(20);
+	if (!game->StartGame()) {
+		// Starting game failed
+		delete game;
+		return 2;
 	}
 
-	SDL_DestroyRenderer(renderer);
-	SDL_DestroyWindow(window);
+	while (true) {
+		if (!game->Frame()) {
+			break;
+		}
+	}
+
 	delete game;
-	SDL_Quit();
+
+	glfwTerminate();
 
 #if CHECK_MEMORY_LEAKS
 	_CrtDumpMemoryLeaks();

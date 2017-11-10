@@ -1,6 +1,5 @@
 #include <string.h>
 #include <windows.h>
-#include "SDL\SDL.h"
 #include "Assets.hpp"
 #include "CodeAction.hpp"
 
@@ -58,6 +57,7 @@ Extension::~Extension()
 Trigger::Trigger()
 {
 	name = NULL;
+	exists = true;
 	condition = NULL;
 	constantName = NULL;
 }
@@ -72,6 +72,7 @@ Trigger::~Trigger()
 Constant::Constant()
 {
 	name = NULL;
+	exists = true;
 	value = NULL;
 }
 
@@ -84,6 +85,7 @@ Constant::~Constant()
 Sound::Sound()
 {
 	name = NULL;
+	exists = true;
 	fileType = NULL;
 	fileName = NULL;
 	data = NULL;
@@ -100,8 +102,9 @@ Sound::~Sound()
 Sprite::Sprite()
 {
 	name = NULL;
-	frames = 0;
-	images = NULL;
+	exists = true;
+	frameCount = 0;
+	frames = NULL;
 	collisionMaps = NULL;
 }
 
@@ -109,18 +112,18 @@ Sprite::~Sprite()
 {
 	free(name);
 
-	while (frames) {
-		frames--;
-		SDL_FreeSurface(images[frames]);
-		if (separateCollision || !frames) delete[] collisionMaps[frames].collision;
+	while (frameCount) {
+		frameCount--;
+		if (separateCollision || !frameCount) delete[] collisionMaps[frameCount].collision;
 	}
-	free(images);
+	free(frames);
 	delete[] collisionMaps;
 }
 
 Background::Background()
 {
 	name = NULL;
+	exists = true;
 	data = NULL;
 }
 
@@ -133,6 +136,7 @@ Background::~Background()
 Path::Path()
 {
 	name = NULL;
+	exists = true;
 	points = NULL;
 }
 
@@ -145,6 +149,7 @@ Path::~Path()
 Script::Script()
 {
 	name = NULL;
+	exists = true;
 	code = NULL;
 }
 
@@ -157,6 +162,7 @@ Script::~Script()
 Font::Font()
 {
 	name = NULL;
+	exists = true;
 	fontName = NULL;
 }
 
@@ -169,6 +175,7 @@ Font::~Font()
 Timeline::Timeline()
 {
 	name = NULL;
+	exists = true;
 	momentCount = 0;
 	moments = NULL;
 }
@@ -182,6 +189,7 @@ Timeline::~Timeline()
 Object::Object()
 {
 	name = NULL;
+	exists = true;
 	evCreateActionCount = 0;
 	evCreate = NULL;
 	evDestroyActionCount = 0;
@@ -219,6 +227,7 @@ Object::~Object()
 Room::Room()
 {
 	name = NULL;
+	exists = true;
 	caption = NULL;
 	creationCode = NULL;
 	backgroundCount = 0;
@@ -254,7 +263,7 @@ IncludeFile::IncludeFile()
 	filepath = NULL;
 	exportFolder = NULL;
 	data = NULL;
-
+	exists = true;
 }
 
 IncludeFile::~IncludeFile()

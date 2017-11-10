@@ -72,23 +72,23 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)SDL2/include/;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)SDL2/lib/x86/;$(LibraryPath)</LibraryPath>
+    <IncludePath>glfw-3.2.1\include;$(IncludePath)</IncludePath>
+    <LibraryPath>glfw-3.2.1\src\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)SDL2/include/;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)SDL2/lib/x64/;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath);glfw-3.2.1.bin.WIN64\include</IncludePath>
+    <LibraryPath>$(LibraryPath);glfw-3.2.1.bin.WIN64\lib-vc2015</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)SDL2/include/;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)SDL2/lib/x86/;$(LibraryPath)</LibraryPath>
+    <IncludePath>glfw-3.2.1\include;$(IncludePath)</IncludePath>
+    <LibraryPath>glfw-3.2.1\src\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)SDL2/include/;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)SDL2/lib/x64/;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath);glfw-3.2.1.bin.WIN64\include</IncludePath>
+    <LibraryPath>$(LibraryPath);glfw-3.2.1.bin.WIN64\lib-vc2015</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -100,7 +100,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>SDL2.lib;SDL2main.lib;zlib\zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glfw3.lib;zlib\zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -113,7 +113,9 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>zlib\zlib_x64.lib;SDL2.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>zlib\zlib_x64.lib;%(AdditionalDependencies);glfw3.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -130,7 +132,7 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>SDL2.lib;SDL2main.lib;zlib\zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glfw3.lib;zlib\zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -147,13 +149,14 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>SDL2.lib;SDL2main.lib;zlib\zlib_x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>zlib\zlib_x64.lib;%(AdditionalDependencies);glfw3.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Assets.cpp" />
     <ClCompile Include="CodeAction.cpp" />
     <ClCompile Include="Game.cpp" />
+    <ClCompile Include="GameRenderer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="StreamUtil.cpp" />
   </ItemGroup>
@@ -161,6 +164,8 @@
     <ClInclude Include="Assets.hpp" />
     <ClInclude Include="CodeAction.hpp" />
     <ClInclude Include="Game.hpp" />
+    <ClInclude Include="GameRenderer.hpp" />
+    <ClInclude Include="GameSettings.hpp" />
     <ClInclude Include="StreamUtil.hpp" />
     <ClInclude Include="zlib\zconf.h" />
     <ClInclude Include="zlib\zlib.h" />

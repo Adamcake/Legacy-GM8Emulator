@@ -2,7 +2,7 @@
 #define _GM8_ASSETS_HPP_
 #include <vector>
 #include <list>
-struct SDL_Surface;
+#include "GameRenderer.hpp"
 class CodeAction;
 
 
@@ -132,6 +132,7 @@ class Trigger {
 		Trigger();
 		~Trigger();
 		char* name;
+		bool exists;
 
 		char* condition;
 		unsigned int checkMoment; // begin step, step, end step
@@ -143,6 +144,7 @@ class Constant {
 		Constant();
 		~Constant();
 		char* name;
+		bool exists;
 
 		char* value;
 };
@@ -152,6 +154,7 @@ class Sound {
 		Sound();
 		~Sound();
 		char* name;
+		bool exists;
 
 		unsigned int kind; // normal, background, 3d, use multimedia player
 		char* fileType;
@@ -171,12 +174,13 @@ class Sprite {
 		Sprite();
 		~Sprite();
 		char* name;
+		bool exists;
 
 		unsigned int originX;
 		unsigned int originY;
 
-		unsigned int frames;
-		SDL_Surface** images;
+		unsigned int frameCount;
+		RImageIndex* frames;
 
 		bool separateCollision;
 		CollisionMap* collisionMaps;
@@ -187,6 +191,7 @@ class Background {
 		Background();
 		~Background();
 		char* name;
+		bool exists;
 
 		unsigned int width;
 		unsigned int height;
@@ -198,6 +203,7 @@ class Path {
 		Path();
 		~Path();
 		char* name;
+		bool exists;
 
 		unsigned int kind;
 		bool closed;
@@ -212,6 +218,7 @@ class Script {
 		Script();
 		~Script();
 		char* name;
+		bool exists;
 		char* code;
 };
 
@@ -220,6 +227,7 @@ class Font {
 		Font();
 		~Font();
 		char* name;
+		bool exists;
 
 		char* fontName;
 		unsigned int size;
@@ -235,6 +243,7 @@ class Timeline {
 		Timeline();
 		~Timeline();
 		char* name;
+		bool exists;
 
 		unsigned int momentCount;
 		IndexedEvent* moments;
@@ -245,6 +254,7 @@ class Object {
 		Object();
 		~Object();
 		char* name;
+		bool exists;
 
 		int spriteIndex;
 		bool solid;
@@ -282,6 +292,7 @@ class Room {
 		Room();
 		~Room();
 		char* name;
+		bool exists;
 
 		char* caption;
 		unsigned int width;
@@ -317,6 +328,7 @@ class IncludeFile {
 		bool overwrite;
 		bool freeMemory;
 		bool removeAtGameEnd;
+		bool exists;
 };
 
 #endif
