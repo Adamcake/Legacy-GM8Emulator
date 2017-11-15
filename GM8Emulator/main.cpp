@@ -1,6 +1,8 @@
 #define CHECK_MEMORY_LEAKS 0
 
-#include <GLFW\glfw3.h>
+#define GLEW_STATIC
+#include <gl/glew.h>
+#include <GLFW/glfw3.h>
 #include "Game.hpp"
 
 #if CHECK_MEMORY_LEAKS
@@ -9,9 +11,22 @@
 #include <crtdbg.h>  
 #endif
 
+
+#include <iostream>
+
 int main(int argc, char** argv) {
 	
-	glfwInit();
+	if (!glfwInit()) {
+		// Failed to initialize GLFW
+		return 1;
+	}
+
+	glewExperimental = GL_TRUE;
+	if (!glewInit()) {
+		// Failed to init GLEW
+		glfwTerminate();
+		return 2;
+	}
 
 	Game* game = new Game();
 
@@ -19,13 +34,15 @@ int main(int argc, char** argv) {
 	if (!game->Load("game.exe")) {
 		// Load failed
 		delete game;
-		return 1;
+		glfwTerminate();
+		return 3;
 	}
 
 	if (!game->StartGame()) {
 		// Starting game failed
 		delete game;
-		return 2;
+		glfwTerminate();
+		return 4;
 	}
 
 	while (true) {
@@ -34,8 +51,8 @@ int main(int argc, char** argv) {
 		}
 	}
 
+	// Natural end of application
 	delete game;
-
 	glfwTerminate();
 
 #if CHECK_MEMORY_LEAKS

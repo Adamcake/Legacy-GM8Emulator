@@ -1,9 +1,11 @@
 #include <list>
+#include <chrono>
 
 #include "Game.hpp"
 #include "CodeAction.hpp"
 #include "StreamUtil.hpp"
 #include "zlib\zlib.h"
+
 
 #define ZLIB_BUF_START 65536
 
@@ -241,6 +243,7 @@ Game::Game()
 	info.gameInfo = NULL;
 	renderer = new GameRenderer();
 	roomId = 0xFFFFFFFF;
+	roomOrder = NULL;
 }
 
 Game::~Game()
@@ -431,7 +434,7 @@ bool Game::Load(const char * pFilename)
 			unsigned char* imageData = (unsigned char*)malloc(imageDataLength);
 
 			if (!InflateBlock(data, &settingsPos, &imageData, &imageDataLength, &outputSize)) {
-				// Error reading frontdata
+				// Error reading custom load image
 				free(imageData);
 				free(data);
 				free(buffer);
@@ -439,6 +442,10 @@ bool Game::Load(const char * pFilename)
 			}
 
 			// Custom image data is loaded, do whatever with it but don't keep it there because it will be freed.
+
+			FILE* ff = fopen("custom.bmp", "wb");
+			fwrite(imageData, 1, imageDataLength, ff);
+			fclose(ff);
 
 			free(imageData);
 		}
@@ -570,7 +577,7 @@ bool Game::Load(const char * pFilename)
 		// Read the files
 		for (unsigned int i = 0; i < extension->fileCount; i++) {
 			if (!InflateBlock(buffer, &dataPos, &data, &dataLength, &outputSize)) {
-				// Error reading trigger
+				// Error reading file
 				free(data);
 				free(buffer);
 				free(charTable);
@@ -742,10 +749,26 @@ bool Game::Load(const char * pFilename)
 
 				unsigned int w = ReadDword(data, &dataPos);
 				unsigned int h = ReadDword(data, &dataPos);
-
 				unsigned int pixelDataLength = ReadDword(data, &dataPos);
-				sprite->frames[i] = renderer->MakeImage(w, h, (data + dataPos));
-				dataPos += pixelDataLength;
+
+				if (pixelDataLength != (w * h * 4)) {
+					// This should never happen
+					free(data);
+					free(buffer);
+					return false;
+				}
+
+				// Convert BGRA to RGBA
+				unsigned char* pixelData = (data + dataPos);
+				unsigned int pixelDataEnd = (dataPos + pixelDataLength);
+				unsigned char tmp;
+				for (; dataPos < pixelDataEnd; dataPos += 4) {
+					tmp = data[dataPos];
+					data[dataPos] = data[dataPos + 2];
+					data[dataPos + 2] = tmp;
+				}
+
+				sprite->frames[i] = renderer->MakeImage(w, h, pixelData);
 			}
 
 			// Collision data
@@ -1517,13 +1540,13 @@ bool Game::StartGame() {
 	roomId = 0xFFFFFFFF;
 
 	// Start up game window (this will safely destroy the old one if one existed)
-	if (!renderer->MakeGameWindow(&settings)) {
+	if (!renderer->MakeGameWindow(&settings, _rooms[roomOrder[0]].width, _rooms[roomOrder[0]].height)) {
 		// Failed to create GLFW window
 		return false;
 	}
 
 	// Load first room
-	LoadRoom(0);
+	LoadRoom(roomOrder[0]);
 
 	return true;
 }
@@ -1536,7 +1559,7 @@ bool Game::LoadRoom(unsigned int id) {
 	if (id >= _rooms.size()) return false;
 
 	// Get the Room object for the room we're going to
-	Room* room = &_rooms[roomOrder[id]];
+	Room* room = &_rooms[id];
 
 	// Check room exists
 	if (!room->exists) return false;
@@ -1554,5 +1577,7 @@ bool Game::LoadRoom(unsigned int id) {
 
 
 bool Game::Frame() {
-	return true;
+	//renderer->DrawImage(80, 100, 0);
+	renderer->RenderFrame();
+	return !renderer->ShouldClose();
 }
