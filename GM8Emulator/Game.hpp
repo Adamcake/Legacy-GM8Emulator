@@ -53,7 +53,6 @@ class Game {
 		// Misc game variables
 		unsigned int roomId;
 
-
 	public:
 		Game();
 		~Game();

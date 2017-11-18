@@ -1,7 +1,6 @@
 #define CHECK_MEMORY_LEAKS 0
+#define OUTPUT_FRAME_TIME 0
 
-#define GLEW_STATIC
-#include <gl/glew.h>
 #include <GLFW/glfw3.h>
 #include "Game.hpp"
 
@@ -11,21 +10,15 @@
 #include <crtdbg.h>  
 #endif
 
-
+#if OUTPUT_FRAME_TIME
 #include <iostream>
+#include <chrono>
+#endif
 
 int main(int argc, char** argv) {
-	
 	if (!glfwInit()) {
 		// Failed to initialize GLFW
 		return 1;
-	}
-
-	glewExperimental = GL_TRUE;
-	if (!glewInit()) {
-		// Failed to init GLEW
-		glfwTerminate();
-		return 2;
 	}
 
 	Game* game = new Game();
@@ -35,20 +28,28 @@ int main(int argc, char** argv) {
 		// Load failed
 		delete game;
 		glfwTerminate();
-		return 3;
+		return 2;
 	}
 
 	if (!game->StartGame()) {
 		// Starting game failed
 		delete game;
 		glfwTerminate();
-		return 4;
+		return 3;
 	}
 
 	while (true) {
+#if OUTPUT_FRAME_TIME
+		std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+#endif
 		if (!game->Frame()) {
 			break;
 		}
+#if OUTPUT_FRAME_TIME
+		std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+		std::cout << "Frame took " << time_span.count() << " seconds" << std::endl;
+#endif
 	}
 
 	// Natural end of application

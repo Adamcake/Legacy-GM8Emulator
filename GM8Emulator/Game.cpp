@@ -1,5 +1,4 @@
 #include <list>
-#include <chrono>
 
 #include "Game.hpp"
 #include "CodeAction.hpp"
@@ -441,11 +440,7 @@ bool Game::Load(const char * pFilename)
 				return false;
 			}
 
-			// Custom image data is loaded, do whatever with it but don't keep it there because it will be freed.
-
-			FILE* ff = fopen("custom.bmp", "wb");
-			fwrite(imageData, 1, imageDataLength, ff);
-			fclose(ff);
+			// Custom image data is loaded in the format of a BMP file (Always BMP I assume? Check?) Do whatever with it but don't keep it there because it will be freed.
 
 			free(imageData);
 		}
@@ -768,7 +763,7 @@ bool Game::Load(const char * pFilename)
 					data[dataPos + 2] = tmp;
 				}
 
-				sprite->frames[i] = renderer->MakeImage(w, h, pixelData);
+				sprite->frames[i] = renderer->MakeImage(w, h, sprite->originX, sprite->originY, pixelData);
 			}
 
 			// Collision data
@@ -1577,7 +1572,15 @@ bool Game::LoadRoom(unsigned int id) {
 
 
 bool Game::Frame() {
-	//renderer->DrawImage(80, 100, 0);
+	//* test code
+	double xpos, ypos;
+	renderer->GetCursorPos(&xpos, &ypos);
+	renderer->DrawImage(31, 232, 232, 3, 4, 0, 0xFFFFFF, 0.5);
+	renderer->DrawImage(31, 248, 248, 1, 1, 0, 0xFFFFFF, 1);
+	renderer->DrawImage(31, 264, 344, 1, 2, 0, 0xFFFFFF, 0.5);
+	renderer->DrawImage(21, xpos, ypos, 2, 2, 0, 0xFFFFFF, 1);
+	
+
 	renderer->RenderFrame();
 	return !renderer->ShouldClose();
 }
