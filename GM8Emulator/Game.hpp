@@ -3,6 +3,8 @@
 #include <vector>
 #include "Assets.hpp"
 #include "GameSettings.hpp"
+#include "Instance.hpp"
+#include "InstanceList.hpp"
 
 
 // Wrapper for game information
@@ -41,17 +43,23 @@ class Game {
 		
 		std::vector<IncludeFile> _includeFiles;
 
+		// All active instances
+		InstanceList _instances;
+
 		// This refers to the "game information" text box that comes up if you press F1.
-		GameInfo info;
+		GameInfo _info;
 
 		// Order in which rooms should be played (this is different than the resource tree order)
-		unsigned int* roomOrder;
+		unsigned int* _roomOrder;
 
 		// Renderer object for the game window.
-		GameRenderer* renderer;
+		GameRenderer* _renderer;
 
 		// Misc game variables
-		unsigned int roomId;
+		unsigned int _roomId;
+		unsigned int _nextInstanceId;
+		unsigned int _roomSpeed;
+		unsigned int _lastUsedRoomSpeed;
 
 	public:
 		Game();
@@ -75,6 +83,12 @@ class Game {
 		// Call this every time you want a frame advance.
 		// Returns false if the game should exit, otherwise true.
 		bool Frame();
+
+		// Sets all the values of an Instance to their defaults. Returns true on success, otherwise false (game should close.)
+		bool InitInstance(Instance* instance, double x, double y, unsigned int objectIndex);
+
+		// Misc
+		inline unsigned int GetRoomSpeed() const { return _roomSpeed; }
 };
 
 #endif

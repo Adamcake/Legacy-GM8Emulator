@@ -157,6 +157,7 @@
     <ClCompile Include="CodeAction.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="GameRenderer.cpp" />
+    <ClCompile Include="InstanceList.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="StreamUtil.cpp" />
   </ItemGroup>
@@ -166,6 +167,8 @@
     <ClInclude Include="Game.hpp" />
     <ClInclude Include="GameRenderer.hpp" />
     <ClInclude Include="GameSettings.hpp" />
+    <ClInclude Include="Instance.hpp" />
+    <ClInclude Include="InstanceList.hpp" />
     <ClInclude Include="StreamUtil.hpp" />
     <ClInclude Include="zlib\zconf.h" />
     <ClInclude Include="zlib\zlib.h" />

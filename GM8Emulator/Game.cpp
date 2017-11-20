@@ -5,7 +5,6 @@
 #include "StreamUtil.hpp"
 #include "zlib\zlib.h"
 
-
 #define ZLIB_BUF_START 65536
 
 #pragma region Helper functions for parsing the filestream - no need for these to be member functions.
@@ -238,11 +237,14 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 
 Game::Game()
 {
-	info.caption = NULL;
-	info.gameInfo = NULL;
-	renderer = new GameRenderer();
-	roomId = 0xFFFFFFFF;
-	roomOrder = NULL;
+	_info.caption = NULL;
+	_info.gameInfo = NULL;
+	_renderer = new GameRenderer();
+	_roomId = 0xFFFFFFFF;
+	_nextInstanceId = 100001;
+	_roomOrder = NULL;
+	_roomSpeed = 0;
+	_lastUsedRoomSpeed = 0;
 }
 
 Game::~Game()
@@ -262,18 +264,17 @@ Game::~Game()
 	_rooms.clear();
 
 	// Destroy game data
-	free(info.caption);
-	free(info.gameInfo);
+	free(_info.caption);
+	free(_info.gameInfo);
 
 	// Destroy room order
-	delete[] roomOrder;
+	delete[] _roomOrder;
 
 	// Destroy renderer
-	delete renderer;
+	delete _renderer;
 }
 
-bool Game::Load(const char * pFilename)
-{
+bool Game::Load(const char * pFilename) {
 	// Load the entirety of the file into a memory buffer
 
 	FILE* exe;
@@ -763,7 +764,7 @@ bool Game::Load(const char * pFilename)
 					data[dataPos + 2] = tmp;
 				}
 
-				sprite->frames[i] = renderer->MakeImage(w, h, sprite->originX, sprite->originY, pixelData);
+				sprite->frames[i] = _renderer->MakeImage(w, h, sprite->originX, sprite->originY, pixelData);
 			}
 
 			// Collision data
@@ -961,7 +962,6 @@ bool Game::Load(const char * pFilename)
 
 		// tbd - there are %dlen bytes here containing the font bitmap.
 	}
-
 
 	// Timelines
 
@@ -1412,6 +1412,10 @@ bool Game::Load(const char * pFilename)
 			instance->objectIndex = ReadDword(data, &dataPos);
 			instance->id = ReadDword(data, &dataPos);
 			instance->creationCode = ReadString(data, &dataPos);
+
+			if (_nextInstanceId <= instance->id) {
+				_nextInstanceId = instance->id + 1;
+			}
 		}
 
 		// Room tiles
@@ -1430,7 +1434,6 @@ bool Game::Load(const char * pFilename)
 			tile->id = ReadDword(data, &dataPos);
 		}
 	}
-
 
 	// ... not sure
 	pos += 8;
@@ -1490,18 +1493,18 @@ bool Game::Load(const char * pFilename)
 	}
 
 	unsigned int dataPos = 0;
-	info.backgroundColour = ReadDword(data, &dataPos);
-	info.separateWindow = ReadDword(data, &dataPos);
-	info.caption = ReadString(data, &dataPos);
-	info.left = ReadDword(data, &dataPos);
-	info.top = ReadDword(data, &dataPos);
-	info.width = ReadDword(data, &dataPos);
-	info.height = ReadDword(data, &dataPos);
-	info.showBorder = ReadDword(data, &dataPos);
-	info.allowWindowResize = ReadDword(data, &dataPos);
-	info.onTop = ReadDword(data, &dataPos);
-	info.freezeGame = ReadDword(data, &dataPos);
-	info.gameInfo = ReadString(data, &dataPos);
+	_info.backgroundColour = ReadDword(data, &dataPos);
+	_info.separateWindow = ReadDword(data, &dataPos);
+	_info.caption = ReadString(data, &dataPos);
+	_info.left = ReadDword(data, &dataPos);
+	_info.top = ReadDword(data, &dataPos);
+	_info.width = ReadDword(data, &dataPos);
+	_info.height = ReadDword(data, &dataPos);
+	_info.showBorder = ReadDword(data, &dataPos);
+	_info.allowWindowResize = ReadDword(data, &dataPos);
+	_info.onTop = ReadDword(data, &dataPos);
+	_info.freezeGame = ReadDword(data, &dataPos);
+	_info.gameInfo = ReadString(data, &dataPos);
 
 
 	// Garbage?
@@ -1515,9 +1518,9 @@ bool Game::Load(const char * pFilename)
 	// Room order
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	roomOrder = new unsigned int[count];
+	_roomOrder = new unsigned int[count];
 	for (unsigned int i = 0; i < count; i++) {
-		roomOrder[i] = ReadDword(buffer, &pos);
+		_roomOrder[i] = ReadDword(buffer, &pos);
 	}
 
 	// Cleaning up
@@ -1529,26 +1532,26 @@ bool Game::Load(const char * pFilename)
 
 bool Game::StartGame() {
 	// Clear out the instances if there were any
-	// TODO - once there's an instance list, call clear() on it here
+	_instances.ClearAll();
 
 	// Reset the room to its default value so that LoadRoom() won't ever fail when restarting
-	roomId = 0xFFFFFFFF;
+	_roomId = 0xFFFFFFFF;
 
 	// Start up game window (this will safely destroy the old one if one existed)
-	if (!renderer->MakeGameWindow(&settings, _rooms[roomOrder[0]].width, _rooms[roomOrder[0]].height)) {
+	if (!_renderer->MakeGameWindow(&settings, _rooms[_roomOrder[0]].width, _rooms[_roomOrder[0]].height)) {
 		// Failed to create GLFW window
 		return false;
 	}
 
 	// Load first room
-	LoadRoom(roomOrder[0]);
+	LoadRoom(_roomOrder[0]);
 
 	return true;
 }
 
 bool Game::LoadRoom(unsigned int id) {
 	// Exit if we're already in this room
-	if (id == roomId) return true;
+	if (id == _roomId) return true;
 
 	// Check this id is a valid room
 	if (id >= _rooms.size()) return false;
@@ -1560,11 +1563,39 @@ bool Game::LoadRoom(unsigned int id) {
 	if (!room->exists) return false;
 
 	// Update renderer
-	renderer->ResizeGameWindow(room->width, room->height);
-	renderer->SetGameWindowTitle(room->caption);
+	_renderer->ResizeGameWindow(room->width, room->height);
+	_renderer->SetGameWindowTitle(room->caption);
 
-	// TODO: delete all non-persistent instances
-	// TODO: create all instances in new room
+	for (unsigned int i = 0; i < _instances.Count(); i++) {
+		// TODO: run "room end" event for _instances[i]
+	}
+
+	// Delete non-persistent instances
+	_instances.ClearNonPersistent();
+
+	// Update room
+	_roomId = id;
+	if (room->speed != _lastUsedRoomSpeed) {
+		_roomSpeed = room->speed;
+		_lastUsedRoomSpeed = _roomSpeed;
+	}
+
+	// Create all instances in new room
+	for (unsigned int i = 0; i < room->instanceCount; i++) {
+		Instance* instance = _instances.AddInstance(room->instances[i].id);
+		InitInstance(instance, room->instances[i].x, room->instances[i].y, room->instances[i].objectIndex);
+	}
+
+	for (unsigned int i = 0; i < _instances.Count(); i++) {
+		// TODO: run _instances[i] creation code
+		// TODO: run _instances[i] create event
+	}
+
+	// TODO: run room's creation code
+
+	for (unsigned int i = 0; i < _instances.Count(); i++) {
+		// TODO: run _instances[i] room start event
+	}
 
 	return true;
 }
@@ -1572,15 +1603,71 @@ bool Game::LoadRoom(unsigned int id) {
 
 
 bool Game::Frame() {
-	//* test code
-	double xpos, ypos;
-	renderer->GetCursorPos(&xpos, &ypos);
-	renderer->DrawImage(31, 232, 232, 3, 4, 0, 0xFFFFFF, 0.5);
-	renderer->DrawImage(31, 248, 248, 1, 1, 0, 0xFFFFFF, 1);
-	renderer->DrawImage(31, 264, 344, 1, 2, 0, 0xFFFFFF, 0.5);
-	renderer->DrawImage(21, xpos, ypos, 2, 2, 0, 0xFFFFFF, 1);
-	
+	for (unsigned int i = 0; i < _instances.Count(); i++) {
+		Instance* instance = _instances[i];
 
-	renderer->RenderFrame();
-	return !renderer->ShouldClose();
+		// This is the default draw action if no draw event is present for this object (more or less.)
+		// We can just do this for now until we have code compilation working.
+		if (instance->sprite_index >= 0 && instance->visible) {
+			Sprite* sprite = _sprites._Myfirst() + instance->sprite_index;
+			if (sprite->exists) {
+				_renderer->DrawImage(sprite->frames[((int)instance->image_index) % sprite->frameCount], instance->x, instance->y, instance->image_xscale, instance->image_yscale, instance->image_angle, instance->image_blend, instance->image_alpha);
+			}
+			else {
+				// Tried to draw non-existent sprite
+				return false;
+			}
+		}
+
+		// One of the many things that happens during the frame cycle - using this to test animation.
+		instance->image_index += instance->image_speed;
+	}
+
+	_renderer->RenderFrame();
+	return !_renderer->ShouldClose();
+}
+
+bool Game::InitInstance(Instance* instance, double x, double y, unsigned int objectIndex) {
+	Object* obj = _objects._Myfirst() + objectIndex;
+	if (!obj->exists) return false;
+
+	instance->object_index = objectIndex;
+	instance->solid = obj->solid;
+	instance->visible = obj->visible;
+	instance->persistent = obj->persistent;
+	instance->depth = obj->depth;
+	for (unsigned int i = 0; i < 12; i++) instance->alarm[i] = 0;
+	instance->sprite_index = obj->spriteIndex;
+	instance->image_alpha = 1;
+	instance->image_blend = 0xFFFFFF;
+	instance->image_index = 0;
+	instance->image_speed = 1;
+	instance->image_xscale = 1;
+	instance->image_yscale = 1;
+	instance->image_angle = 0;
+	instance->mask_index = obj->maskIndex;
+	instance->direction = 0;
+	instance->gravity_direction = 270;
+	instance->hspeed = 0;
+	instance->vspeed = 0;
+	instance->speed = 0;
+	instance->x = x;
+	instance->y = y;
+	instance->xprevious = x;
+	instance->yprevious = y;
+	instance->xstart = x;
+	instance->ystart = y;
+	instance->path_index = -1;
+	instance->path_position = 0;
+	instance->path_positionprevious = 0;
+	instance->path_speed = 0;
+	instance->path_scale = 1;
+	instance->path_orientation = 0;
+	instance->path_endaction = 0;
+	instance->timeline_index = -1;
+	instance->timeline_running = false;
+	instance->timeline_speed = 1;
+	instance->timeline_position = 0;
+	instance->timeline_loop = false;
+	return true;
 }

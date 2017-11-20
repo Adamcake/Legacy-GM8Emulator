@@ -1,7 +1,9 @@
-#define CHECK_MEMORY_LEAKS 0
-#define OUTPUT_FRAME_TIME 0
+#define CHECK_MEMORY_LEAKS 1
+#define OUTPUT_FRAME_TIME 1
 
 #include <GLFW/glfw3.h>
+#include <chrono>
+#include <thread>
 #include "Game.hpp"
 
 #if CHECK_MEMORY_LEAKS
@@ -12,8 +14,8 @@
 
 #if OUTPUT_FRAME_TIME
 #include <iostream>
-#include <chrono>
 #endif
+
 
 int main(int argc, char** argv) {
 	if (!glfwInit()) {
@@ -23,7 +25,8 @@ int main(int argc, char** argv) {
 
 	Game* game = new Game();
 
-	// If you want the runner to load the data from itself (like how normal gm8 games do it), set the game name to argv[0].
+	// This is just temp - you must place a game called "game.exe" in the project directory (or in the same directory as your built exe) to load it.
+	// This can easily be changed to load from anywhere when the project is done.
 	if (!game->Load("game.exe")) {
 		// Load failed
 		delete game;
@@ -39,16 +42,19 @@ int main(int argc, char** argv) {
 	}
 
 	while (true) {
-#if OUTPUT_FRAME_TIME
 		std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-#endif
 		if (!game->Frame()) {
 			break;
 		}
-#if OUTPUT_FRAME_TIME
 		std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
-		std::cout << "Frame took " << time_span.count() << " seconds" << std::endl;
+		double mus = time_span.count() * 1000000.0;
+		long long waitMus = (((double)1000000.0) / game->GetRoomSpeed()) - mus;
+		if (waitMus > 0) {
+			std::this_thread::sleep_for(std::chrono::microseconds(waitMus));
+		}
+#if OUTPUT_FRAME_TIME
+		std::cout << "Frame took " << mus << " microseconds, waiting " << waitMus << " microseconds" << std::endl;
 #endif
 	}
 
