@@ -3,6 +3,9 @@
 #include "Game.hpp"
 #include "CodeAction.hpp"
 #include "StreamUtil.hpp"
+#include "GameRenderer.hpp"
+#include "CodeRunner.hpp"
+#include "Instance.hpp"
 #include "zlib\zlib.h"
 
 #define ZLIB_BUF_START 65536
@@ -235,10 +238,10 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 // Game class implementations //
 ////////////////////////////////
 
-Game::Game()
-{
+Game::Game() : _instances(&_assetManager) {
 	_info.caption = NULL;
 	_info.gameInfo = NULL;
+	_runner = new CodeRunner(&_assetManager, &_instances);
 	_renderer = new GameRenderer();
 	_roomId = 0xFFFFFFFF;
 	_nextInstanceId = 100001;
@@ -247,30 +250,12 @@ Game::Game()
 	_lastUsedRoomSpeed = 0;
 }
 
-Game::~Game()
-{
-	// Destroy all loaded assets, this also calls their destructors.
-	_extensions.clear();
-	_triggers.clear();
-	_constants.clear();
-	_sounds.clear();
-	_sprites.clear();
-	_backgrounds.clear();
-	_paths.clear();
-	_scripts.clear();
-	_fonts.clear();
-	_timelines.clear();
-	_objects.clear();
-	_rooms.clear();
-
-	// Destroy game data
+Game::~Game() {
+	_assetManager.Clear();
 	free(_info.caption);
 	free(_info.gameInfo);
-
-	// Destroy room order
+	delete _runner;
 	delete[] _roomOrder;
-
-	// Destroy renderer
 	delete _renderer;
 }
 
@@ -479,16 +464,16 @@ bool Game::Load(const char * pFilename) {
 	// Garbage fields
 	pos += (ReadDword(buffer, &pos) + 6) * 4;
 
+
 	// Extensions
 
 	pos += 4;
 	unsigned char* charTable = NULL;
 	unsigned int count = ReadDword(buffer, &pos);
 	if(count) charTable = (unsigned char*)malloc(0x200);
-	_extensions.reserve(count);
+	_assetManager.ReserveExtensions(count);
 	for (; count > 0; count--) {
-		_extensions.push_back(Extension());
-		Extension* extension = _extensions._Mylast() - 1;
+		Extension* extension = _assetManager.AddExtension();
 
 		pos += 4; // Data version, 700
 		extension->name = ReadString(buffer, &pos);
@@ -589,39 +574,12 @@ bool Game::Load(const char * pFilename) {
 	free(charTable);
 
 
-	// The EXE data can contain non-existent (deleted) assets. These count as indexed assets, so we need to push these into the list, but also indicate that they don't really exist.
-	// We'll handle this by creating dummy objects here for later pushing.
-	Trigger dummyTrigger;
-	dummyTrigger.exists = false;
-	Constant dummyConstant;
-	dummyConstant.exists = false;
-	Sound dummySound;
-	dummySound.exists = false;
-	Sprite dummySprite;
-	dummySprite.exists = false;
-	Background dummyBackground;
-	dummyBackground.exists = false;
-	Path dummyPath;
-	dummyPath.exists = false;
-	Script dummyScript;
-	dummyScript.exists = false;
-	Font dummyFont;
-	dummyFont.exists = false;
-	Timeline dummyTimeline;
-	dummyTimeline.exists = false;
-	Object dummyObject;
-	dummyObject.exists = false;
-	Room dummyRoom;
-	dummyRoom.exists = false;
-	IncludeFile dummyIncludeFile;
-	dummyIncludeFile.exists = false;
-
-
 	// Triggers
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	_triggers.reserve(count);
+	unsigned int triggerCount = count;
+	_assetManager.ReserveTriggers(count);
 	for (; count > 0; count--) {
 
 		if (! InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -631,19 +589,22 @@ bool Game::Load(const char * pFilename) {
 			return false;
 		}
 
+		Trigger* trigger = _assetManager.AddTrigger();
+
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_triggers.push_back(dummyTrigger);
+			trigger->exists = false;
 			continue;
 		}
 
-		_triggers.push_back(Trigger());
-		Trigger* trigger = _triggers._Mylast() - 1;
 		dataPos += 4;
 		trigger->name = ReadString(data, &dataPos);
-		trigger->condition = ReadString(data, &dataPos);
+		unsigned int condLength;
+		char* condition = ReadString(data, &dataPos, &condLength);
 		trigger->checkMoment = ReadDword(data, &dataPos);
 		trigger->constantName = ReadString(data, &dataPos);
+		trigger->codeObj = _runner->RegisterQuestion(condition, condLength);
+		free(condition);
 	}
 
 
@@ -651,10 +612,9 @@ bool Game::Load(const char * pFilename) {
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	_constants.reserve(count);
+	_assetManager.ReserveConstants(count);
 	for (; count > 0; count--) {
-		_constants.push_back(Constant());
-		Constant* constant = _constants._Mylast() - 1;
+		Constant* constant = _assetManager.AddConstant();
 		constant->name = ReadString(buffer, &pos);
 		constant->value = ReadString(buffer, &pos);
 	}
@@ -664,7 +624,7 @@ bool Game::Load(const char * pFilename) {
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	_sounds.reserve(count);
+	_assetManager.ReserveSounds(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -674,14 +634,14 @@ bool Game::Load(const char * pFilename) {
 			return false;
 		}
 
+		Sound* sound = _assetManager.AddSound();
+
 		unsigned int dataPos = 0;
 		if (! ReadDword(data, &dataPos)) {
-			_sounds.push_back(dummySound);
+			sound->exists = false;
 			continue;
 		}
 
-		_sounds.push_back(Sound());
-		Sound* sound = _sounds._Mylast() - 1;
 		sound->name = ReadString(data, &dataPos);
 		dataPos += 4;
 		sound->kind = ReadDword(data, &dataPos);
@@ -710,7 +670,7 @@ bool Game::Load(const char * pFilename) {
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	_sprites.reserve(count);
+	_assetManager.ReserveSprites(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -720,14 +680,14 @@ bool Game::Load(const char * pFilename) {
 			return false;
 		}
 
+		Sprite* sprite = _assetManager.AddSprite();
+
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_sprites.push_back(dummySprite);
+			sprite->exists = false;
 			continue;
 		}
 
-		_sprites.push_back(Sprite());
-		Sprite* sprite = _sprites._Mylast() - 1;
 		sprite->name = ReadString(data, &dataPos);
 		dataPos += 4;
 
@@ -818,7 +778,7 @@ bool Game::Load(const char * pFilename) {
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	_backgrounds.reserve(count);
+	_assetManager.ReserveBackgrounds(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -828,14 +788,14 @@ bool Game::Load(const char * pFilename) {
 			return false;
 		}
 
+		Background* background = _assetManager.AddBackground();
+
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_backgrounds.push_back(dummyBackground);
+			background->exists = false;
 			continue;
 		}
 
-		_backgrounds.push_back(Background());
-		Background* background = _backgrounds._Mylast() - 1;
 		background->name = ReadString(data, &dataPos);
 		dataPos += 8;
 		background->width = ReadDword(data, &dataPos);
@@ -853,7 +813,7 @@ bool Game::Load(const char * pFilename) {
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	_paths.reserve(count);
+	_assetManager.ReservePaths(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -863,14 +823,14 @@ bool Game::Load(const char * pFilename) {
 			return false;
 		}
 
+		Path* path = _assetManager.AddPath();
+
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_paths.push_back(dummyPath);
+			path->exists = false;
 			continue;
 		}
 
-		_paths.push_back(Path());
-		Path* path = _paths._Mylast() - 1;
 		path->name = ReadString(data, &dataPos);
 
 		dataPos += 4;
@@ -893,7 +853,8 @@ bool Game::Load(const char * pFilename) {
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	_scripts.reserve(count);
+	unsigned int scriptCount = count;
+	_assetManager.ReserveScripts(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -903,18 +864,20 @@ bool Game::Load(const char * pFilename) {
 			return false;
 		}
 
+		Script* script = _assetManager.AddScript();
+
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_scripts.push_back(dummyScript);
+			script->exists = false;
 			continue;
 		}
 
-		_scripts.push_back(Script());
-		Script* script = _scripts._Mylast() - 1;
 		script->name = ReadString(data, &dataPos);
-
 		dataPos += 4;
-		script->code = ReadString(data, &dataPos);
+		unsigned int codeLen;
+		char* code = ReadString(data, &dataPos, &codeLen);
+		script->codeObj = _runner->Register(code, codeLen);
+		free(code);
 	}
 
 
@@ -922,7 +885,7 @@ bool Game::Load(const char * pFilename) {
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	_fonts.reserve(count);
+	_assetManager.ReserveFonts(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -932,14 +895,14 @@ bool Game::Load(const char * pFilename) {
 			return false;
 		}
 
+		Font* font = _assetManager.AddFont();
+
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_fonts.push_back(dummyFont);
+			font->exists = false;
 			continue;
 		}
 
-		_fonts.push_back(Font());
-		Font* font = _fonts._Mylast() - 1;
 		font->name = ReadString(data, &dataPos);
 
 		dataPos += 4;
@@ -967,7 +930,8 @@ bool Game::Load(const char * pFilename) {
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	_timelines.reserve(count);
+	unsigned int timelineCount = count;
+	_assetManager.ReserveTimelines(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -977,14 +941,14 @@ bool Game::Load(const char * pFilename) {
 			return false;
 		}
 
+		Timeline* timeline = _assetManager.AddTimeline();
+
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_timelines.push_back(dummyTimeline);
+			timeline->exists = false;
 			continue;
 		}
 
-		_timelines.push_back(Timeline());
-		Timeline* timeline = _timelines._Mylast() - 1;
 		timeline->name = ReadString(data, &dataPos);
 
 		dataPos += 4;
@@ -999,7 +963,7 @@ bool Game::Load(const char * pFilename) {
 			timeline->moments[i].actions = new CodeAction[timeline->moments[i].actionCount];
 
 			for (unsigned int j = 0; j < timeline->moments[i].actionCount; j++) {
-				if (!timeline->moments[i].actions[j].read(data, &dataPos)) {
+				if (!timeline->moments[i].actions[j].Read(data, &dataPos, _runner)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1014,7 +978,8 @@ bool Game::Load(const char * pFilename) {
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	_objects.reserve(count);
+	unsigned int objectCount = count;
+	_assetManager.ReserveObjects(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -1024,14 +989,14 @@ bool Game::Load(const char * pFilename) {
 			return false;
 		}
 
+		Object* object = _assetManager.AddObject();
+
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_objects.push_back(dummyObject);
+			object->exists = false;
 			continue;
 		}
 
-		_objects.push_back(Object());
-		Object* object = _objects._Mylast() - 1;
 		object->name = ReadString(data, &dataPos);
 		dataPos += 4;
 
@@ -1053,7 +1018,7 @@ bool Game::Load(const char * pFilename) {
 			object->evCreateActionCount = ReadDword(data, &dataPos);
 			object->evCreate = new CodeAction[object->evCreateActionCount];
 			for (unsigned int i = 0; i < object->evCreateActionCount; i++) {
-				if (!object->evCreate[i].read(data, &dataPos)) {
+				if (!object->evCreate[i].Read(data, &dataPos, _runner)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1069,7 +1034,7 @@ bool Game::Load(const char * pFilename) {
 			object->evDestroyActionCount = ReadDword(data, &dataPos);
 			object->evDestroy = new CodeAction[object->evDestroyActionCount];
 			for (unsigned int i = 0; i < object->evDestroyActionCount; i++) {
-				if (!object->evDestroy[i].read(data, &dataPos)) {
+				if (!object->evDestroy[i].Read(data, &dataPos, _runner)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1090,7 +1055,7 @@ bool Game::Load(const char * pFilename) {
 			e.actions = new CodeAction[e.actionCount];
 			for (unsigned int i = 0; i < e.actionCount; i++) {
 
-				if (!e.actions[i].read(data, &dataPos)) {
+				if (!e.actions[i].Read(data, &dataPos, _runner)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1118,7 +1083,7 @@ bool Game::Load(const char * pFilename) {
 				object->evStepActionCount = ReadDword(data, &dataPos);
 				object->evStep = new CodeAction[object->evStepActionCount];
 				for (unsigned int i = 0; i < object->evStepActionCount; i++) {
-					object->evStep[i].read(data, &dataPos);
+					object->evStep[i].Read(data, &dataPos, _runner);
 				}
 			}
 			else if (index == 1) {
@@ -1134,7 +1099,7 @@ bool Game::Load(const char * pFilename) {
 				object->evStepBeginActionCount = ReadDword(data, &dataPos);
 				object->evStepBegin = new CodeAction[object->evStepBeginActionCount];
 				for (unsigned int i = 0; i < object->evStepBeginActionCount; i++) {
-					object->evStepBegin[i].read(data, &dataPos);
+					object->evStepBegin[i].Read(data, &dataPos, _runner);
 				}
 			}
 			else if (index == 2) {
@@ -1150,7 +1115,7 @@ bool Game::Load(const char * pFilename) {
 				object->evStepEndActionCount = ReadDword(data, &dataPos);
 				object->evStepEnd = new CodeAction[object->evStepEndActionCount];
 				for (unsigned int i = 0; i < object->evStepEndActionCount; i++) {
-					object->evStepEnd[i].read(data, &dataPos);
+					object->evStepEnd[i].Read(data, &dataPos, _runner);
 				}
 			}
 		}
@@ -1166,7 +1131,7 @@ bool Game::Load(const char * pFilename) {
 			e.actions = new CodeAction[e.actionCount];
 			for (unsigned int i = 0; i < e.actionCount; i++) {
 
-				if (!e.actions[i].read(data, &dataPos)) {
+				if (!e.actions[i].Read(data, &dataPos, _runner)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1188,7 +1153,7 @@ bool Game::Load(const char * pFilename) {
 			e.actions = new CodeAction[e.actionCount];
 			for (unsigned int i = 0; i < e.actionCount; i++) {
 
-				if (!e.actions[i].read(data, &dataPos)) {
+				if (!e.actions[i].Read(data, &dataPos, _runner)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1210,7 +1175,7 @@ bool Game::Load(const char * pFilename) {
 			e.actions = new CodeAction[e.actionCount];
 			for (unsigned int i = 0; i < e.actionCount; i++) {
 
-				if (!e.actions[i].read(data, &dataPos)) {
+				if (!e.actions[i].Read(data, &dataPos, _runner)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1232,7 +1197,7 @@ bool Game::Load(const char * pFilename) {
 			e.actions = new CodeAction[e.actionCount];
 			for (unsigned int i = 0; i < e.actionCount; i++) {
 
-				if (!e.actions[i].read(data, &dataPos)) {
+				if (!e.actions[i].Read(data, &dataPos, _runner)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1249,7 +1214,7 @@ bool Game::Load(const char * pFilename) {
 			object->evDrawActionCount = ReadDword(data, &dataPos);
 			object->evDraw = new CodeAction[object->evDrawActionCount];
 			for (unsigned int i = 0; i < object->evDrawActionCount; i++) {
-				if (!object->evDraw[i].read(data, &dataPos)) {
+				if (!object->evDraw[i].Read(data, &dataPos, _runner)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1270,7 +1235,7 @@ bool Game::Load(const char * pFilename) {
 			e.actions = new CodeAction[e.actionCount];
 			for (unsigned int i = 0; i < e.actionCount; i++) {
 
-				if (!e.actions[i].read(data, &dataPos)) {
+				if (!e.actions[i].Read(data, &dataPos, _runner)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1292,7 +1257,7 @@ bool Game::Load(const char * pFilename) {
 			e.actions = new CodeAction[e.actionCount];
 			for (unsigned int i = 0; i < e.actionCount; i++) {
 
-				if (!e.actions[i].read(data, &dataPos)) {
+				if (!e.actions[i].Read(data, &dataPos, _runner)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1314,7 +1279,7 @@ bool Game::Load(const char * pFilename) {
 			e.actions = new CodeAction[e.actionCount];
 			for (unsigned int i = 0; i < e.actionCount; i++) {
 
-				if (!e.actions[i].read(data, &dataPos)) {
+				if (!e.actions[i].Read(data, &dataPos, _runner)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1333,7 +1298,7 @@ bool Game::Load(const char * pFilename) {
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	_rooms.reserve(count);
+	_assetManager.ReserveRooms(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -1343,14 +1308,14 @@ bool Game::Load(const char * pFilename) {
 			return false;
 		}
 
+		Room* room = _assetManager.AddRoom();
+
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_rooms.push_back(dummyRoom);
+			room->exists = false;
 			continue;
 		}
 
-		_rooms.push_back(Room());
-		Room* room = _rooms._Mylast() - 1;
 		room->name = ReadString(data, &dataPos);
 		dataPos += 4;
 
@@ -1443,7 +1408,7 @@ bool Game::Load(const char * pFilename) {
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	_includeFiles.reserve(count);
+	_assetManager.ReserveIncludeFiles(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -1453,14 +1418,14 @@ bool Game::Load(const char * pFilename) {
 			return false;
 		}
 
+		IncludeFile* file = _assetManager.AddIncludeFile();
+
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
-			_includeFiles.push_back(dummyIncludeFile);
+			file->exists = false;
 			continue;
 		}
 
-		_includeFiles.push_back(IncludeFile());
-		IncludeFile* file = _includeFiles._Mylast() - 1;
 		dataPos += 4;
 
 		file->filename = ReadString(data, &dataPos);
@@ -1523,6 +1488,179 @@ bool Game::Load(const char * pFilename) {
 		_roomOrder[i] = ReadDword(buffer, &pos);
 	}
 
+	// Compile scripts
+	for (unsigned int i = 0; i < scriptCount; i++) {
+		Script* s = _assetManager.GetScript(i);
+		if (s->exists) {
+			if (!_runner->Compile(s->codeObj)) {
+				// Error compiling script
+				free(data);
+				free(buffer);
+				return false;
+			}
+		}
+	}
+	for (unsigned int i = 0; i < timelineCount; i++) {
+		Timeline* t = _assetManager.GetTimeline(i);
+		if (t->exists) {
+			for (unsigned int j = 0; j < t->momentCount; j++) {
+				for (unsigned int k = 0; k < t->moments[j].actionCount; k++) {
+					if (!t->moments[j].actions[k].Compile(_runner)) {
+						// Error compiling script
+						free(data);
+						free(buffer);
+						return false;
+					}
+				}
+			}
+		}
+	}
+	for (unsigned int i = 0; i < objectCount; i++) {
+		Object* o = _assetManager.GetObject(i);
+		if (o->exists) {
+			for (IndexedEvent ev : o->evAlarm) {
+				for (unsigned int j = 0; j < ev.actionCount; j++) {
+					if (!ev.actions[j].Compile(_runner)) {
+						// Error compiling script
+						free(data);
+						free(buffer);
+						return false;
+					}
+				}
+			}
+			for (IndexedEvent ev : o->evCollision) {
+				for (unsigned int j = 0; j < ev.actionCount; j++) {
+					if (!ev.actions[j].Compile(_runner)) {
+						// Error compiling script
+						free(data);
+						free(buffer);
+						return false;
+					}
+				}
+			}
+			for (IndexedEvent ev : o->evKeyboard) {
+				for (unsigned int j = 0; j < ev.actionCount; j++) {
+					if (!ev.actions[j].Compile(_runner)) {
+						// Error compiling script
+						free(data);
+						free(buffer);
+						return false;
+					}
+				}
+			}
+			for (IndexedEvent ev : o->evKeyPress) {
+				for (unsigned int j = 0; j < ev.actionCount; j++) {
+					if (!ev.actions[j].Compile(_runner)) {
+						// Error compiling script
+						free(data);
+						free(buffer);
+						return false;
+					}
+				}
+			}
+			for (IndexedEvent ev : o->evKeyRelease) {
+				for (unsigned int j = 0; j < ev.actionCount; j++) {
+					if (!ev.actions[j].Compile(_runner)) {
+						// Error compiling script
+						free(data);
+						free(buffer);
+						return false;
+					}
+				}
+			}
+			for (IndexedEvent ev : o->evMouse) {
+				for (unsigned int j = 0; j < ev.actionCount; j++) {
+					if (!ev.actions[j].Compile(_runner)) {
+						// Error compiling script
+						free(data);
+						free(buffer);
+						return false;
+					}
+				}
+			}
+			for (IndexedEvent ev : o->evOther) {
+				for (unsigned int j = 0; j < ev.actionCount; j++) {
+					if (!ev.actions[j].Compile(_runner)) {
+						// Error compiling script
+						free(data);
+						free(buffer);
+						return false;
+					}
+				}
+			}
+			for (IndexedEvent ev : o->evTrigger) {
+				for (unsigned int j = 0; j < ev.actionCount; j++) {
+					if (!ev.actions[j].Compile(_runner)) {
+						// Error compiling script
+						free(data);
+						free(buffer);
+						return false;
+					}
+				}
+			}
+
+			for (unsigned int j = 0; j < o->evCreateActionCount; j++) {
+				if (!o->evCreate[j].Compile(_runner)) {
+					// Error compiling script
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
+			for (unsigned int j = 0; j < o->evDestroyActionCount; j++) {
+				if (!o->evDestroy[j].Compile(_runner)) {
+					// Error compiling script
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
+			for (unsigned int j = 0; j < o->evStepActionCount; j++) {
+				if (!o->evStep[j].Compile(_runner)) {
+					// Error compiling script
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
+			for (unsigned int j = 0; j < o->evStepBeginActionCount; j++) {
+				if (!o->evStepBegin[j].Compile(_runner)) {
+					// Error compiling script
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
+			for (unsigned int j = 0; j < o->evStepEndActionCount; j++) {
+				if (!o->evStepEnd[j].Compile(_runner)) {
+					// Error compiling script
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
+			for (unsigned int j = 0; j < o->evDrawActionCount; j++) {
+				if (!o->evDraw[j].Compile(_runner)) {
+					// Error compiling script
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
+		}
+	}
+	for (unsigned int i = 0; i < triggerCount; i++) {
+		Trigger* t = _assetManager.GetTrigger(i);
+		if (t->exists) {
+			if (!_runner->Compile(t->codeObj)) {
+				// Error compiling script
+				free(data);
+				free(buffer);
+				return false;
+			}
+		}
+	}
+
 	// Cleaning up
 	free(data);
 	free(buffer);
@@ -1538,7 +1676,7 @@ bool Game::StartGame() {
 	_roomId = 0xFFFFFFFF;
 
 	// Start up game window (this will safely destroy the old one if one existed)
-	if (!_renderer->MakeGameWindow(&settings, _rooms[_roomOrder[0]].width, _rooms[_roomOrder[0]].height)) {
+	if (!_renderer->MakeGameWindow(&settings, _assetManager.GetRoom(_roomOrder[0])->width, _assetManager.GetRoom(_roomOrder[0])->height)) {
 		// Failed to create GLFW window
 		return false;
 	}
@@ -1553,18 +1691,11 @@ bool Game::LoadRoom(unsigned int id) {
 	// Exit if we're already in this room
 	if (id == _roomId) return true;
 
-	// Check this id is a valid room
-	if (id >= _rooms.size()) return false;
-
 	// Get the Room object for the room we're going to
-	Room* room = &_rooms[id];
+	Room* room = _assetManager.GetRoom(id);
 
 	// Check room exists
 	if (!room->exists) return false;
-
-	// Update renderer
-	_renderer->ResizeGameWindow(room->width, room->height);
-	_renderer->SetGameWindowTitle(room->caption);
 
 	for (unsigned int i = 0; i < _instances.Count(); i++) {
 		// TODO: run "room end" event for _instances[i]
@@ -1572,6 +1703,10 @@ bool Game::LoadRoom(unsigned int id) {
 
 	// Delete non-persistent instances
 	_instances.ClearNonPersistent();
+
+	// Update renderer
+	_renderer->ResizeGameWindow(room->width, room->height);
+	_renderer->SetGameWindowTitle(room->caption);
 
 	// Update room
 	_roomId = id;
@@ -1582,8 +1717,11 @@ bool Game::LoadRoom(unsigned int id) {
 
 	// Create all instances in new room
 	for (unsigned int i = 0; i < room->instanceCount; i++) {
-		Instance* instance = _instances.AddInstance(room->instances[i].id);
-		InitInstance(instance, room->instances[i].x, room->instances[i].y, room->instances[i].objectIndex);
+		Instance* instance = _instances.AddInstance(room->instances[i].id, room->instances[i].x, room->instances[i].y, room->instances[i].objectIndex);
+		if (!instance) {
+			// Failed to create instance
+			return false;
+		}
 	}
 
 	for (unsigned int i = 0; i < _instances.Count(); i++) {
@@ -1609,7 +1747,7 @@ bool Game::Frame() {
 		// This is the default draw action if no draw event is present for this object (more or less.)
 		// We can just do this for now until we have code compilation working.
 		if (instance->sprite_index >= 0 && instance->visible) {
-			Sprite* sprite = _sprites._Myfirst() + instance->sprite_index;
+			Sprite* sprite = _assetManager.GetSprite(instance->sprite_index);
 			if (sprite->exists) {
 				_renderer->DrawImage(sprite->frames[((int)instance->image_index) % sprite->frameCount], instance->x, instance->y, instance->image_xscale, instance->image_yscale, instance->image_angle, instance->image_blend, instance->image_alpha);
 			}
@@ -1625,49 +1763,4 @@ bool Game::Frame() {
 
 	_renderer->RenderFrame();
 	return !_renderer->ShouldClose();
-}
-
-bool Game::InitInstance(Instance* instance, double x, double y, unsigned int objectIndex) {
-	Object* obj = _objects._Myfirst() + objectIndex;
-	if (!obj->exists) return false;
-
-	instance->object_index = objectIndex;
-	instance->solid = obj->solid;
-	instance->visible = obj->visible;
-	instance->persistent = obj->persistent;
-	instance->depth = obj->depth;
-	for (unsigned int i = 0; i < 12; i++) instance->alarm[i] = 0;
-	instance->sprite_index = obj->spriteIndex;
-	instance->image_alpha = 1;
-	instance->image_blend = 0xFFFFFF;
-	instance->image_index = 0;
-	instance->image_speed = 1;
-	instance->image_xscale = 1;
-	instance->image_yscale = 1;
-	instance->image_angle = 0;
-	instance->mask_index = obj->maskIndex;
-	instance->direction = 0;
-	instance->gravity_direction = 270;
-	instance->hspeed = 0;
-	instance->vspeed = 0;
-	instance->speed = 0;
-	instance->x = x;
-	instance->y = y;
-	instance->xprevious = x;
-	instance->yprevious = y;
-	instance->xstart = x;
-	instance->ystart = y;
-	instance->path_index = -1;
-	instance->path_position = 0;
-	instance->path_positionprevious = 0;
-	instance->path_speed = 0;
-	instance->path_scale = 1;
-	instance->path_orientation = 0;
-	instance->path_endaction = 0;
-	instance->timeline_index = -1;
-	instance->timeline_running = false;
-	instance->timeline_speed = 1;
-	instance->timeline_position = 0;
-	instance->timeline_loop = false;
-	return true;
 }

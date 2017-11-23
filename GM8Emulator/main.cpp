@@ -1,5 +1,5 @@
-#define CHECK_MEMORY_LEAKS 1
-#define OUTPUT_FRAME_TIME 1
+#define CHECK_MEMORY_LEAKS 0
+#define OUTPUT_FRAME_TIME 0
 
 #include <GLFW/glfw3.h>
 #include <chrono>
@@ -18,6 +18,13 @@
 
 
 int main(int argc, char** argv) {
+	std::chrono::high_resolution_clock::time_point t1;
+	std::chrono::high_resolution_clock::time_point t2;
+
+#if OUTPUT_FRAME_TIME
+	t1 = std::chrono::high_resolution_clock::now();
+#endif
+
 	if (!glfwInit()) {
 		// Failed to initialize GLFW
 		return 1;
@@ -34,6 +41,13 @@ int main(int argc, char** argv) {
 		return 2;
 	}
 
+#if OUTPUT_FRAME_TIME
+	t2 = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+	double se = time_span.count();
+	std::cout << "Successful load in " << se << " seconds" << std::endl;
+#endif
+
 	if (!game->StartGame()) {
 		// Starting game failed
 		delete game;
@@ -42,14 +56,14 @@ int main(int argc, char** argv) {
 	}
 
 	while (true) {
-		std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+		t1 = std::chrono::high_resolution_clock::now();
 		if (!game->Frame()) {
 			break;
 		}
-		std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+		t2 = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
 		double mus = time_span.count() * 1000000.0;
-		long long waitMus = (((double)1000000.0) / game->GetRoomSpeed()) - mus;
+		long long waitMus = (long long)((((double)1000000.0) / game->GetRoomSpeed()) - mus);
 		if (waitMus > 0) {
 			std::this_thread::sleep_for(std::chrono::microseconds(waitMus));
 		}

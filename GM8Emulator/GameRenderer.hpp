@@ -62,7 +62,7 @@ class GameRenderer {
 		RImageIndex MakeImage(unsigned int w, unsigned int h, unsigned int originX, unsigned int originY, unsigned char* bytes);
 
 		// Draws a registered image at the given X and Y. Tries to imitate draw_sprite_ext() from GML.
-		void DrawImage(RImageIndex ix, int x, int y, double xscale, double yscale, double rot, unsigned int blend, double alpha);
+		void DrawImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha);
 
 		// Render the current frame. This should be done exactly once per cycle.
 		void RenderFrame();

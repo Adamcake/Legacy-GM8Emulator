@@ -24,6 +24,7 @@ const GLchar* vertexShaderCode = "#version 440\n"
 "void main() {\n"
 "fragTexCoord = vertTexCoord;\n"
 "gl_Position = vec4(objPos.x + (vert.x * objWH.x), 0 - (objPos.y + (vert.y * objWH.y)), vert.z, 1);\n"
+//"gl_Position = vec4(vert.x, 0 - vert.y, vert.z, 1);\n"
 "}";
 
 
@@ -171,20 +172,20 @@ RImageIndex GameRenderer::MakeImage(unsigned int w, unsigned int h, unsigned int
 	return ((unsigned int)_images.size()) - 1;
 }
 
-void GameRenderer::DrawImage(RImageIndex ix, int x, int y, double xscale, double yscale, double rot, unsigned int blend, double alpha) {
+void GameRenderer::DrawImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha) {
 	RImage* img = _images._Myfirst() + ix;
 	int actualWinW, actualWinH;
 	glfwGetWindowSize(window, &actualWinW, &actualWinH);
 
 	// Bind shader values needed for GPU calculations
-	GLfloat shaderX = (((GLfloat)(x - (img->originX * xscale))) / windowW) * 2 - 1;
-	GLfloat shaderY = (((GLfloat)(y - (img->originY * yscale))) / windowH) * 2 - 1;
-	GLfloat shaderW = ((GLfloat)img->w) * xscale * 2 / windowW;
-	GLfloat shaderH = ((GLfloat)img->h) * yscale * 2 / windowH;
+	GLfloat shaderX = (GLfloat)(((x - (img->originX * xscale)) / windowW) * 2 - 1);
+	GLfloat shaderY = (GLfloat)(((y - (img->originY * yscale)) / windowH) * 2 - 1);
+	GLfloat shaderW = (GLfloat)(img->w * xscale * 2 / windowW);
+	GLfloat shaderH = (GLfloat)(img->h * yscale * 2 / windowH);
 	glUniform2f(glGetUniformLocation(_glProgram, "objPos"), shaderX, shaderY);
 	glUniform2f(glGetUniformLocation(_glProgram,  "objWH"), shaderW, shaderH);
 	glUniform1d(glGetUniformLocation(_glProgram, "objAlpha"), alpha);
-	glUniform3f(glGetUniformLocation(_glProgram, "objBlend"), (blend & 0xFF) / 0xFF, (blend & 0xFF00) / 0xFF00, (blend & 0xFF0000) / 0xFF0000);
+	glUniform3f(glGetUniformLocation(_glProgram, "objBlend"), (GLfloat)(blend & 0xFF) / 0xFF, (GLfloat)(blend & 0xFF00) / 0xFF00, (GLfloat)(blend & 0xFF0000) / 0xFF0000);
 
 	if (img->registered) {
 		// This image is already registered in the GPU, so we can draw it.

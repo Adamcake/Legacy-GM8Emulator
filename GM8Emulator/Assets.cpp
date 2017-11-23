@@ -4,17 +4,6 @@
 #include "CodeAction.hpp"
 
 
-IndexedEvent::IndexedEvent()
-{
-	actionCount = 0;
-	actions = NULL;
-}
-
-IndexedEvent::~IndexedEvent()
-{
-	delete[] actions;
-}
-
 
 Extension::Extension()
 {
@@ -58,21 +47,18 @@ Trigger::Trigger()
 {
 	name = NULL;
 	exists = true;
-	condition = NULL;
 	constantName = NULL;
 }
 
 Trigger::~Trigger()
 {
 	free(name);
-	free(condition);
 	free(constantName);
 }
 
 Constant::Constant()
 {
 	name = NULL;
-	exists = true;
 	value = NULL;
 }
 
@@ -150,13 +136,11 @@ Script::Script()
 {
 	name = NULL;
 	exists = true;
-	code = NULL;
 }
 
 Script::~Script()
 {
 	free(name);
-	free(code);
 }
 
 Font::Font()
@@ -183,6 +167,10 @@ Timeline::Timeline()
 Timeline::~Timeline()
 {
 	free(name);
+	while (momentCount) {
+		momentCount--;
+		delete[] moments[momentCount].actions;
+	}
 	delete[] moments;
 }
 
@@ -214,14 +202,30 @@ Object::~Object()
 	delete[] evStepEnd;
 	delete[] evDraw;
 
-	evAlarm.clear();
-	evCollision.clear();
-	evKeyboard.clear();
-	evKeyPress.clear();
-	evKeyRelease.clear();
-	evMouse.clear();
-	evOther.clear();
-	evTrigger.clear();
+	for (IndexedEvent e : evAlarm) {
+		delete[] e.actions;
+	}
+	for (IndexedEvent e : evCollision) {
+		delete[] e.actions;
+	}
+	for (IndexedEvent e : evKeyboard) {
+		delete[] e.actions;
+	}
+	for (IndexedEvent e : evKeyPress) {
+		delete[] e.actions;
+	}
+	for (IndexedEvent e : evKeyRelease) {
+		delete[] e.actions;
+	}
+	for (IndexedEvent e : evMouse) {
+		delete[] e.actions;
+	}
+	for (IndexedEvent e : evOther) {
+		delete[] e.actions;
+	}
+	for (IndexedEvent e : evTrigger) {
+		delete[] e.actions;
+	}
 }
 
 Room::Room()

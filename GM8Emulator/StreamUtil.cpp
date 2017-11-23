@@ -14,11 +14,14 @@ double ReadDouble(const unsigned char* pStream, unsigned int* pPos) {
 	return val;
 }
 
-char* ReadString(const unsigned char* pStream, unsigned int* pPos) {
+char* ReadString(const unsigned char* pStream, unsigned int* pPos, unsigned int* pLen) {
 	unsigned int length = ReadDword(pStream, pPos);
 	char* str = (char*)malloc(length + 1);
 	memcpy(str, (pStream + *pPos), length);
 	str[length] = '\0';
 	(*pPos) += length;
+	if (pLen != nullptr) {
+		(*pLen) = length;
+	}
 	return str;
 }

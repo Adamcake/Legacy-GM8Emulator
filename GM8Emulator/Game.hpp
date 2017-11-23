@@ -1,10 +1,10 @@
 #ifndef _GM8_GAME_HPP_
 #define _GM8_GAME_HPP_
-#include <vector>
-#include "Assets.hpp"
+#include "AssetManager.hpp"
 #include "GameSettings.hpp"
-#include "Instance.hpp"
 #include "InstanceList.hpp"
+class GameRenderer;
+class CodeRunner;
 
 
 // Wrapper for game information
@@ -26,25 +26,14 @@ struct GameInfo {
 // This is the overall structure for the game state.
 class Game {
 	private:
-		// These contain the assets loaded in from the gamedata.
-		std::vector<Extension> _extensions;
-		std::vector<Trigger> _triggers;
-		std::vector<Constant> _constants;
-
-		std::vector<Sound> _sounds;
-		std::vector<Sprite> _sprites;
-		std::vector<Background> _backgrounds;
-		std::vector<Path> _paths;
-		std::vector<Script> _scripts;
-		std::vector<Font> _fonts;
-		std::vector<Timeline> _timelines;
-		std::vector<Object> _objects;
-		std::vector<Room> _rooms;
-		
-		std::vector<IncludeFile> _includeFiles;
+		// Asset manager for all game asset types
+		AssetManager _assetManager;
 
 		// All active instances
 		InstanceList _instances;
+
+		// Object for compiling and running GML
+		CodeRunner* _runner;
 
 		// This refers to the "game information" text box that comes up if you press F1.
 		GameInfo _info;
@@ -55,6 +44,9 @@ class Game {
 		// Renderer object for the game window.
 		GameRenderer* _renderer;
 
+		// Wrapper for game settings
+		GameSettings settings;
+
 		// Misc game variables
 		unsigned int _roomId;
 		unsigned int _nextInstanceId;
@@ -64,9 +56,6 @@ class Game {
 	public:
 		Game();
 		~Game();
-
-		// Wrapper for game settings
-		GameSettings settings;
 
 		// Load in game data from a file stream. Returns true on success, false on failure.
 		// The Game object should be deleted on failure as it will be in an undefined state.
@@ -85,9 +74,9 @@ class Game {
 		bool Frame();
 
 		// Sets all the values of an Instance to their defaults. Returns true on success, otherwise false (game should close.)
-		bool InitInstance(Instance* instance, double x, double y, unsigned int objectIndex);
+		// bool InitInstance(Instance* instance, double x, double y, unsigned int objectIndex);
 
-		// Misc
+		// Gets the current room_speed.
 		inline unsigned int GetRoomSpeed() const { return _roomSpeed; }
 };
 

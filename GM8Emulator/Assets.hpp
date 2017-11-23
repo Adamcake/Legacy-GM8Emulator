@@ -2,8 +2,9 @@
 #define _GM8_ASSETS_HPP_
 #include <vector>
 #include <list>
-#include "GameRenderer.hpp"
 class CodeAction;
+typedef unsigned int RImageIndex;
+typedef unsigned int CodeObject;
 
 
 // Subclasses used by main asset types
@@ -26,11 +27,8 @@ struct PathPoint {
 
 struct IndexedEvent {
 	unsigned int index;
-	unsigned int actionCount;
-	CodeAction* actions;
-
-	IndexedEvent();
-	~IndexedEvent();
+	unsigned int actionCount = 0;
+	CodeAction* actions = NULL;
 };
 
 struct RoomBackground {
@@ -134,7 +132,7 @@ class Trigger {
 		char* name;
 		bool exists;
 
-		char* condition;
+		CodeObject codeObj;
 		unsigned int checkMoment; // begin step, step, end step
 		char* constantName;
 };
@@ -143,9 +141,8 @@ class Constant {
 	public:
 		Constant();
 		~Constant();
-		char* name;
-		bool exists;
 
+		char* name;
 		char* value;
 };
 
@@ -219,7 +216,7 @@ class Script {
 		~Script();
 		char* name;
 		bool exists;
-		char* code;
+		CodeObject codeObj;
 };
 
 class Font {

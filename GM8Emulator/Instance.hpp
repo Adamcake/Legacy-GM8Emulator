@@ -1,10 +1,13 @@
 #ifndef _A_INSTANCE_HPP_
 #define _A_INSTANCE_HPP_
 
+typedef unsigned int InstanceID;
+
 // I've tried to name all the instance variables how they're referred to in GML where applicable.
 // read-only properties not included: sprite_width/height, sprite_xoffset/yoffset, image_number, bbox_bottom/left/right/top
 struct Instance {
-	unsigned int id; // Instance ID
+	bool exists;
+	InstanceID id;
 	int object_index;
 	bool solid;
 	bool visible;
@@ -39,7 +42,7 @@ struct Instance {
 	double path_speed;
 	double path_scale;
 	double path_orientation;
-	int path_endaction; // ?
+	int path_endaction; // 0 = stop, 1 = continue from start, 2 = continue from here, 4 = reverse // https://docs.yoyogames.com/source/dadiospice/002_reference/paths/path_start.html
 	int timeline_index;
 	bool timeline_running;
 	double timeline_speed;
