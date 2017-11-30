@@ -3,40 +3,47 @@
 #include "AssetManager.hpp"
 #include "GameSettings.hpp"
 #include "InstanceList.hpp"
+#include "GlobalValues.hpp"
 class GameRenderer;
 class CodeRunner;
 
 
-// Wrapper for game information
-struct GameInfo {
-	unsigned int backgroundColour;
-	bool separateWindow;
-	char* caption;
-	unsigned int left;
-	unsigned int top;
-	unsigned int width;
-	unsigned int height;
-	bool showBorder;
-	bool allowWindowResize;
-	bool onTop;
-	bool freezeGame;
-	char* gameInfo;
-};
 
 // This is the overall structure for the game state.
 class Game {
 	private:
+		// Wrapper for game information
+		struct GameInfo {
+			unsigned int backgroundColour;
+			bool separateWindow;
+			char* caption;
+			unsigned int left;
+			unsigned int top;
+			unsigned int width;
+			unsigned int height;
+			bool showBorder;
+			bool allowWindowResize;
+			bool onTop;
+			bool freezeGame;
+			char* gameInfo;
+		};
+
 		// Asset manager for all game asset types
 		AssetManager _assetManager;
 
 		// All active instances
 		InstanceList _instances;
 
+		// All global values such as room_speed, health, etc
+		GlobalValues _globals;
+
 		// Object for compiling and running GML
 		CodeRunner* _runner;
 
 		// This refers to the "game information" text box that comes up if you press F1.
 		GameInfo _info;
+
+
 
 		// Order in which rooms should be played (this is different than the resource tree order)
 		unsigned int* _roomOrder;
@@ -48,9 +55,7 @@ class Game {
 		GameSettings settings;
 
 		// Misc game variables
-		unsigned int _roomId;
 		unsigned int _nextInstanceId;
-		unsigned int _roomSpeed;
 		unsigned int _lastUsedRoomSpeed;
 
 	public:
@@ -77,7 +82,7 @@ class Game {
 		// bool InitInstance(Instance* instance, double x, double y, unsigned int objectIndex);
 
 		// Gets the current room_speed.
-		inline unsigned int GetRoomSpeed() const { return _roomSpeed; }
+		inline unsigned int GetRoomSpeed() const { return _globals.room_speed; }
 };
 
 #endif

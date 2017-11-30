@@ -1,6 +1,5 @@
 #define CHECK_MEMORY_LEAKS 0
 #define OUTPUT_FRAME_TIME 0
-
 #include <GLFW/glfw3.h>
 #include <chrono>
 #include <thread>
@@ -55,6 +54,8 @@ int main(int argc, char** argv) {
 		return 3;
 	}
 
+	unsigned int a = 0;
+	double totMus = 0;
 	while (true) {
 		t1 = std::chrono::high_resolution_clock::now();
 		if (!game->Frame()) {

@@ -13,6 +13,15 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Code Runner">
+      <UniqueIdentifier>{067f7f8f-9c76-496c-a5fa-f1b423125585}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Code Runner\Headers">
+      <UniqueIdentifier>{8ba1eb5f-31ec-4b23-b550-1e8fe8d834fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Code Runner\Source">
+      <UniqueIdentifier>{e17a2078-520f-40d4-843a-3062eed98021}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Game.cpp">
@@ -40,7 +49,10 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CodeRunner.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Code Runner\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="CodeRunnerCompiling.cpp">
+      <Filter>Code Runner\Source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -77,8 +89,14 @@
     <ClInclude Include="AssetManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CodeRunner.hpp">
+    <ClInclude Include="GlobalValues.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CodeRunner.hpp">
+      <Filter>Code Runner\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="CREnums.hpp">
+      <Filter>Code Runner\Headers</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

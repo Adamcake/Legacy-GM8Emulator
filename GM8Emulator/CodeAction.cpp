@@ -392,8 +392,7 @@ bool CodeAction::Read(const unsigned char* stream, unsigned int* pos, CodeRunner
 }
 
 bool CodeAction::Compile(CodeRunner* runner) {
-	runner->Compile(codeObj);
-	return true;
+	return runner->Compile(codeObj);
 }
 
 bool CodeAction::Run(CodeRunner* runner, Instance* self, Instance* other, bool* response) {

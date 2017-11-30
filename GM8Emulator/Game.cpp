@@ -243,10 +243,8 @@ Game::Game() : _instances(&_assetManager) {
 	_info.gameInfo = NULL;
 	_runner = new CodeRunner(&_assetManager, &_instances);
 	_renderer = new GameRenderer();
-	_roomId = 0xFFFFFFFF;
 	_nextInstanceId = 100001;
 	_roomOrder = NULL;
-	_roomSpeed = 0;
 	_lastUsedRoomSpeed = 0;
 }
 
@@ -260,8 +258,12 @@ Game::~Game() {
 }
 
 bool Game::Load(const char * pFilename) {
-	// Load the entirety of the file into a memory buffer
+	// Init the runner
+	if (! _runner->Init()) {
+		return false;
+	}
 
+	// Load the entirety of the file into a memory buffer
 	FILE* exe;
 	int err = fopen_s(&exe, pFilename, "rb");
 
@@ -1298,6 +1300,7 @@ bool Game::Load(const char * pFilename) {
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
+	unsigned int roomCount = count;
 	_assetManager.ReserveRooms(count);
 	for (; count > 0; count--) {
 
@@ -1326,7 +1329,10 @@ bool Game::Load(const char * pFilename) {
 		room->persistent = ReadDword(data, &dataPos);
 		room->backgroundColour = ReadDword(data, &dataPos);
 		room->drawBackgroundColour = ReadDword(data, &dataPos);
-		room->creationCode = ReadString(data, &dataPos);
+		unsigned int creationLen;
+		char* creation = ReadString(data, &dataPos, &creationLen);
+		room->creationCode = _runner->Register(creation, creationLen);
+		free(creation);
 
 		// Room backgrounds
 		room->backgroundCount = ReadDword(data, &dataPos);
@@ -1660,6 +1666,18 @@ bool Game::Load(const char * pFilename) {
 			}
 		}
 	}
+	for (unsigned int i = 0; i < roomCount; i++) {
+		Room* r = _assetManager.GetRoom(i);
+		if (r->exists) {
+			if (!_runner->Compile(r->creationCode)) {
+				// Error compiling script
+				free(data);
+				free(buffer);
+				return false;
+			}
+		}
+	}
+
 
 	// Cleaning up
 	free(data);
@@ -1673,7 +1691,7 @@ bool Game::StartGame() {
 	_instances.ClearAll();
 
 	// Reset the room to its default value so that LoadRoom() won't ever fail when restarting
-	_roomId = 0xFFFFFFFF;
+	_globals.room = 0xFFFFFFFF;
 
 	// Start up game window (this will safely destroy the old one if one existed)
 	if (!_renderer->MakeGameWindow(&settings, _assetManager.GetRoom(_roomOrder[0])->width, _assetManager.GetRoom(_roomOrder[0])->height)) {
@@ -1689,7 +1707,7 @@ bool Game::StartGame() {
 
 bool Game::LoadRoom(unsigned int id) {
 	// Exit if we're already in this room
-	if (id == _roomId) return true;
+	if (id == _globals.room) return true;
 
 	// Get the Room object for the room we're going to
 	Room* room = _assetManager.GetRoom(id);
@@ -1709,10 +1727,12 @@ bool Game::LoadRoom(unsigned int id) {
 	_renderer->SetGameWindowTitle(room->caption);
 
 	// Update room
-	_roomId = id;
+	_globals.room = id;
 	if (room->speed != _lastUsedRoomSpeed) {
-		_roomSpeed = room->speed;
-		_lastUsedRoomSpeed = _roomSpeed;
+		_globals.room_speed = room->speed;
+		_lastUsedRoomSpeed = _globals.room_speed;
+		_globals.room_width = room->width;
+		_globals.room_height = room->height;
 	}
 
 	// Create all instances in new room

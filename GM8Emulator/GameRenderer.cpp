@@ -1,4 +1,5 @@
 #define GLEW_STATIC
+#define PI 3.14159265358979324
 #include <gl/glew.h>
 #include <GLFW/glfw3.h>
 #include "GameRenderer.hpp"
@@ -18,13 +19,16 @@ const GLchar* fragmentShaderCode = "#version 440\n"
 const GLchar* vertexShaderCode = "#version 440\n"
 "in vec3 vert;\n"
 "in vec2 vertTexCoord;\n"
-"uniform vec2 objPos;\n"
-"uniform vec2 objWH;\n"
+"uniform mat4 translateToMiddle;\n"
+"uniform mat4 rotate;\n"
+"uniform mat4 translateBack;\n"
+"uniform mat4 project;\n"
+"uniform int calced;\n"
 "out vec2 fragTexCoord;\n"
+
 "void main() {\n"
 "fragTexCoord = vertTexCoord;\n"
-"gl_Position = vec4(objPos.x + (vert.x * objWH.x), 0 - (objPos.y + (vert.y * objWH.y)), vert.z, 1);\n"
-//"gl_Position = vec4(vert.x, 0 - vert.y, vert.z, 1);\n"
+"gl_Position = project * translateBack * rotate * translateToMiddle * vec4(vert.x, vert.y, vert.z, 1);\n"
 "}";
 
 
@@ -67,7 +71,7 @@ bool GameRenderer::MakeGameWindow(GameSettings* settings, unsigned int w, unsign
 	}
 
 	// Required GL features
-	glEnable(GL_CULL_FACE);
+	//glEnable(GL_CULL_FACE);
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -174,16 +178,39 @@ RImageIndex GameRenderer::MakeImage(unsigned int w, unsigned int h, unsigned int
 
 void GameRenderer::DrawImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha) {
 	RImage* img = _images._Myfirst() + ix;
-	int actualWinW, actualWinH;
-	glfwGetWindowSize(window, &actualWinW, &actualWinH);
 
 	// Bind shader values needed for GPU calculations
-	GLfloat shaderX = (GLfloat)(((x - (img->originX * xscale)) / windowW) * 2 - 1);
-	GLfloat shaderY = (GLfloat)(((y - (img->originY * yscale)) / windowH) * 2 - 1);
-	GLfloat shaderW = (GLfloat)(img->w * xscale * 2 / windowW);
-	GLfloat shaderH = (GLfloat)(img->h * yscale * 2 / windowH);
-	glUniform2f(glGetUniformLocation(_glProgram, "objPos"), shaderX, shaderY);
-	glUniform2f(glGetUniformLocation(_glProgram,  "objWH"), shaderW, shaderH);
+	double dRot = rot * PI / 180;
+	GLfloat sinRot = sin(dRot);
+	GLfloat cosRot = cos(dRot);
+	GLfloat translateToMiddle[16] = {
+		1, 0, 0, 0,
+		0, 1, 0, 0,
+		0, 0, 1, 0,
+		-((GLfloat)img->originX / img->w), -((GLfloat)img->originY / img->h), 0, 1
+	};
+	GLfloat rotate[16] = {
+		cosRot, sinRot, 0, 0,
+		-sinRot, cosRot, 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1
+	};
+	GLfloat translateBack[16] = {
+		1, 0, 0, 0,
+		0, 1, 0, 0,
+		0, 0, 1, 0,
+		((GLfloat)img->originX / img->w), ((GLfloat)img->originY / img->h), 0, 1
+	};
+	GLfloat project[16] = {
+		(GLfloat)(img->w * xscale * 2.0 / windowW), 0, 0, 0,
+		0, -(GLfloat)(img->h * yscale * 2.0 / windowH), 0, 0,
+		0, 0, 1, 0,
+		(GLfloat)(((x - (img->originX * xscale)) / windowW) * 2.0 - 1.0), -(GLfloat)(((y - (img->originY * yscale)) / windowH) * 2.0 - 1.0), 0, 1
+	};
+	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "translateToMiddle"), 1, GL_FALSE, translateToMiddle);
+	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "rotate"), 1, GL_FALSE, rotate);
+	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "translateBack"), 1, GL_FALSE, translateBack);
+	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "project"), 1, GL_FALSE, project);
 	glUniform1d(glGetUniformLocation(_glProgram, "objAlpha"), alpha);
 	glUniform3f(glGetUniformLocation(_glProgram, "objBlend"), (GLfloat)(blend & 0xFF) / 0xFF, (GLfloat)(blend & 0xFF00) / 0xFF00, (GLfloat)(blend & 0xFF0000) / 0xFF0000);
 
@@ -210,6 +237,9 @@ void GameRenderer::DrawImage(RImageIndex ix, double x, double y, double xscale, 
 }
 
 void GameRenderer::RenderFrame() {
+	int actualWinW, actualWinH;
+	glfwGetWindowSize(window, &actualWinW, &actualWinH);
+	glViewport(0, 0, actualWinW, actualWinH);
 	glfwSwapBuffers(window);
 	glfwPollEvents(); // This probably won't be here later on, but it needs to happen every frame for the window to update properly.
 	glUseProgram(_glProgram);

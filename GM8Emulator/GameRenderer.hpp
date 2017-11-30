@@ -4,6 +4,7 @@ struct GameSettings;
 struct GLFWwindow;
 typedef unsigned int GLuint;
 typedef int GLint;
+typedef float GLfloat;
 
 typedef unsigned int RImageIndex;
 #include <vector>

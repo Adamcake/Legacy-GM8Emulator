@@ -23,7 +23,7 @@
     <ProjectGuid>{99AF3A7A-C5E9-4744-8155-D5B81A38B8E7}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>GM8Emulator</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -157,6 +157,7 @@
     <ClCompile Include="Assets.cpp" />
     <ClCompile Include="CodeAction.cpp" />
     <ClCompile Include="CodeRunner.cpp" />
+    <ClCompile Include="CodeRunnerCompiling.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="GameRenderer.cpp" />
     <ClCompile Include="InstanceList.cpp" />
@@ -168,9 +169,11 @@
     <ClInclude Include="Assets.hpp" />
     <ClInclude Include="CodeAction.hpp" />
     <ClInclude Include="CodeRunner.hpp" />
+    <ClInclude Include="CREnums.hpp" />
     <ClInclude Include="Game.hpp" />
     <ClInclude Include="GameRenderer.hpp" />
     <ClInclude Include="GameSettings.hpp" />
+    <ClInclude Include="GlobalValues.hpp" />
     <ClInclude Include="Instance.hpp" />
     <ClInclude Include="InstanceList.hpp" />
     <ClInclude Include="StreamUtil.hpp" />

@@ -298,7 +298,7 @@ class Room {
 		bool persistent;
 		unsigned int backgroundColour;
 		bool drawBackgroundColour;
-		char* creationCode;
+		CodeObject creationCode;
 		bool enableViews;
 
 		unsigned int backgroundCount;

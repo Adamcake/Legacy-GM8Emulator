@@ -248,7 +248,6 @@ Room::~Room()
 {
 	free(name);
 	free(caption);
-	free(creationCode);
 
 	while (instanceCount) {
 		instanceCount--;
