@@ -12,24 +12,25 @@ enum CRInstruction {
 	OP_SET_INSTANCE_VAR = 0x3,
 	OP_SET_FIELD = 0x4,
 	OP_SET_ARRAY = 0x5,
-	OP_DEREF = 0x6,
-	OP_RESET_DEREF = 0x7,
-	OP_RUN_INTERNAL_FUNC = 0x8,
-	OP_RUN_SCRIPT = 0x9,
-	OP_SET_LOCAL_VAR = 0xA,
-	OP_SET_LOCAL_ARRAY = 0xB,
-	OP_TEST_VAL = 0xC,
-	OP_TEST_VAL_NEGATIVE = 0xD,
-	OP_TEST_VALS_EQUAL = 0xE,
+	OP_BIND_VARS = 0x6,
+	OP_DEREF = 0x7,
+	OP_RESET_DEREF = 0x8,
+	OP_RUN_INTERNAL_FUNC = 0x9,
+	OP_RUN_SCRIPT = 0xA,
+	OP_TEST_VAL = 0xB,
+	OP_TEST_VAL_NOT = 0xC,
+	OP_TEST_VALS_EQUAL = 0xD,
+	OP_ELSE = 0xE,
 	OP_CHANGE_CONTEXT = 0xF,
 	OP_REVERT_CONTEXT = 0x10,
-	OP_SET_EBX = 0x11,
+	OP_SET_STACK = 0x11,
 	OP_JUMP = 0x12,
 	OP_JUMP_LONG = 0x13,
 	OP_JUMP_BACK = 0x14,
 	OP_JUMP_BACK_LONG = 0x15,
 	OP_STACK_PUSH = 0x16,
-	OP_STACK_POP = 0x17
+	OP_STACK_POP = 0x17,
+	OP_RETURN = 0x18
 };
 
 enum CRSetMethod {
@@ -43,16 +44,13 @@ enum CRSetMethod {
 	SM_BITWISE_XOR = 7
 };
 
-enum CRVarType{
-	VARTYPE_LOCAL,
+enum CRVarType {
 	VARTYPE_INSTANCE,
 	VARTYPE_FIELD,
-	VARTYPE_GAME_RONLY,
-	VARTYPE_GAME_RW,
-	VARTYPE_SPECIAL
+	VARTYPE_GAME
 };
 
-enum CROperators {
+enum CROperator {
 	OPERATOR_STOP = 0,
 	OPERATOR_ADD = 1,
 	OPERATOR_SUBTRACT = 2,
@@ -84,11 +82,9 @@ enum CRExpVType {
 	EVTYPE_FIELD = 0x3,
 	EVTYPE_ARRAY = 0x4,
 	EVTYPE_INSTANCEVAR = 0x5,
-	EVTYPE_LOCALVAR = 0x6,
-	EVTYPE_LOCALARRAY = 0x7,
-	EVTYPE_INTERNAL_FUNC = 0x8,
-	EVTYPE_SCRIPT = 0x9,
-	EVTYPE_STACK = 0xA
+	EVTYPE_INTERNAL_FUNC = 0x6,
+	EVTYPE_SCRIPT = 0x7,
+	EVTYPE_STACK = 0x8
 };
 
 enum CRInternalFunction {
@@ -107,18 +103,14 @@ enum CRInternalFunction {
 	_INTERNAL_FUNC_COUNT // As long as this one is last, it'll tell us how many internal functions are in this enum. So don't move it.
 };
 
-enum CRRWGameVar {
+enum CRGameVar {
 	HEALTH,
 	LIVES,
 	ROOM,
 	ROOM_SPEED,
-	_RW_GAME_VAR_COUNT // As long as this one is last, it'll tell us how many things are in this enum. So don't move it.
-};
-
-enum CRReadOnlyGameVar {
 	ROOM_HEIGHT,
 	ROOM_WIDTH,
-	_RONLY_GAME_VAR_COUNT // As long as this one is last, it'll tell us how many things are in this enum. So don't move it.
+	_GAME_VALUE_COUNT // As long as this one is last, it'll tell us how many things are in this enum. So don't move it.
 };
 
 enum CRInstanceVar {

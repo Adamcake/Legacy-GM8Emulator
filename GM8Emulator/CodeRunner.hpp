@@ -4,11 +4,14 @@ class AssetManager;
 class InstanceList;
 struct Instance;
 #include <vector>
+#include <map>
 #include <stack>
 #include <string>
 
 typedef unsigned int CodeObject;
+enum CRGameVar;
 enum CRVarType;
+enum CROperator;
 
 /*
 The runner compiles GML into an instruction format that is based on the format of x86 CPU instructions, except massively cut down. This is (vaguely) documented here, for now.
@@ -54,10 +57,11 @@ Followed by 0 bytes.
 Followed by 0 bytes. 
 
 02: Set game value (room_speed, health, etc)
-Followed by 5 bytes. The first indicates the game value to set, the following byte indicates the SET METHOD and the final 3 are a VAL.
+Followed by 8 bytes. The first indicates the game value to set, the following 3 indicate a VAL for the array index if applicable - otherwise discarded.
+The following byte indicates the SET METHOD and the final 3 are a VAL.
 
 03: Set instance variable (eg player.x)
-Followed by 8 bytes. The first indicates the instance var id, the following 3 indicate the array index if this instance variable is an array - otherwise discard.
+Followed by 8 bytes. The first indicates the instance var id, the following 3 indicate the array index if this instance variable is an array - otherwise discarded.
 The following byte indicates the SET METHOD and the final 3 are a VAL.
 This will set the indicated instance variable of whatever is stored in the dereferencing buffer (default is self.)
 
@@ -70,35 +74,34 @@ Followed by 9 bytes. The first 2 indicate the array number, the following 3 are 
 the following byte indicates the SET METHOD and the final 3 are the VAL for what to set it to.
 This will set the indicated array index of whatever is stored in the dereferencing buffer (default is self.)
 
-06: Dereference
+06: Bind local vars (eg "var a;")
+Followed by (1+2n) bytes. The first indicates the number of fields to bind.
+
+07: Dereference
 Followed by 3 bytes indicating a VAL. This will evaluate the VAL into an ID, dereference that ID into an instance pointer, and store it in the deref buffer.
 
-07: Reset Deref Buffer
+08: Reset Deref Buffer
 Followed by 0 bytes. Resets the deref buffer to the "self" of the current context.
 
-08: Run an internal function (instance_create, room_goto, etc)
-Followed by a (3a+3) bytes. The first two bytes indicate the internal function. The following byte indicates the number of arguments following. Following that,
+09: Run an internal function (instance_create, room_goto, etc)
+Followed by a (3+3a) bytes. The first two bytes indicate the internal function. The following byte indicates the number of arguments following. Following that,
 each argument is indicated by 3 bytes, each of which is a VAL.
 
-09: Run script
-Followed by a (3a+3) bytes. The first two bytes indicate a script index. The following byte indicates the number of arguments following. Following that,
+0A: Run script
+Followed by a (3+3a) bytes. The first two bytes indicate a script index. The following byte indicates the number of arguments following. Following that,
 each argument is indicated by 3 bytes, each of which is a VAL.
 
-0A: Set local variable (var)
-Followed by 5 bytes. The first byte indicates the local field number to set, the following byte indicates the SET METHOD and the final 3 indicate a VAL.
-
-0B: Set local array (var)
-Followed by 8 bytes. The first byte indicates the local field number to set, the following 3 bytes indicate a VAL for the array index,
-the following byte indicates the SET METHOD and the final 3 indicate a VAL.
-
-0C: Test a value (next instruction is skipped if the VAL evaluates to false)
+0B: Test a value (next instruction is skipped if the VAL evaluates to false)
 Followed by 3 bytes indicating the VAL to test.
 
-0D: Test a value for falseness (next instruction is skipped if the VAL evaluates to true)
+0C: Test a value for falseness (next instruction is skipped if the VAL evaluates to true)
 Followed by 3 bytes indicating the VAL to test.
 
-0E: Test two values for equality (next instruction is skipped if the VALs do not match)
+0D: Test two values for equality (next instruction is skipped if the VALs do not match)
 Followed by 6 bytes indicating the two VALs to test.
+
+0E: Else (ie. the following op only gets run if the previous one was skipped by a test)
+Followed by 0 bytes.
 
 0F: Change context
 Followed by 4 bytes indicating the target ID to use as "self". "other" will be set to the previous "self". The current state before changing will be pushed onto a session stack.
@@ -126,6 +129,9 @@ Followed by 0 bytes.
 
 17: Pop from stack
 Followed by 0 bytes.
+
+18: Return
+Followed by 3 bytes indicating a VAL. (Writes to the return buffer and exits.)
 
 
 ========
@@ -174,7 +180,7 @@ VALUE TABLE:
 Followed by 3 bytes which are interpreted as a VAL.
 
 02: Get game value (room_speed, health, etc)
-Followed by 1 byte which indicates the game value.
+Followed by 4 bytes, the first indicates which game value to get and the following 3 are a VAL for the array index if applicable - otherwise discarded.
 
 03: Get field (eg self.abc)
 Followed by 2 bytes which indicate the field number.
@@ -188,21 +194,15 @@ This will read from the instance in the expression dereference buffer (default i
 Followed by 4 bytes, the first is the instance variable id and the last 3 are an array index VAL if applicable (discard if not.)
 This will read from the instance in the expression dereference buffer (default is self.)
 
-06: Get local var
-Followed by 1 byte which indicates the local variable index.
-
-07: Get local array (var)
-Followed by 4 bytes, the first indicates the local variable index and the final 3 indicate a VAL for the array index.
-
-08: Get result of internal function
-Followed by a (3a+3) bytes. The first two bytes indicate the internal function. The following byte indicates the number of arguments following. Following that,
+06: Get result of internal function
+Followed by a (3+3a) bytes. The first two bytes indicate the internal function. The following byte indicates the number of arguments following. Following that,
 each argument is indicated by 3 bytes, each of which is a VAL.
 
-09: Get result of script
-Followed by a (3a+3) bytes. The first two bytes indicate a script index. The following byte indicates the number of arguments following. Following that,
+07: Get result of script
+Followed by a (3+3a) bytes. The first two bytes indicate a script index. The following byte indicates the number of arguments following. Following that,
 each argument is indicated by 3 bytes, each of which is a VAL.
 
-0A: Get top stack value
+08: Get top stack value
 Followed by 0 bytes. Gets the value from the internal stack.
 
 
@@ -248,46 +248,43 @@ class CodeRunner {
 		// Field name index during compilation
 		std::vector<char*> _fields;
 
-		// Lists of internal function names for compiling and running against
+		// Lists of internal names for compiling and running against
 		std::vector<const char*> _internalFuncNames;
-		std::vector<const char*> _readOnlyGameValueNames;
-		std::vector<const char*> _RWGameValueNames;
+		std::vector<const char*> _gameValueNames;
 		std::vector<const char*> _instanceVarNames;
-		std::vector<const char*> _specialVarNames;
+		std::map<const char*, unsigned char> _gmlConsts;
+		std::map<const char*, CROperator> _operators;
+		std::map<const char*, CROperator> _ANOperators; //AlphaNumeric
 
 		// Internal register used for loops and such
 		std::stack<int> _stack;
 
-		// Register a constant double and return its constant ID
-		unsigned int _RegConstantDouble(double d);
-
-		// Register a constant string and return its constant ID
-		unsigned int _RegConstantString(const char* c, unsigned int len);
-
-		// Register a field by its name and return its field number. Used only during compilation.
-		unsigned int _RegField(const char* c, unsigned int len);
-
-		// Removes literal strings from GML code, places them in the _constants vector, substitutes them in the code for "%n"
-		// (where n is the constant id), and returns the substituted string. This makes parsing the rest of the code way easier.
-		std::string substituteConstants(std::string code);
-
 		// Compile some code and return the position of the compiled code in outHandle.
 		// Returns true on success, false on failure to compile (ie. program should exit.)
-		bool _CompileCode(const char* str, unsigned char** outHandle, std::vector<std::string>* session = NULL);
+		bool _CompileCode(const char* str, unsigned char** outHandle, bool session = false);
 
 		// Compile an expression and return the position of the compiled expression in outHandle.
 		// Returns true on success, false on failure to compile (ie. program should exit.)
-		bool _CompileExpression(const char* str, unsigned char** outHandle, std::vector<std::string>* session = NULL);
+		bool _CompileExpression(const char* str, unsigned char** outHandle, bool session = false, unsigned int* outCharsUsed = NULL, unsigned int* outSize = NULL);
 
-		// Turns a string into a single VAL, usually by registering it as an expression. Returns true on success, false on failure to compile (ie. program should exit.)
-		// Must provide a buffer of (at least) 3 bytes in the "out" param, where the VAL will be placed.
-		bool _makeVal(const char* exp, unsigned int len, unsigned char* out, std::vector<std::string>* session);
 
-		// Helper function to get the type of a variable, taking precedence into account. Optionally can output the var index in the output pointer.
-		CRVarType getVarType(std::string name, std::vector<std::string>* locals, unsigned int* index = NULL);
+		// Helper functions for compiling
+		unsigned int _RegConstantDouble(double d);
+		unsigned int _RegConstantString(const char* c, unsigned int len);
+		unsigned int _RegField(const char* c, unsigned int len);
+		std::string substituteConstants(std::string code);
+		bool _makeVal(const char* exp, unsigned int len, unsigned char* out);
+		CRVarType _getVarType(std::string name, unsigned int* index = NULL);
+		bool _getExpression(std::string input, unsigned int* pos, unsigned char* outVal);
+		bool _isAsset(const char* name, unsigned int* index);
 
-		// Helper function to extract an expression from a string, then compile it.
-		bool getExpression(std::string input, unsigned int* pos, std::vector<std::string>* locals, unsigned char* outVal);
+
+		// Helper functions for running
+		bool _parseVal(const unsigned char* val, Instance* self, Instance* other, GMLType* out);
+		bool _setGameValue(CRGameVar index, const unsigned char* arrayIndexVal, CRSetMethod method, GMLType value);
+		bool _setInstanceVar(CRGameVar index, const unsigned char* arrayIndexVal, CRSetMethod method, GMLType value);
+		bool _evalExpression(CodeObject obj, Instance* self, Instance* other, GMLType* out);
+		bool _isTrue(const GMLType* value);
 
 	public:
 		CodeRunner(AssetManager* assets, InstanceList* instances);

@@ -158,7 +158,9 @@
     <ClCompile Include="CodeAction.cpp" />
     <ClCompile Include="CodeRunner.cpp" />
     <ClCompile Include="CodeRunnerCompiling.cpp" />
+    <ClCompile Include="CodeRunnerRunning.cpp" />
     <ClCompile Include="Game.cpp" />
+    <ClCompile Include="GameFrame.cpp" />
     <ClCompile Include="GameRenderer.cpp" />
     <ClCompile Include="InstanceList.cpp" />
     <ClCompile Include="main.cpp" />

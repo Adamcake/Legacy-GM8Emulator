@@ -30,8 +30,8 @@ class CodeAction {
 		// If this is a question, supply a pointer to a boolean where the response will be output.
 		bool Run(CodeRunner* runner, Instance* self, Instance* other, bool* response = nullptr);
 
-		// Tells whether this type of action is a question - if so, the action (or action block) immediately after it should be dependent on this returning "true".
 		inline bool IsQuestion() { return question; }
+		inline unsigned int getActID() { return actionID; }
 };
 
 #endif

@@ -54,6 +54,12 @@
     <ClCompile Include="CodeRunnerCompiling.cpp">
       <Filter>Code Runner\Source</Filter>
     </ClCompile>
+    <ClCompile Include="GameFrame.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CodeRunnerRunning.cpp">
+      <Filter>Code Runner\Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Game.hpp">

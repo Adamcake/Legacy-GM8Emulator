@@ -58,6 +58,9 @@ class Game {
 		unsigned int _nextInstanceId;
 		unsigned int _lastUsedRoomSpeed;
 
+		// Private function for running a list of CodeActions
+		bool _runActions(CodeAction* actions, unsigned int count, Instance* self, Instance* other);
+
 	public:
 		Game();
 		~Game();

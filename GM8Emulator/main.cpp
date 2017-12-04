@@ -1,5 +1,5 @@
 #define CHECK_MEMORY_LEAKS 0
-#define OUTPUT_FRAME_TIME 0
+#define OUTPUT_FRAME_TIME 1
 #include <GLFW/glfw3.h>
 #include <chrono>
 #include <thread>

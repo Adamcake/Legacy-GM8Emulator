@@ -1382,7 +1382,10 @@ bool Game::Load(const char * pFilename) {
 			instance->y = (int)ReadDword(data, &dataPos);
 			instance->objectIndex = ReadDword(data, &dataPos);
 			instance->id = ReadDword(data, &dataPos);
-			instance->creationCode = ReadString(data, &dataPos);
+			unsigned int codeLen;
+			char* code = ReadString(data, &dataPos, &codeLen);
+			instance->creation = _runner->Register(code, codeLen);
+			free(code);
 
 			if (_nextInstanceId <= instance->id) {
 				_nextInstanceId = instance->id + 1;
@@ -1675,6 +1678,14 @@ bool Game::Load(const char * pFilename) {
 				free(buffer);
 				return false;
 			}
+			for (unsigned int j = 0; j < r->instanceCount; j++) {
+				if (!_runner->Compile(r->instances[j].creation)) {
+					// Error compiling script
+					free(data);
+					free(buffer);
+					return false;
+				}
+			}
 		}
 	}
 
@@ -1703,84 +1714,4 @@ bool Game::StartGame() {
 	LoadRoom(_roomOrder[0]);
 
 	return true;
-}
-
-bool Game::LoadRoom(unsigned int id) {
-	// Exit if we're already in this room
-	if (id == _globals.room) return true;
-
-	// Get the Room object for the room we're going to
-	Room* room = _assetManager.GetRoom(id);
-
-	// Check room exists
-	if (!room->exists) return false;
-
-	for (unsigned int i = 0; i < _instances.Count(); i++) {
-		// TODO: run "room end" event for _instances[i]
-	}
-
-	// Delete non-persistent instances
-	_instances.ClearNonPersistent();
-
-	// Update renderer
-	_renderer->ResizeGameWindow(room->width, room->height);
-	_renderer->SetGameWindowTitle(room->caption);
-
-	// Update room
-	_globals.room = id;
-	if (room->speed != _lastUsedRoomSpeed) {
-		_globals.room_speed = room->speed;
-		_lastUsedRoomSpeed = _globals.room_speed;
-		_globals.room_width = room->width;
-		_globals.room_height = room->height;
-	}
-
-	// Create all instances in new room
-	for (unsigned int i = 0; i < room->instanceCount; i++) {
-		Instance* instance = _instances.AddInstance(room->instances[i].id, room->instances[i].x, room->instances[i].y, room->instances[i].objectIndex);
-		if (!instance) {
-			// Failed to create instance
-			return false;
-		}
-	}
-
-	for (unsigned int i = 0; i < _instances.Count(); i++) {
-		// TODO: run _instances[i] creation code
-		// TODO: run _instances[i] create event
-	}
-
-	// TODO: run room's creation code
-
-	for (unsigned int i = 0; i < _instances.Count(); i++) {
-		// TODO: run _instances[i] room start event
-	}
-
-	return true;
-}
-
-
-
-bool Game::Frame() {
-	for (unsigned int i = 0; i < _instances.Count(); i++) {
-		Instance* instance = _instances[i];
-
-		// This is the default draw action if no draw event is present for this object (more or less.)
-		// We can just do this for now until we have code compilation working.
-		if (instance->sprite_index >= 0 && instance->visible) {
-			Sprite* sprite = _assetManager.GetSprite(instance->sprite_index);
-			if (sprite->exists) {
-				_renderer->DrawImage(sprite->frames[((int)instance->image_index) % sprite->frameCount], instance->x, instance->y, instance->image_xscale, instance->image_yscale, instance->image_angle, instance->image_blend, instance->image_alpha);
-			}
-			else {
-				// Tried to draw non-existent sprite
-				return false;
-			}
-		}
-
-		// One of the many things that happens during the frame cycle - using this to test animation.
-		instance->image_index += instance->image_speed;
-	}
-
-	_renderer->RenderFrame();
-	return !_renderer->ShouldClose();
 }

@@ -34,7 +34,6 @@ const GLchar* vertexShaderCode = "#version 440\n"
 
 GameRenderer::GameRenderer() {
 	window = NULL;
-	_images = std::vector<RImage>();
 	_gpuTextures = 0;
 }
 
@@ -181,8 +180,8 @@ void GameRenderer::DrawImage(RImageIndex ix, double x, double y, double xscale, 
 
 	// Bind shader values needed for GPU calculations
 	double dRot = rot * PI / 180;
-	GLfloat sinRot = sin(dRot);
-	GLfloat cosRot = cos(dRot);
+	GLfloat sinRot = (GLfloat)sin(dRot);
+	GLfloat cosRot = (GLfloat)cos(dRot);
 	GLfloat translateToMiddle[16] = {
 		1, 0, 0, 0,
 		0, 1, 0, 0,

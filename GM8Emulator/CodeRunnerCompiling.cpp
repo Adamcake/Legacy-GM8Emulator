@@ -213,7 +213,7 @@ unsigned int CodeRunner::_RegField(const char * c, unsigned int len) {
 	return ret;
 }
 
-bool CodeRunner::_makeVal(const char* exp, unsigned int len, unsigned char* out, std::vector<std::string>* session) {
+bool CodeRunner::_makeVal(const char* exp, unsigned int len, unsigned char* out) {
 	// If the length is 0 we can't make a VAL from this.
 	if (!len) return false;
 
@@ -259,7 +259,7 @@ bool CodeRunner::_makeVal(const char* exp, unsigned int len, unsigned char* out,
 				strInt += exp[pos];
 			}
 			else {
-				if (exp[pos] == ' ' || exp[pos] == 10 || exp[pos] == 13) {
+				if (exp[pos] <= ' ') {
 					endOfNum = true;
 				}
 				else {
@@ -269,7 +269,7 @@ bool CodeRunner::_makeVal(const char* exp, unsigned int len, unsigned char* out,
 			}
 		}
 		else {
-			if (exp[pos] == ' ' || exp[pos] == 10 || exp[pos] == 13) {
+			if (exp[pos] <= ' ') {
 				continue;
 			}
 			else {
@@ -294,7 +294,7 @@ bool CodeRunner::_makeVal(const char* exp, unsigned int len, unsigned char* out,
 
 	// Nothing else worked so we have to register this as an expression.
 	unsigned char* o;
-	if (!_CompileExpression(exp, &o)) {
+	if (!_CompileExpression(exp, &o, true)) {
 		return false;
 	}
 	unsigned int ret = (unsigned int)_codeObjects.size();
@@ -324,7 +324,10 @@ bool isAlphanumeric(char c) {
 
 // Helper function that gets the first non-whitespace character after a given pos, moving the pos marker.
 void findFirstNonWhitespace(std::string input, unsigned int* pos) {
-	while (input[*pos] < 0x20) (*pos)++;
+	while ((*pos) < input.size()) {
+		if (input[*pos] <= 0x20) (*pos)++;
+		else break;
+	}
 }
 
 // Helper function that gets the first alphanumeric word after a given pos, also moving the pos marker.
@@ -364,19 +367,13 @@ std::string getBracketContents(std::string input, unsigned int* pos, char start 
 }
 
 // Helper function to get what type a variable name is (local, field, etc)
-CRVarType CodeRunner::getVarType(std::string name, std::vector<std::string>* locals, unsigned int* index) {
+CRVarType CodeRunner::_getVarType(std::string name, unsigned int* index) {
 
 	// Game values have highest precedence
-	for (unsigned int i = 0; i < _readOnlyGameValueNames.size(); i++) {
-		if (strcmp(_readOnlyGameValueNames[i], name.c_str()) == 0) {
+	for (unsigned int i = 0; i < _gameValueNames.size(); i++) {
+		if (strcmp(_gameValueNames[i], name.c_str()) == 0) {
 			if (index) (*index) = i;
-			return VARTYPE_GAME_RONLY;
-		}
-	}
-	for (unsigned int i = 0; i < _RWGameValueNames.size(); i++) {
-		if (strcmp(_RWGameValueNames[i], name.c_str()) == 0) {
-			if (index) (*index) = i;
-			return VARTYPE_GAME_RW;
+			return VARTYPE_GAME;
 		}
 	}
 
@@ -385,24 +382,6 @@ CRVarType CodeRunner::getVarType(std::string name, std::vector<std::string>* loc
 		if (strcmp(_instanceVarNames[i], name.c_str()) == 0) {
 			if (index) (*index) = i;
 			return VARTYPE_INSTANCE;
-		}
-	}
-
-	// Now special names.
-	for (unsigned int i = 0; i < _specialVarNames.size(); i++) {
-		if (strcmp(_specialVarNames[i], name.c_str()) == 0) {
-			if (index) (*index) = i;
-			return VARTYPE_SPECIAL;
-		}
-	}
-
-	// Next local vars - but only if we've been given a list
-	if (locals) {
-		for (unsigned int i = 0; i < locals->size(); i++) {
-			if ((*locals)[i] == name) {
-				if (index) (*index) = i;
-				return VARTYPE_LOCAL;
-			}
 		}
 	}
 
@@ -468,143 +447,97 @@ bool StartsWith(std::string str, std::string arg) {
 
 
 // Helper function that parses an expression from code and returns a VAL reference, also moving the pos.
-bool CodeRunner::getExpression(std::string input, unsigned int* pos, std::vector<std::string>* locals, unsigned char* outVal) {
+bool CodeRunner::_getExpression(std::string input, unsigned int* pos, unsigned char* outVal) {
 	findFirstNonWhitespace(input, pos);
 	if (!((*pos) < input.size())) return false;
+	
+	unsigned int codeObj = _codeObjects.size();
+	unsigned int charsUsed;
+	_codeObjects.push_back(CRCodeObject());
+	_codeObjects[codeObj].question = true;
+	_codeObjects[codeObj].code = NULL;
+	if (!_CompileExpression(input.substr(*pos).c_str(), &_codeObjects[codeObj].compiled, true, &charsUsed)) return false;
+	(*pos) += charsUsed;
 
-	std::vector<std::string> ANOperators = { "and", "xor", "mod", "div", "or" };
-	std::vector<std::string> operators = { "^^", "<<", ">>", "&&", "||", "==", "!=", "<=", ">=", "=", "<", ">", "+", "-", "*", "/", "&", "|", "^" };
+	if (codeObj >= 0x400000) return false;
 
-	unsigned int startPos = *pos;
-
-	while ((*pos) < input.size()) {
-		bool checkDotsAndBrackets = true;
-		findFirstNonWhitespace(input, pos);
-		if (!((*pos) < input.size())) break;
-
-		if (input[*pos] == '!' || input[*pos] == '~' || input[*pos] == '-' || input[*pos] == '$') {
-			(*pos)++;
-			continue;
-		}
-
-		if ((!strcmp(input.substr((*pos), 3).c_str(), "not")) && (!isAlphanumeric(input[(*pos) + 3]))) {
-			(*pos) += 3;
-			continue;
-		}
-
-		if (input[*pos] == '(') {
-			getBracketContents(input, pos);
-			if ((*pos) >= input.size()) break;
-		}
-		else if (input[*pos] == '%') {
-			(*pos)++;
-			while (input[*pos] != '%') (*pos)++;
-			(*pos)++;
-			if ((*pos) >= input.size()) break;
-		}
-		else if (input[*pos] >= '0' && input[*pos] <= '9') {
-			checkDotsAndBrackets = false;
-			while ((input[*pos] >= '0' && input[*pos] <= '9') || input[*pos] == '.') {
-				(*pos)++;
-			}
-		}
-		else if (isAlphanumeric(input[*pos])) {
-			while (isAlphanumeric(input[*pos])) {
-				(*pos)++;
-				if ((*pos) >= input.size()) break;
-			}
-			if ((*pos) >= input.size()) break;
-
-			findFirstNonWhitespace(input, pos);
-			if ((*pos) >= input.size()) break;
-
-			if (input[*pos] == '[') {
-				getBracketContents(input, pos, '[', ']');
-				findFirstNonWhitespace(input, pos);
-				if ((*pos) >= input.size()) break;
-			}
-			else if (input[*pos] == '(') {
-				getBracketContents(input, pos, '(', ')');
-				findFirstNonWhitespace(input, pos);
-				if ((*pos) >= input.size()) break;
-			}
-		}
-
-		while (checkDotsAndBrackets) {
-			findFirstNonWhitespace(input, pos);
-			if (input[*pos] == '.') {
-				(*pos)++;
-
-				while (isAlphanumeric(input[*pos])) {
-					pos++;
-					if ((*pos) >= input.size()) break;
-				}
-
-				findFirstNonWhitespace(input, pos);
-				if ((*pos) >= input.size()) break;
-
-				if (input[*pos] == '[') {
-					getBracketContents(input, pos, '[', ']');
-					if ((*pos) >= input.size()) break;
-				}
-			}
-			else {
-				break;
-			}
-		}
-
-		//We've skipped over a single variable. So now we determine whether there's an operator after it. If not, the expression ends here.
-
-		findFirstNonWhitespace(input, pos);
-		if ((*pos) >= input.size()) break;
-
-		std::string maybeOperator = input.substr(*pos);
-		bool matchFound = false;
-
-		for (std::string op : ANOperators) {
-			if (StartsWith(maybeOperator, op) && (!isAlphanumeric(maybeOperator[op.size()]))) {
-				matchFound = true;
-				(*pos) += (unsigned int)op.size();
-				break;
-			}
-		}
-
-		if (matchFound) continue;
-
-		for (std::string op : operators) {
-			if (StartsWith(maybeOperator, op)) {
-				matchFound = true;
-				(*pos) += (unsigned int)op.size();
-				break;
-			}
-		}
-
-		if (!matchFound) break;
-
-	}
-
-	if ((*pos) == startPos) return false;
-
-	std::string expression = input.substr(startPos, (*pos) - startPos);
-	if (!_makeVal(expression.c_str(), (unsigned int)expression.size(), outVal, locals)) {
-		return false;
-	}
+	outVal[0] = ((3 << 6) | (codeObj >> 16));
+	outVal[1] = (codeObj >> 8) & 0xFF;
+	outVal[2] = codeObj & 0xFF;
 
 	return true;
 }
 
+// Helper function to convert an asset name to its index if it's valid
+bool CodeRunner::_isAsset(const char* name, unsigned int* index) {
+	// These are in order of precedence in the GM8 engine, since two assets can have the same name.
+	unsigned int i;
+	for (i = 0; i < _assetManager->GetObjectCount(); i++) {
+		if (!strcmp(_assetManager->GetObject(i)->name, name)) {
+			(*index) = i;
+			return true;
+		}
+	}
+	for (i = 0; i < _assetManager->GetSpriteCount(); i++) {
+		if (!strcmp(_assetManager->GetSprite(i)->name, name)) {
+			(*index) = i;
+			return true;
+		}
+	}
+	for (i = 0; i < _assetManager->GetSoundCount(); i++) {
+		if (!strcmp(_assetManager->GetSound(i)->name, name)) {
+			(*index) = i;
+			return true;
+		}
+	}
+	for (i = 0; i < _assetManager->GetBackgroundCount(); i++) {
+		if (!strcmp(_assetManager->GetBackground(i)->name, name)) {
+			(*index) = i;
+			return true;
+		}
+	}
+	for (i = 0; i < _assetManager->GetPathCount(); i++) {
+		if (!strcmp(_assetManager->GetPath(i)->name, name)) {
+			(*index) = i;
+			return true;
+		}
+	}
+	for (i = 0; i < _assetManager->GetFontCount(); i++) {
+		if (!strcmp(_assetManager->GetFont(i)->name, name)) {
+			(*index) = i;
+			return true;
+		}
+	}
+	for (i = 0; i < _assetManager->GetTimelineCount(); i++) {
+		if (!strcmp(_assetManager->GetTimeline(i)->name, name)) {
+			(*index) = i;
+			return true;
+		}
+	}
+	for (i = 0; i < _assetManager->GetScriptCount(); i++) {
+		if (!strcmp(_assetManager->GetScript(i)->name, name)) {
+			(*index) = i;
+			return true;
+		}
+	}
+	for (i = 0; i < _assetManager->GetRoomCount(); i++) {
+		if (!strcmp(_assetManager->GetRoom(i)->name, name)) {
+			(*index) = i;
+			return true;
+		}
+	}
 
-bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, std::vector<std::string>* session) {
+	return false;
+}
+
+
+
+bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, bool session) {
 
 	// We only have to remove comments and substitute strings if we're not already in an existing session.
 	std::string code;
 	if(!session)code = substituteConstants(removeComments(str));
 	else code = std::string(str);
-
-	// If we've been passed an existing session then we use its locals, otherwise we make our own.
-	std::vector<std::string>* locals;
-	if (!session) locals = new std::vector<std::string>;
-	else locals = session;
 
 	unsigned int pos = 0;
 	std::vector<unsigned char> output;
@@ -630,11 +563,14 @@ bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, std::v
 			continue;
 		}
 		else if (firstWord == "var") {
-			// The "var" keyword tells us to bind some var names to local variables. This doesn't incur any actual bytecode in itself.
+			// The "var" keyword tells us to bind some field names to local variables.
+			output.push_back(OP_BIND_VARS);
+
+			std::vector<std::string> varNames;
 			while (true) {
 				// Get the var name and put it in our list
 				std::string firstWord = getWord(code, &pos);
-				locals->push_back(firstWord);
+				varNames.push_back(firstWord);
 
 				// Check if there's another var name on the same line, these must be comma-separated
 				findFirstNonWhitespace(code, &pos);
@@ -648,6 +584,14 @@ bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, std::v
 					if (code[pos] == ';') pos++;
 					break;
 				}
+			}
+			if (varNames.size() > 256) return false;
+			output.push_back((unsigned char)varNames.size());
+			for (std::string n : varNames) {
+				unsigned int fieldNum = _RegField(n.c_str(), n.size());
+				if (fieldNum >= 65536) return false;
+				output.push_back(fieldNum & 0xFF);
+				output.push_back((fieldNum >> 8) & 0xFF);
 			}
 			continue;
 		}
@@ -665,16 +609,28 @@ bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, std::v
 		}
 		else if (firstWord == "if") {
 			// "if" incurs a simple test to see whether the following expression evaluates to true.
-			// TBD
+			unsigned char val[3];
+			if (!_getExpression(code, &pos, val)) {
+				return false;
+			}
 		}
 		else if (firstWord == "with") {
 			// "with" indicates a change in the "self" and "other" variables for the contained code block.
 			// TBD
 		}
+		else if (firstWord == "repeat") {
+			// "repeat" is followed by an expression telling us how many times to repeat the code block after it.
+			// TBD
+		}
+		else if (firstWord == "return") {
+			// "return" means we write a value to the return buffer, then exit.
+			// TBD
+		}
 		else if (firstWord == "else") {
-			// We should never find an "else" here. Compiling fails.
-			if (!session) delete locals;
-			return false;
+			// "else" usually belongs to an "if", but we won't always be able to pick this up when parsing an "if".
+			// So for this we can just write an "else" opcode and let the runner work it out.
+			output.push_back(OP_ELSE);
+			continue;
 		}
 		else {
 			// If this doesn't start with any keywords, then it's either an assignment or a script call.
@@ -713,7 +669,6 @@ bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, std::v
 					}
 					if (funcId == _INTERNAL_FUNC_COUNT) {
 						// We didn't find this as an internal function, that means we can't compile this.
-						if (!session) delete locals;
 						return false;
 					}
 					// First two bytes indicate func id
@@ -742,11 +697,7 @@ bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, std::v
 							else if (code[pos] == '[') arg += getBracketContents(code, &pos, '[', ']') + ']';
 							else pos++;
 						}
-						if (!_makeVal(arg.c_str(), (unsigned int)arg.size(), valBuffer, locals)) {
-							// Error reading expression.
-							if (!session) delete locals;
-							return false;
-						}
+						if (!_makeVal(arg.c_str(), (unsigned int)arg.size(), valBuffer)) return false;
 						output.push_back(valBuffer[0]);
 						output.push_back(valBuffer[1]);
 						output.push_back(valBuffer[2]);
@@ -773,23 +724,15 @@ bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, std::v
 				if (firstWord.size() == 0) {
 					// A line of code that starts with a bracket is a special case. It's always an assignment.
 					// It means we need to deref the expression inside the brackets.
-					if (code[pos] != '(') {
-						// Invalid GML.
-						if (!session) delete locals;
-						return false;
-					}
+					if (code[pos] != '(') return false;
 
 					std::string exp = getBracketContents(code, &pos);
 					findFirstNonWhitespace(code, &pos);
-					if (code[pos] != '.') {
-						// Invalid GML again.
-						if (!session) delete locals;
-						return false;
-					}
+					if (code[pos] != '.') return false;
 					pos++;
 
 					unsigned char val[3];
-					if (!_makeVal(exp.c_str(), (unsigned int)exp.size(), val, locals)) {
+					if (!_makeVal(exp.c_str(), (unsigned int)exp.size(), val)) {
 
 					}
 					output.push_back(OPERATOR_DEREF);
@@ -834,7 +777,7 @@ bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, std::v
 						// Write the deref expression if one is needed, then go to the next part
 						if (anyDerefs) {
 							unsigned char val[3];
-							_makeVal(derefExpression.c_str(),(unsigned int)derefExpression.size(), val, locals);
+							if (!_makeVal(derefExpression.c_str(), (unsigned int)derefExpression.size(), val)) return false;
 							output.push_back(OP_DEREF);
 							output.push_back(val[0]);
 							output.push_back(val[1]);
@@ -847,36 +790,13 @@ bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, std::v
 				// Now the references are set correctly, so we just need to write an assignment operator: set local var, set game value, set instance variable, or set field.
 				// The variable name is stored in nextWord so let's figure out which one to do.
 				unsigned int varIx;
-				CRVarType type = getVarType(nextWord, (anyDerefs ? NULL : locals), &varIx); // Only send the locals if there are no derefs, cause otherwise the variable can't be local
+				CRVarType type = _getVarType(nextWord, &varIx); // Only send the locals if there are no derefs, cause otherwise the variable can't be local
 				switch (type) {
-					case VARTYPE_LOCAL:
-						if (!array) {
-							output.push_back(OP_SET_LOCAL_VAR);
-							output.push_back((unsigned char)(varIx & 0xFF));
-						}
-						else {
-							output.push_back(OP_SET_LOCAL_ARRAY);
-							output.push_back((unsigned char)(varIx & 0xFF));
-							unsigned char val[3];
-							if (!_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val, locals)) {
-								// Error in GML
-								if (!session) delete locals;
-								return false;
-							}
-							output.push_back(val[0]);
-							output.push_back(val[1]);
-							output.push_back(val[2]);
-						}
-						break;
 					case VARTYPE_FIELD:
 						if (array) {
 							output.push_back(OP_SET_ARRAY);
 							unsigned char val[3];
-							if (!_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val, locals)) {
-								// Error in GML
-								if (!session) delete locals;
-								return false;
-							}
+							if (!_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val)) return false;
 							output.push_back(val[0]);
 							output.push_back(val[1]);
 							output.push_back(val[2]);
@@ -890,25 +810,23 @@ bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, std::v
 					case VARTYPE_INSTANCE:
 						if (array != (bool)(varIx == IV_ALARM)) { // if instance var is alarm and an array isn't used, OR it's not alarm and an array is used
 							// Invalid instance var
-							if (!session) delete locals;
 							return false;
 						}
 						output.push_back(OP_SET_INSTANCE_VAR);
 						output.push_back((unsigned char)(varIx & 0xFF));
 						unsigned char val[3];
 						if (array) {
-							_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val, locals);
+							if (!_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val)) return false;
 						}
 						output.push_back(val[0]);
 						output.push_back(val[1]);
 						output.push_back(val[2]);
 						break;
-					case VARTYPE_GAME_RONLY:
+					case VARTYPE_GAME:
 						output.push_back(OP_SET_GAME_VALUE);
 						output.push_back((unsigned char)varIx);
 						break;
 					default:
-						if (!session) delete locals;
 						return false;
 				}
 
@@ -917,17 +835,13 @@ bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, std::v
 				CRSetMethod method;
 				if (!getSetMethod(code, &pos, &method)) {
 					// Invalid gml
-					if (!session) delete locals;
 					return false;
 				}
 				output.push_back(method);
 
 				// Now we just have to get the VAL to assign.
 				unsigned char val[3];
-				if (! getExpression(code, &pos, locals, val)) {
-					if (!session) delete locals;
-					return false;
-				}
+				if (! _getExpression(code, &pos, val)) return false;
 				output.push_back(val[0]);
 				output.push_back(val[1]);
 				output.push_back(val[2]);
@@ -954,9 +868,6 @@ bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, std::v
 	(*outHandle) = (unsigned char*)malloc(output.size());
 	memcpy((*outHandle), output._Myfirst(), output.size());
 
-	// Only delete the session if we made it
-	if (!session) delete locals;
-
 	return true;
 }
 
@@ -964,29 +875,12 @@ bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, std::v
 
 
 
-bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, std::vector<std::string>* session) {
+bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, bool session, unsigned int* outCharsUsed, unsigned int* outSize) {
 	// We only have to remove comments and substitute strings if we're not already in an existing session.
 	std::string code;
 	if (!session)code = substituteConstants(removeComments(str));
 	else code = std::string(str);
 	unsigned int pos = 0;
-
-	// Trim any whitespace from the start and end of the input string
-	unsigned int start = code.find_first_not_of({ ' ', 10, 13, '\0' });
-	unsigned int end = code.find_last_not_of({ ' ', 10, 13, '\0' });
-	code = code.substr(start, (end - start) + 1);
-
-	// Remove any bracket pairs that are surrounding the whole expression
-	while (code[0] == '(' && code.back() == ')') {
-		std::string newCode = code.substr(1, code.size() - 2);
-		if (newCode == getBracketContents(code, &pos)) {
-			code = newCode;
-		}
-		else {
-			break;
-		}
-	}
-	pos = 0;
 
 	// Parse any modifiers
 	bool negative = false; //-
@@ -997,12 +891,15 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 		switch (code[pos]) {
 			case '-':
 				negative = !negative;
+				pos++;
 				break;
 			case '!':
 				not = !not;
+				pos++;
 				break;
 			case '~':
 				tilde = !tilde;
+				pos++;
 				break;
 			default:
 				mods = false;
@@ -1012,6 +909,7 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 
 	// Setup output buffer
 	std::vector<unsigned char> output;
+	output.reserve(16);
 
 	// Now we have to figure out a VAR.
 	
@@ -1023,25 +921,67 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 		// Get bracket contents, turn it into a VAL, make this VAR point to that VAL, and move on
 		std::string content = getBracketContents(code, &pos);
 		unsigned char val[3];
-		if (!_makeVal(content.c_str(), (unsigned int)content.size(), val, session)) {
-			return false;
-		}
+		if (!_makeVal(content.c_str(), (unsigned int)content.size(), val)) return false;
 		output.push_back(EVTYPE_VAL);
 		output.push_back(val[0]);
 		output.push_back(val[1]);
 		output.push_back(val[2]);
 	}
 	else {
-		findFirstNonWhitespace(code, &pos);
-
 		// First, check if this is a number
-		if ((word[0] >= '0' && word[0] <= '9') || word[0] == '.') {
-			// TODO
+		if ((word.size() == 0 && code[pos] == '.') || (word[0] >= '0' && word[0] <= '9')) {
+			std::string num;
+			bool canBeLiteralInt = true;
+
+			// Read number into string
+			if (negative) {
+				num = "-";
+				negative = false;
+			}
+			if (word.size() == 0) num += '0';
+			num += word;
+			if (code[pos] == '.') {
+				canBeLiteralInt = false;
+				num += code[pos];
+				pos++;
+				while (code[pos] >= '0' && code[pos] <= '9') {
+					num += code[pos];
+					pos++;
+				}
+			}
+
+			// Turn this number into a VAL
+			output.push_back(EVTYPE_VAL);
+			if (canBeLiteralInt && (num.size() < 7)) {
+				// Write as a literal int
+				if (num[0] == '-') {
+					num = num.substr(1);
+					negative = !negative;
+				}
+				int value = std::atoi(num.c_str());
+				output.push_back((1 << 6) | (value >> 16));
+				output.push_back((value >> 8) & 0xFF);
+				output.push_back(value & 0xFF);
+			}
+			else {
+				unsigned int cRef = _RegConstantDouble(std::atof(num.c_str()));
+				output.push_back((2 << 6) | (cRef >> 16));
+				output.push_back((cRef >> 8) & 0xFF);
+				output.push_back(cRef & 0xFF);
+			}
 		}
 		else {
 			// Next, check if this is a constant
 			if (word[0] == '%') {
-				// TODO
+				// We can make a VAL with this int as a const db reference
+				output.push_back(EVTYPE_VAL);
+				std::string ref = word.substr(0, word.find_first_of('%', 1) + 1);
+				unsigned char val[3];
+				if (!_makeVal(ref.c_str(), (unsigned int)ref.size(), val)) return false;
+				output.push_back(val[0]);
+				output.push_back(val[1]);
+				output.push_back(val[2]);
+
 			}
 			else {
 				// Find out if this is a script/function or variable
@@ -1105,7 +1045,7 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 								else if (code[pos] == '[') arg += getBracketContents(code, &pos, '[', ']') + "]";
 								else pos++;
 							}
-							if (!_makeVal(arg.c_str(), (unsigned int)arg.size(), valBuffer, session)) {
+							if (!_makeVal(arg.c_str(), (unsigned int)arg.size(), valBuffer)) {
 								return false;
 							}
 							output.push_back(valBuffer[0]);
@@ -1125,23 +1065,154 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 					pos++;
 				}
 				else {
-					// TODO HERE: CHECK IF IT'S A GML CONST OR ASSET NAME (including constants?)
-
-					// It's a "variable get". Now figure out if this word has an array index at the end of it.
-
-					bool array = false;
-					std::string arrayIndex;
-					findFirstNonWhitespace(code, &pos);
-					if (code[pos] == '[') {
-						array = true;
-						arrayIndex = getBracketContents(code, &pos, '[', ']');
+					unsigned int assetIx;
+					if (_isAsset(word.c_str(), &assetIx)) {
+						// This is an asset ID. Turn this into a literal integer VAL.
+						if (assetIx >= 0x400000) return false;
+						output.push_back(EVTYPE_VAL);
+						output.push_back((1 << 6) | (assetIx >> 16));
+						output.push_back((assetIx >> 8) & 0xFF);
+						output.push_back(assetIx & 0xFF);
 					}
+					else {
+						// Next, check if it's a GML const. If so, it's just an integer.
+						if (word == "pi") {
+							// Special case for pi because it's the only one that isn't an int.
+							unsigned int ix = _RegConstantDouble(3.141592653589793);
+							output.push_back(EVTYPE_VAL);
+							output.push_back((2 << 6) | (ix >> 16));
+							output.push_back((ix >> 8) & 0xFF);
+							output.push_back(ix & 0xFF);
+						}
+						else {
+							// Check the entire list of GML consts
+							bool found = false;
+							for (const auto& pair : _gmlConsts) {
+								if (!strcmp(word.c_str(), pair.first)) {
+									int value = pair.second;
+									if (value < 0) {
+										negative = !negative;
+										value = -value;
+									}
+									if (value >= 0x400000) {
+										// Constant is too big of a number to store in a literal integer VAL.
+										value = (int)_RegConstantDouble((double)value);
+									}
+									if (value >= 0x400000) return false; // Too many constants
+									output.push_back(EVTYPE_VAL);
+									output.push_back((1 << 6) | (value >> 16));
+									output.push_back((value >> 8) & 0xFF);
+									output.push_back(value & 0xFF);
+									found = true;
+									break;
+								}
+							}
 
-					// Get what type of variable we've been given
+							if (!found) {
+								// It's a "variable get". Now figure out if this word has an array index at the end of it.
+
+								bool array = false;
+								unsigned char val[3];
+								findFirstNonWhitespace(code, &pos);
+								if (code[pos] == '[') {
+									array = true;
+									std::string arrayIndex = getBracketContents(code, &pos, '[', ']');
+									if (!_makeVal(arrayIndex.c_str(), arrayIndex.size(), val)) return false;
+								}
+
+								// Get what type of variable we've been given
+								unsigned int index;
+								CRVarType type = _getVarType(word, &index);
+								switch (type) {
+									case VARTYPE_FIELD:
+										output.push_back(array ? EVTYPE_ARRAY : EVTYPE_FIELD);
+										output.push_back(index & 0xFF);
+										output.push_back((index >> 8) & 0xFF);
+										break;
+									case VARTYPE_GAME:
+										output.push_back(EVTYPE_GAME_VALUE);
+										output.push_back(index & 0xFF);
+										break;
+									case VARTYPE_INSTANCE:
+										output.push_back(EVTYPE_INSTANCEVAR);
+										output.push_back(index & 0xFF);
+										break;
+								}
+								if (array) {
+									output.push_back(val[0]);
+									output.push_back(val[1]);
+									output.push_back(val[2]);
+								}
+							}
+						}
+					}
 				}
 			}
 		}
 	}
+
+	// We've parsed the first Expression VAR. Now we need to find an operator after our current position.
+	unsigned int posBeforeOp = pos;
+	findFirstNonWhitespace(code, &pos);
+	CROperator op = OPERATOR_STOP;
+	std::string opWord;
+	unsigned int opLen = 0;
+
+	if (pos < code.size()) {
+		if (isAlphanumeric(code[pos])) {
+			opWord = getWord(code, &pos);
+			const char* cOpWord = opWord.c_str();
+			for (const auto& pair : _ANOperators) {
+				if (!strcmp(pair.first, cOpWord)) {
+					op = pair.second;
+					break;
+				}
+			}
+		}
+		else {
+			for (const auto& pair : _operators) {
+				if (!strcmp(code.substr(pos, strlen(pair.first)).c_str(), pair.first)) {
+					opLen = strlen(pair.first);
+					op = pair.second;
+					if(strlen(pair.first) - 1) break; // Only break if the length of the matched operator is larger than 1, eg. to prevent matching "<" when it's actually "<=".
+				}
+			}
+		}
+	}
+	pos += opLen;
+
+	// Write the operator
+	output.push_back((unsigned char)op);
+
+	// If this is an actual operator, we need to parse the rest of the expression too
+	if (op != OPERATOR_STOP) {
+		unsigned char* extraOutput;
+		unsigned int extraOutputSize;
+		unsigned int extraCharsUsed;
+		if (!_CompileExpression(code.substr(pos).c_str(), &extraOutput, true, &extraCharsUsed, &extraOutputSize)) return false;
+		std::copy(extraOutput, extraOutput + extraOutputSize, std::back_inserter(output));
+		pos += extraCharsUsed;
+	}
+	else {
+		// Move the position back before the word AFTER the expression. But only if that word isn't "then", which can be used to end an expression.
+		if (opWord != "then") {
+			pos = posBeforeOp;
+		}
+	}
+
+	// Write VAR modifiers
+	if (negative) output[0] |= 0x00010000;
+	if (not) output[0] |= 0x00100000;
+	if (tilde) output[0] |= 0x01000000;
+
+	// Write the output variables
+	if (outCharsUsed) {
+		(*outCharsUsed) = pos;
+	}
+	if (outSize) {
+		(*outSize) = output.size();
+	}
+
 
 	// Write the finished list to the output pointer
 	(*outHandle) = (unsigned char*)malloc(output.size());

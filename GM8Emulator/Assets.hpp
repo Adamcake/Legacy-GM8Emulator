@@ -66,7 +66,7 @@ struct RoomInstance {
 	int y;
 	unsigned int objectIndex;
 	unsigned int id;
-	char* creationCode;
+	CodeObject creation; 
 };
 
 struct RoomTile {

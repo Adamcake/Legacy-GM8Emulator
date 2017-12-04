@@ -251,7 +251,6 @@ Room::~Room()
 
 	while (instanceCount) {
 		instanceCount--;
-		free(instances[instanceCount].creationCode);
 	}
 
 	delete[] backgrounds;
