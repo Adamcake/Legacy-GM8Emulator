@@ -20,17 +20,16 @@ enum CRInstruction {
 	OP_TEST_VAL = 0xB,
 	OP_TEST_VAL_NOT = 0xC,
 	OP_TEST_VALS_EQUAL = 0xD,
-	OP_ELSE = 0xE,
-	OP_CHANGE_CONTEXT = 0xF,
-	OP_REVERT_CONTEXT = 0x10,
-	OP_SET_STACK = 0x11,
-	OP_JUMP = 0x12,
-	OP_JUMP_LONG = 0x13,
-	OP_JUMP_BACK = 0x14,
-	OP_JUMP_BACK_LONG = 0x15,
-	OP_STACK_PUSH = 0x16,
-	OP_STACK_POP = 0x17,
-	OP_RETURN = 0x18
+	OP_CHANGE_CONTEXT = 0xE,
+	OP_REVERT_CONTEXT = 0xF,
+	OP_SET_STACK = 0x10,
+	OP_JUMP = 0x11,
+	OP_JUMP_LONG = 0x12,
+	OP_JUMP_BACK = 0x13,
+	OP_JUMP_BACK_LONG = 0x14,
+	OP_STACK_PUSH = 0x15,
+	OP_STACK_POP = 0x16,
+	OP_RETURN = 0x17
 };
 
 enum CRSetMethod {
@@ -155,6 +154,9 @@ enum CRInstanceVar {
 	IV_TIMELINE_SPEED,
 	IV_TIMELINE_POSITION,
 	IV_TIMELINE_LOOP,
+
+	IV_SPRITE_WIDTH,
+	IV_SPRITE_HEIGHT,
 	_INSTANCE_VAR_COUNT // As long as this one is last, it'll tell us how many things are in this enum. So don't move it.
 };
 

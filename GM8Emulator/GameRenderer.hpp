@@ -27,6 +27,10 @@ class GameRenderer {
 
 		std::vector<RImage> _images;
 
+		double bgR;
+		double bgG;
+		double bgB;
+
 		GLFWwindow* window;
 		bool contextSet;
 		unsigned int windowW;
@@ -51,6 +55,9 @@ class GameRenderer {
 
 		// Set window title/caption
 		void SetGameWindowTitle(const char* title);
+
+		// Set colour for background rectangle
+		void SetBGColour(unsigned int col);
 
 		// Get cursor pos
 		void GetCursorPos(double* xpos, double* ypos);

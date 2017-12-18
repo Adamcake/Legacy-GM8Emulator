@@ -2,6 +2,9 @@
 #define _A_CODERUNNER_HPP_
 class AssetManager;
 class InstanceList;
+class GameRenderer;
+class RNG;
+struct GlobalValues;
 struct Instance;
 #include <vector>
 #include <map>
@@ -10,8 +13,12 @@ struct Instance;
 
 typedef unsigned int CodeObject;
 enum CRGameVar;
+enum CRInstanceVar;
 enum CRVarType;
 enum CROperator;
+enum CRSetMethod;
+
+#define PI 3.141592653589793
 
 /*
 The runner compiles GML into an instruction format that is based on the format of x86 CPU instructions, except massively cut down. This is (vaguely) documented here, for now.
@@ -218,6 +225,9 @@ class CodeRunner {
 	private:
 		AssetManager* _assetManager;
 		InstanceList* _instances;
+		GameRenderer* _renderer;
+		GlobalValues* _globalValues;
+		RNG* _rng;
 
 		// Internal code object
 		struct CRCodeObject {
@@ -237,10 +247,19 @@ class CodeRunner {
 
 		// The universal data type in GML
 		struct GMLType {
-			GMLTypeState state;
-			double dVal;
+			GMLTypeState state = GML_TYPE_UNINIT;
+			double dVal = 0;
 			char* sVal;
 		};
+
+		// Runtime context
+		struct CRContext {
+			unsigned int self;
+			unsigned int other;
+			std::map<unsigned int, GMLType> locals;
+			CRContext(unsigned int s, unsigned int o) : self(s), other(o) {}
+		};
+		std::stack<CRContext> _contexts;
 
 		// Constants that can be referred to by compiled code
 		std::vector<GMLType> _constants;
@@ -255,9 +274,13 @@ class CodeRunner {
 		std::map<const char*, unsigned char> _gmlConsts;
 		std::map<const char*, CROperator> _operators;
 		std::map<const char*, CROperator> _ANOperators; //AlphaNumeric
+		std::vector<bool(CodeRunner::*)(unsigned int,GMLType*,GMLType*)> _gmlFuncs;
 
 		// Internal register used for loops and such
 		std::stack<int> _stack;
+
+		// The next instance ID to assign when instance_create is called
+		unsigned int _nextInstanceID;
 
 		// Compile some code and return the position of the compiled code in outHandle.
 		// Returns true on success, false on failure to compile (ie. program should exit.)
@@ -269,6 +292,7 @@ class CodeRunner {
 
 
 		// Helper functions for compiling
+		bool _CompileLine(std::string str, unsigned int* pos, unsigned char** outHandle, unsigned int* outSize);
 		unsigned int _RegConstantDouble(double d);
 		unsigned int _RegConstantString(const char* c, unsigned int len);
 		unsigned int _RegField(const char* c, unsigned int len);
@@ -280,18 +304,39 @@ class CodeRunner {
 
 
 		// Helper functions for running
-		bool _parseVal(const unsigned char* val, Instance* self, Instance* other, GMLType* out);
+		int _round(double);
+		bool _runCode(const unsigned char* code, GMLType* out);
+		bool _parseVal(const unsigned char* val, GMLType* out);
 		bool _setGameValue(CRGameVar index, const unsigned char* arrayIndexVal, CRSetMethod method, GMLType value);
-		bool _setInstanceVar(CRGameVar index, const unsigned char* arrayIndexVal, CRSetMethod method, GMLType value);
-		bool _evalExpression(CodeObject obj, Instance* self, Instance* other, GMLType* out);
+		bool _setInstanceVar(Instance* instance, CRInstanceVar index, const unsigned char* arrayIndexVal, CRSetMethod method, GMLType value);
+		bool _getInstanceVar(Instance* instance, CRInstanceVar index, const unsigned char* arrayIndexVal, GMLType* out);
+		bool _evalExpression(unsigned char* code, GMLType* out);
 		bool _isTrue(const GMLType* value);
+		bool _applySetMethod(GMLType* lhs, CRSetMethod method, const GMLType* const rhs);
+
+		// GML internal functions
+		bool execute_string(unsigned int argc, GMLType* argv, GMLType* out);
+		bool instance_create(unsigned int argc, GMLType* argv, GMLType* out);
+		bool instance_destroy(unsigned int argc, GMLType* argv, GMLType* out);
+		bool irandom(unsigned int argc, GMLType* argv, GMLType* out);
+		bool irandom_range(unsigned int argc, GMLType* argv, GMLType* out);
+		bool make_color_hsv(unsigned int argc, GMLType* argv, GMLType* out);
+		bool move_wrap(unsigned int argc, GMLType* argv, GMLType* out);
+		bool random(unsigned int argc, GMLType* argv, GMLType* out);
+		bool random_range(unsigned int argc, GMLType* argv, GMLType* out);
+		bool room_goto(unsigned int argc, GMLType* argv, GMLType* out);
+		bool room_goto_next(unsigned int argc, GMLType* argv, GMLType* out);
+		bool room_goto_previous(unsigned int argc, GMLType* argv, GMLType* out);
 
 	public:
-		CodeRunner(AssetManager* assets, InstanceList* instances);
+		CodeRunner(AssetManager* assets, InstanceList* instances, GlobalValues* globals);
 		~CodeRunner();
 
 		// For populating the constant vectors. This should be called before anything else.
 		bool Init();
+
+		// Set the next instance ID to assign after all the static instances are loaded
+		inline void SetNextInstanceID(unsigned int i) { _nextInstanceID = i; }
 
 		// Register a code block to be compiled. Returns a unique reference to that code action to be later Compile()d and Run().
 		CodeObject Register(char* code, unsigned int length);
@@ -305,11 +350,11 @@ class CodeRunner {
 
 		// Run a compiled code object. Returns true on success, false on error (ie. the game should close.)
 		// Most be passed the instance ID of the "self" and "other" instances in this context. ("other" may be NULL.)
-		bool Run(CodeObject code, Instance* self, Instance* other);
+		bool Run(CodeObject code, unsigned int self, unsigned int other);
 
 		// Run a compiled GML question (boolean expression). Returns true on success, false on error (ie. the game should close.)
 		// The output value is stored in the supplied pointer.
-		bool Query(CodeObject code, Instance* self, Instance* other, bool* response);
+		bool Query(CodeObject code, unsigned int self, unsigned int other, bool* response);
 };
 
 #endif

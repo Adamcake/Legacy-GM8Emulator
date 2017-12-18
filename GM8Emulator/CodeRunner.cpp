@@ -2,11 +2,14 @@
 #include "AssetManager.hpp"
 #include "InstanceList.hpp"
 #include "CREnums.hpp"
+#include "RNG.hpp"
 
 
-CodeRunner::CodeRunner(AssetManager* assets, InstanceList* instances) {
+CodeRunner::CodeRunner(AssetManager* assets, InstanceList* instances, GlobalValues* globals) {
 	_assetManager = assets;
 	_instances = instances;
+	_globalValues = globals;
+	_rng = new RNG();
 }
 
 CodeRunner::~CodeRunner() {
@@ -20,6 +23,7 @@ CodeRunner::~CodeRunner() {
 	for (char* c : _fields) {
 		free(c);
 	}
+	delete _rng;
 }
 
 CodeObject CodeRunner::Register(char* code, unsigned int len) {
@@ -74,39 +78,51 @@ bool CodeRunner::Init() {
 		switch (func) {
 			case EXECUTE_STRING:
 				_internalFuncNames.push_back("execute_string");
+				_gmlFuncs.push_back(&CodeRunner::execute_string);
 				break;
 			case INSTANCE_CREATE:
 				_internalFuncNames.push_back("instance_create");
+				_gmlFuncs.push_back(&CodeRunner::instance_create);
 				break;
 			case INSTANCE_DESTROY:
 				_internalFuncNames.push_back("instance_destroy");
+				_gmlFuncs.push_back(&CodeRunner::instance_destroy);
 				break;
 			case IRANDOM:
 				_internalFuncNames.push_back("irandom");
+				_gmlFuncs.push_back(&CodeRunner::irandom);
 				break;
 			case IRANDOM_RANGE:
 				_internalFuncNames.push_back("irandom_range");
+				_gmlFuncs.push_back(&CodeRunner::irandom_range);
 				break;
 			case MAKE_COLOR_HSV:
 				_internalFuncNames.push_back("make_color_hsv");
+				_gmlFuncs.push_back(&CodeRunner::make_color_hsv);
 				break;
 			case MOVE_WRAP:
 				_internalFuncNames.push_back("move_wrap");
+				_gmlFuncs.push_back(&CodeRunner::move_wrap);
 				break;
 			case RANDOM:
 				_internalFuncNames.push_back("random");
+				_gmlFuncs.push_back(&CodeRunner::random);
 				break;
 			case RANDOM_RANGE:
 				_internalFuncNames.push_back("random_range");
+				_gmlFuncs.push_back(&CodeRunner::random_range);
 				break;
 			case ROOM_GOTO:
 				_internalFuncNames.push_back("room_goto");
+				_gmlFuncs.push_back(&CodeRunner::room_goto);
 				break;
 			case ROOM_GOTO_NEXT:
 				_internalFuncNames.push_back("room_goto_next");
+				_gmlFuncs.push_back(&CodeRunner::room_goto);
 				break;
 			case ROOM_GOTO_PREVIOUS:
 				_internalFuncNames.push_back("room_goto_previous");
+				_gmlFuncs.push_back(&CodeRunner::room_goto_previous);
 				break;
 			default:
 				// There's something in the enum that isn't listed here. Abort
@@ -266,6 +282,12 @@ bool CodeRunner::Init() {
 				break;
 			case IV_TIMELINE_LOOP:
 				_instanceVarNames.push_back("timeline_loop");
+				break;
+			case IV_SPRITE_WIDTH:
+				_instanceVarNames.push_back("sprite_width");
+				break;
+			case IV_SPRITE_HEIGHT:
+				_instanceVarNames.push_back("sprite_height");
 				break;
 			default:
 				// Something in the enum isn't listed here

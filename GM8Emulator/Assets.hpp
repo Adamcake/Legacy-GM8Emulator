@@ -172,6 +172,9 @@ class Sprite {
 		~Sprite();
 		char* name;
 		bool exists;
+		
+		unsigned int width;
+		unsigned int height;
 
 		unsigned int originX;
 		unsigned int originY;

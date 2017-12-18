@@ -168,6 +168,422 @@ std::string CodeRunner::substituteConstants(std::string input) {
 	return inputNoStrings;
 }
 
+// Helper function to tell us if a char is alphanumeric (which in this context also includes underscores)
+bool isAlphanumeric(char c) {
+	if (c >= 'a' && c <= 'z') return true;
+	if (c >= 'A' && c <= 'Z') return true;
+	if (c >= '0' && c <= '9') return true;
+	if (c == '_') return true;
+	return false;
+}
+
+// Helper function that gets the first non-whitespace character after a given pos, moving the pos marker.
+void findFirstNonWhitespace(std::string input, unsigned int* pos) {
+	while ((*pos) < input.size()) {
+		if (input[*pos] <= 0x20) (*pos)++;
+		else break;
+	}
+}
+
+// Helper function that gets the first alphanumeric word after a given pos, also moving the pos marker.
+std::string getWord(std::string input, unsigned int* pos) {
+	findFirstNonWhitespace(input, pos);
+	std::string ret;
+
+	while ((*pos) < input.size()) {
+		char c = input[*pos];
+		if (isAlphanumeric(c)) {
+			ret += c;
+			(*pos)++;
+		}
+		else {
+			break;
+		}
+	}
+
+	return ret;
+}
+
+// Helper function to get the contents of some brackets, also moving the pos marker past them.
+// This function takes nested brackets into account rather than just stopping at the first close-bracket.
+std::string getBracketContents(std::string input, unsigned int* pos, char start = '(', char end = ')') {
+	if (input[*pos] != start) return ""; // ?
+	(*pos)++;
+
+	std::string ret;
+	unsigned int depth = 1;
+	while (depth) {
+		if (input[*pos] == start) depth++;
+		else if (input[*pos] == end) depth--;
+		if (depth) ret += input[*pos];
+		(*pos)++;
+	}
+	return ret;
+}
+
+// Helper function to get a set method from a given point in a string. Also moves the pos.
+// Returns false if no set method could be found (ie. game should exit.)
+bool getSetMethod(std::string input, unsigned int* pos, CRSetMethod* method) {
+	// Equals sign has precedence
+	if (input[*pos] == '=') {
+		(*pos)++;
+		(*method) = SM_ASSIGN;
+		return true;
+	}
+
+	// If the operator isn't something immediately followed by an equals sign, this isn't a set method at all
+	if (input[(*pos) + 1] != '=') {
+		return false;
+	}
+
+	// Figure out which one it is
+	CRSetMethod ret;
+	switch (input[*pos]) {
+	case '+':
+		ret = SM_ADD;
+		break;
+	case '-':
+		ret = SM_SUBTRACT;
+		break;
+	case '*':
+		ret = SM_MULTIPLY;
+		break;
+	case '/':
+		ret = SM_DIVIDE;
+		break;
+	case '|':
+		ret = SM_BITWISE_OR;
+		break;
+	case '&':
+		ret = SM_BITWISE_AND;
+		break;
+	case '^':
+		ret = SM_BITWISE_XOR;
+		break;
+	default:
+		return false;
+	}
+
+	(*pos) += 2;
+	(*method) = ret;
+	return true;
+}
+
+bool CodeRunner::_CompileLine(std::string code, unsigned int * pos, unsigned char ** outHandle, unsigned int* outSize) {
+	std::vector<unsigned char> output;
+	output.reserve(32); // Prevents a lot of memory re-allocation with small memory amounts
+
+	// Get the first word at the current position. Word may be something like "var", "while", or a script or function name, and so on.
+	std::string firstWord = getWord(code, pos);
+
+	// Exit if we're at the end of the string
+	if ((*pos) >= code.size()) {
+		(*outHandle) = NULL;
+		(*outSize) = 0;
+		return true;
+	}
+
+	// Based on the first word we're going to decide what type of command this is.
+
+	if (firstWord == "exit") {
+		// This keyword means exit the script, so we compile this into an "01" instruction.
+		output.push_back(OP_EXIT);
+		findFirstNonWhitespace(code, pos);
+		if (code[*pos] == ';') (*pos)++;
+	}
+	else if (firstWord == "var") {
+		// The "var" keyword tells us to bind some field names to local variables.
+		output.push_back(OP_BIND_VARS);
+
+		std::vector<std::string> varNames;
+		while (true) {
+			// Get the var name and put it in our list
+			std::string firstWord = getWord(code, pos);
+			if (firstWord.size() == 0) return false;
+			varNames.push_back(firstWord);
+
+			// Check if there's another var name on the same line, these must be comma-separated
+			findFirstNonWhitespace(code, pos);
+			if (code[*pos] == ',') {
+				// Get another var name
+				(*pos)++;
+				continue;
+			}
+			else {
+				// No more var names
+				if (code[*pos] == ';') (*pos)++;
+				break;
+			}
+		}
+		if (varNames.size() > 256) return false;
+		output.push_back((unsigned char)varNames.size());
+		for (std::string n : varNames) {
+			unsigned int fieldNum = _RegField(n.c_str(), (unsigned int)n.size());
+			if (fieldNum >= 65536) return false;
+			output.push_back(fieldNum & 0xFF);
+			output.push_back((fieldNum >> 8) & 0xFF);
+		}
+	}
+	else if (firstWord == "while") {
+		// "while" generates a loop, which translates to tests and jumps in bytecode.
+		// TBD
+	}
+	else if (firstWord == "do") {
+		// "do" generates a loop in which the first iteration is always run. It can only be terminated by a "while" or "until" statement.
+		// TBD
+	}
+	else if (firstWord == "for") {
+		// "for" generates a loop in a rather roundabout way. This involves some tests and jumps.
+		// TBD
+	}
+	else if (firstWord == "if") {
+		// "if" incurs a simple test to see whether the following expression evaluates to true.
+		unsigned char val[3];
+		if (!_getExpression(code, pos, val)) {
+			return false;
+		}
+		// TBD
+	}
+	else if (firstWord == "with") {
+		// "with" indicates a change in the "self" and "other" variables for the contained code block.
+		// TBD
+	}
+	else if (firstWord == "repeat") {
+		// "repeat" is followed by an expression telling us how many times to repeat the code block after it.
+		// TBD
+	}
+	else if (firstWord == "return") {
+		// "return" means we write a value to the return buffer, then exit.
+		// TBD
+	}
+	else {
+		// If this doesn't start with any keywords, then it's either an assignment or a script call.
+		findFirstNonWhitespace(code, pos);
+		if (firstWord.size() > 0 && code[*pos] == '(') {
+			// It's a script or internal function call. firstWord is the script/function name.
+			// User scripts have precedence over internal functions, so first check if there's a script with this name.
+			Script* scr = NULL;
+			unsigned int scriptId;
+			for (scriptId = 0; scriptId < _assetManager->GetScriptCount(); scriptId++) {
+				Script* s = _assetManager->GetScript(scriptId);
+				if (s->exists) {
+					if (strcmp(s->name, firstWord.c_str()) == 0) {
+						scr = s;
+						break;
+					}
+				}
+			}
+
+			if (scr) {
+				// User script.
+				output.push_back(OP_RUN_SCRIPT);
+				output.push_back((unsigned char)(scriptId & 0xFF)); // Script id, little endian
+				output.push_back((unsigned char)((scriptId & 0xFF00) >> 8));
+			}
+			else {
+				// Built-in function.
+				output.push_back(OP_RUN_INTERNAL_FUNC);
+
+				// First resolve the function name to an internal function id.
+				unsigned int funcId;
+				for (funcId = 0; funcId < _INTERNAL_FUNC_COUNT; funcId++) {
+					if (strcmp(_internalFuncNames[funcId], firstWord.c_str()) == 0) {
+						break;
+					}
+				}
+				if (funcId == _INTERNAL_FUNC_COUNT) {
+					// We didn't find this as an internal function, that means we can't compile this.
+					return false;
+				}
+				// First two bytes indicate func id
+				output.push_back((unsigned char)(funcId & 0xFF));
+				output.push_back((unsigned char)((funcId >> 8) & 0xFF));
+			}
+
+			// We'll use this as a reference later for setting the number of args after they've all been parsed.
+			unsigned int argCPos = (unsigned int)output.size();
+			output.push_back(0);
+
+			// Args
+			unsigned char argCount = 0;
+			unsigned char valBuffer[3];
+
+			(*pos)++;
+			findFirstNonWhitespace(code, pos);
+			if (code[*pos] != ')') {
+				while (true) {
+					findFirstNonWhitespace(code, pos);
+					std::string arg;
+					arg.reserve(16);
+					while (code[*pos] != ',' && code[*pos] != ')') {
+						arg += code[*pos];
+						if (code[*pos] == '(') arg += getBracketContents(code, pos, '(', ')') + ')';
+						else if (code[*pos] == '[') arg += getBracketContents(code, pos, '[', ']') + ']';
+						else (*pos)++;
+					}
+					if (!_makeVal(arg.c_str(), (unsigned int)arg.size(), valBuffer)) return false;
+					output.push_back(valBuffer[0]);
+					output.push_back(valBuffer[1]);
+					output.push_back(valBuffer[2]);
+					argCount++;
+
+					if (code[*pos] == ')') {
+						break;
+					}
+					else {
+						(*pos)++;
+					}
+				}
+			}
+			output[argCPos] = argCount;
+			(*pos)++;
+			findFirstNonWhitespace(code, pos);
+			if (code[*pos] == ';') (*pos)++;
+		}
+		else {
+			// This is an assignment. First, our bytecode needs to dereference the correct instance to assign to.
+			std::string nextWord;
+
+			if (firstWord.size() == 0) {
+				// A line of code that starts with a bracket is a special case. It's always an assignment.
+				// It means we need to deref the expression inside the brackets.
+				if (code[*pos] != '(') return false;
+
+				std::string exp = getBracketContents(code, pos);
+				findFirstNonWhitespace(code, pos);
+				if (code[*pos] != '.') return false;
+				(*pos)++;
+
+				unsigned char val[3];
+				if (!_makeVal(exp.c_str(), (unsigned int)exp.size(), val)) {
+
+				}
+				output.push_back(OPERATOR_DEREF);
+				output.push_back(val[0]);
+				output.push_back(val[1]);
+				output.push_back(val[2]);
+
+				nextWord = getWord(code, pos);
+			}
+			else {
+				nextWord = firstWord;
+			}
+
+			// Arrays and derefs can be chained infinitely (eg: self.a[0].a[0].a.a[0].a...=1) So we loop them.
+			bool anyDerefs = false;
+			std::string derefExpression;
+			std::string arrayIndex;
+			bool array;
+			while (true) {
+				array = false;
+				arrayIndex.clear();
+
+				findFirstNonWhitespace(code, pos);
+
+				if (code[*pos] == '[') {
+					arrayIndex = getBracketContents(code, pos, '[', ']');
+					array = true;
+					findFirstNonWhitespace(code, pos);
+				}
+
+				if (code[*pos] == '.') {
+					// Push onto deref expression and loop again
+					if (anyDerefs) derefExpression += '.';
+					derefExpression += nextWord;
+					if (array) derefExpression += "[" + arrayIndex + "]";
+
+					(*pos)++;
+					nextWord = getWord(code, pos);
+					anyDerefs = true;
+				}
+				else {
+					// Write the deref expression if one is needed, then go to the next part
+					if (anyDerefs) {
+						unsigned char val[3];
+						if (!_makeVal(derefExpression.c_str(), (unsigned int)derefExpression.size(), val)) return false;
+						output.push_back(OP_DEREF);
+						output.push_back(val[0]);
+						output.push_back(val[1]);
+						output.push_back(val[2]);
+					}
+					break;
+				}
+			}
+
+			// Now the references are set correctly, so we just need to write an assignment operator: set local var, set game value, set instance variable, or set field.
+			// The variable name is stored in nextWord so let's figure out which one to do.
+			unsigned int varIx;
+			CRVarType type = _getVarType(nextWord, &varIx); // Only send the locals if there are no derefs, cause otherwise the variable can't be local
+			switch (type) {
+				case VARTYPE_FIELD:
+					if (array) {
+						output.push_back(OP_SET_ARRAY);
+						unsigned char val[3];
+						if (!_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val)) return false;
+						output.push_back(val[0]);
+						output.push_back(val[1]);
+						output.push_back(val[2]);
+					}
+					else {
+						output.push_back(OP_SET_FIELD);
+					}
+					output.push_back((unsigned char)(varIx & 0xFF));
+					output.push_back((unsigned char)((varIx >> 8) & 0xFF));
+					break;
+				case VARTYPE_INSTANCE:
+					if (array != (bool)(varIx == IV_ALARM)) { // if instance var is alarm and an array isn't used, OR it's not alarm and an array is used
+						// Invalid instance var
+						return false;
+					}
+					output.push_back(OP_SET_INSTANCE_VAR);
+					output.push_back((unsigned char)(varIx & 0xFF));
+					unsigned char val[3];
+					if (array) {
+						if (!_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val)) return false;
+					}
+					output.push_back(val[0]);
+					output.push_back(val[1]);
+					output.push_back(val[2]);
+					break;
+				case VARTYPE_GAME:
+					output.push_back(OP_SET_GAME_VALUE);
+					output.push_back((unsigned char)varIx);
+					break;
+			default:
+				return false;
+			}
+
+			// No matter what OP type we wrote, the rest is the same. Next we need to work out the SET METHOD.
+			findFirstNonWhitespace(code, pos);
+			CRSetMethod method;
+			if (!getSetMethod(code, pos, &method)) {
+				// Invalid gml
+				return false;
+			}
+			output.push_back(method);
+
+			// Now we just have to get the VAL to assign.
+			unsigned char val[3];
+			if (!_getExpression(code, pos, val)) return false;
+			output.push_back(val[0]);
+			output.push_back(val[1]);
+			output.push_back(val[2]);
+
+			if (anyDerefs) {
+				// Write a "reset deref" instruction after we're done here.
+				output.push_back(OP_RESET_DEREF);
+			}
+			if (code[*pos] == ';') (*pos)++;
+		}
+	}
+
+	// We've compiled all the code we can do in one go, so now write the output.
+	(*outHandle) = (unsigned char*)malloc(output.size());
+	memcpy((*outHandle), output._Myfirst(), output.size());
+	(*outSize) = (unsigned int)output.size();
+	return true;
+}
+
 unsigned int CodeRunner::_RegConstantDouble(double d) {
 	for (unsigned int i = 0; i < _constants.size(); i++) {
 		GMLType t = _constants[i];
@@ -313,59 +729,6 @@ bool CodeRunner::_makeVal(const char* exp, unsigned int len, unsigned char* out)
 	return true;
 }
 
-// Helper function to tell us if a char is alphanumeric (which in this context also includes underscores)
-bool isAlphanumeric(char c) {
-	if (c >= 'a' && c <= 'z') return true;
-	if (c >= 'A' && c <= 'Z') return true;
-	if (c >= '0' && c <= '9') return true;
-	if (c == '_') return true;
-	return false;
-}
-
-// Helper function that gets the first non-whitespace character after a given pos, moving the pos marker.
-void findFirstNonWhitespace(std::string input, unsigned int* pos) {
-	while ((*pos) < input.size()) {
-		if (input[*pos] <= 0x20) (*pos)++;
-		else break;
-	}
-}
-
-// Helper function that gets the first alphanumeric word after a given pos, also moving the pos marker.
-std::string getWord(std::string input, unsigned int* pos) {
-	findFirstNonWhitespace(input, pos);
-	std::string ret;
-
-	while ((*pos) < input.size()) {
-		char c = input[*pos];
-		if (isAlphanumeric(c)) {
-			ret += c;
-			(*pos)++;
-		}
-		else {
-			break;
-		}
-	}
-
-	return ret;
-}
-
-// Helper function to get the contents of some brackets, also moving the pos marker past them.
-// This function takes nested brackets into account rather than just stopping at the first close-bracket.
-std::string getBracketContents(std::string input, unsigned int* pos, char start = '(', char end = ')') {
-	if (input[*pos] != start) return ""; // ?
-	(*pos)++;
-
-	std::string ret;
-	unsigned int depth = 1;
-	while (depth) {
-		if (input[*pos] == start) depth++;
-		else if (input[*pos] == end) depth--;
-		if(depth) ret += input[*pos];
-		(*pos)++;
-	}
-	return ret;
-}
-
 // Helper function to get what type a variable name is (local, field, etc)
 CRVarType CodeRunner::_getVarType(std::string name, unsigned int* index) {
 
@@ -391,54 +754,6 @@ CRVarType CodeRunner::_getVarType(std::string name, unsigned int* index) {
 	return VARTYPE_FIELD;
 }
 
-// Helper function to get a set method from a given point in a string. Also moves the pos.
-// Returns false if no set method could be found (ie. game should exit.)
-bool getSetMethod(std::string input, unsigned int* pos, CRSetMethod* method) {
-	// Equals sign has precedence
-	if (input[*pos] == '=') {
-		(*pos)++;
-		(*method) = SM_ASSIGN;
-		return true;
-	}
-
-	// If the operator isn't something immediately followed by an equals sign, this isn't a set method at all
-	if (input[(*pos) + 1] != '=') {
-		return false;
-	}
-
-	// Figure out which one it is
-	CRSetMethod ret;
-	switch (input[*pos]) {
-		case '+':
-			ret = SM_ADD;
-			break;
-		case '-':
-			ret = SM_SUBTRACT;
-			break;
-		case '*':
-			ret = SM_MULTIPLY;
-			break;
-		case '/':
-			ret = SM_DIVIDE;
-			break;
-		case '|':
-			ret = SM_BITWISE_OR;
-			break;
-		case '&':
-			ret = SM_BITWISE_AND;
-			break;
-		case '^':
-			ret = SM_BITWISE_XOR;
-			break;
-		default:
-			return false;
-	}
-
-	(*pos) += 2;
-	(*method) = ret;
-	return true;
-}
-
 // Helper function to check if a string starts with another string.
 bool StartsWith(std::string str, std::string arg) {
 	if (str.size() < arg.size()) return false;
@@ -451,7 +766,7 @@ bool CodeRunner::_getExpression(std::string input, unsigned int* pos, unsigned c
 	findFirstNonWhitespace(input, pos);
 	if (!((*pos) < input.size())) return false;
 	
-	unsigned int codeObj = _codeObjects.size();
+	unsigned int codeObj = (unsigned int)_codeObjects.size();
 	unsigned int charsUsed;
 	_codeObjects.push_back(CRCodeObject());
 	_codeObjects[codeObj].question = true;
@@ -533,7 +848,6 @@ bool CodeRunner::_isAsset(const char* name, unsigned int* index) {
 
 
 bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, bool session) {
-
 	// We only have to remove comments and substitute strings if we're not already in an existing session.
 	std::string code;
 	if(!session)code = substituteConstants(removeComments(str));
@@ -545,315 +859,11 @@ bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, bool s
 
 	// We loop through, pulling commands until there are no more.
 	while (pos < code.size()) {
-		// Get the first word at the current position. Word may be something like "var", "while", or a script or function name, and so on.
-		std::string firstWord = getWord(code, &pos);
-
-		// Exit if we're at the end of the string
-		if (pos >= code.size()) {
-			break;
-		}
-
-		// Based on the first word we're going to decide what type of command this is.
-
-		if (firstWord == "exit") {
-			// This keyword means exit the script, so we compile this into an "01" instruction.
-			output.push_back(OP_EXIT);
-			findFirstNonWhitespace(code, &pos);
-			if (code[pos] == ';') pos++;
-			continue;
-		}
-		else if (firstWord == "var") {
-			// The "var" keyword tells us to bind some field names to local variables.
-			output.push_back(OP_BIND_VARS);
-
-			std::vector<std::string> varNames;
-			while (true) {
-				// Get the var name and put it in our list
-				std::string firstWord = getWord(code, &pos);
-				varNames.push_back(firstWord);
-
-				// Check if there's another var name on the same line, these must be comma-separated
-				findFirstNonWhitespace(code, &pos);
-				if (code[pos] == ',') {
-					// Get another var name
-					pos++;
-					continue;
-				}
-				else {
-					// No more var names
-					if (code[pos] == ';') pos++;
-					break;
-				}
-			}
-			if (varNames.size() > 256) return false;
-			output.push_back((unsigned char)varNames.size());
-			for (std::string n : varNames) {
-				unsigned int fieldNum = _RegField(n.c_str(), n.size());
-				if (fieldNum >= 65536) return false;
-				output.push_back(fieldNum & 0xFF);
-				output.push_back((fieldNum >> 8) & 0xFF);
-			}
-			continue;
-		}
-		else if (firstWord == "while") {
-			// "while" generates a loop, which translates to tests and jumps in bytecode.
-			// TBD
-		}
-		else if (firstWord == "do") {
-			// "do" generates a loop in which the first iteration is always run. It can only be terminated by a "while" or "until" statement.
-			// TBD
-		}
-		else if (firstWord == "for") {
-			// "for" generates a loop in a rather roundabout way. This involves some tests and jumps.
-			// TBD
-		}
-		else if (firstWord == "if") {
-			// "if" incurs a simple test to see whether the following expression evaluates to true.
-			unsigned char val[3];
-			if (!_getExpression(code, &pos, val)) {
-				return false;
-			}
-		}
-		else if (firstWord == "with") {
-			// "with" indicates a change in the "self" and "other" variables for the contained code block.
-			// TBD
-		}
-		else if (firstWord == "repeat") {
-			// "repeat" is followed by an expression telling us how many times to repeat the code block after it.
-			// TBD
-		}
-		else if (firstWord == "return") {
-			// "return" means we write a value to the return buffer, then exit.
-			// TBD
-		}
-		else if (firstWord == "else") {
-			// "else" usually belongs to an "if", but we won't always be able to pick this up when parsing an "if".
-			// So for this we can just write an "else" opcode and let the runner work it out.
-			output.push_back(OP_ELSE);
-			continue;
-		}
-		else {
-			// If this doesn't start with any keywords, then it's either an assignment or a script call.
-			findFirstNonWhitespace(code, &pos);
-			if (firstWord.size() > 0 && code[pos] == '(') {
-				// It's a script or internal function call. firstWord is the script/function name.
-				// User scripts have precedence over internal functions, so first check if there's a script with this name.
-				Script* scr = NULL;
-				unsigned int scriptId;
-				for (scriptId = 0; scriptId < _assetManager->GetScriptCount(); scriptId++) {
-					Script* s = _assetManager->GetScript(scriptId);
-					if (s->exists) {
-						if (strcmp(s->name, firstWord.c_str()) == 0) {
-							scr = s;
-							break;
-						}
-					}
-				}
-
-				if (scr) {
-					// User script.
-					output.push_back(OP_RUN_SCRIPT);
-					output.push_back((unsigned char)(scriptId&0xFF)); // Script id, little endian
-					output.push_back((unsigned char)((scriptId & 0xFF00) >> 8));
-				}
-				else {
-					// Built-in function.
-					output.push_back(OP_RUN_INTERNAL_FUNC);
-
-					// First resolve the function name to an internal function id.
-					unsigned int funcId;
-					for (funcId = 0; funcId < _INTERNAL_FUNC_COUNT; funcId++) {
-						if (strcmp(_internalFuncNames[funcId], firstWord.c_str()) == 0) {
-							break;
-						}
-					}
-					if (funcId == _INTERNAL_FUNC_COUNT) {
-						// We didn't find this as an internal function, that means we can't compile this.
-						return false;
-					}
-					// First two bytes indicate func id
-					output.push_back((unsigned char)(funcId & 0xFF));
-					output.push_back((unsigned char)((funcId >> 8) & 0xFF));
-				}
-
-				// We'll use this as a reference later for setting the number of args after they've all been parsed.
-				unsigned int argCPos = (unsigned int)output.size();
-				output.push_back(0);
-
-				// Args
-				unsigned char argCount = 0;
-				unsigned char valBuffer[3];
-
-				pos++;
-				findFirstNonWhitespace(code, &pos);
-				if (code[pos] != ')') {
-					while (true) {
-						findFirstNonWhitespace(code, &pos);
-						std::string arg;
-						arg.reserve(16);
-						while (code[pos] != ',' && code[pos] != ')') {
-							arg += code[pos];
-							if (code[pos] == '(') arg += getBracketContents(code, &pos, '(', ')') + ')';
-							else if (code[pos] == '[') arg += getBracketContents(code, &pos, '[', ']') + ']';
-							else pos++;
-						}
-						if (!_makeVal(arg.c_str(), (unsigned int)arg.size(), valBuffer)) return false;
-						output.push_back(valBuffer[0]);
-						output.push_back(valBuffer[1]);
-						output.push_back(valBuffer[2]);
-						argCount++;
-
-						if (code[pos] == ')') {
-							break;
-						}
-						else {
-							pos++;
-						}
-					}
-				}
-				output[argCPos] = argCount;
-				pos++;
-				findFirstNonWhitespace(code, &pos);
-				if (code[pos] == ';') pos++;
-				continue;
-			}
-			else {
-				// This is an assignment. First, our bytecode needs to dereference the correct instance to assign to.
-				std::string nextWord;
-
-				if (firstWord.size() == 0) {
-					// A line of code that starts with a bracket is a special case. It's always an assignment.
-					// It means we need to deref the expression inside the brackets.
-					if (code[pos] != '(') return false;
-
-					std::string exp = getBracketContents(code, &pos);
-					findFirstNonWhitespace(code, &pos);
-					if (code[pos] != '.') return false;
-					pos++;
-
-					unsigned char val[3];
-					if (!_makeVal(exp.c_str(), (unsigned int)exp.size(), val)) {
-
-					}
-					output.push_back(OPERATOR_DEREF);
-					output.push_back(val[0]);
-					output.push_back(val[1]);
-					output.push_back(val[2]);
-
-					nextWord = getWord(code, &pos);
-				}
-				else {
-					nextWord = firstWord;
-				}
-
-				// Arrays and derefs can be chained infinitely (eg: self.a[0].a[0].a.a[0].a...=1) So we loop them.
-				bool anyDerefs = false;
-				std::string derefExpression;
-				std::string arrayIndex;
-				bool array;
-				while (true) {
-					array = false;
-					arrayIndex.clear();
-
-					findFirstNonWhitespace(code, &pos);
-
-					if (code[pos] == '[') {
-						arrayIndex = getBracketContents(code, &pos, '[', ']');
-						array = true;
-						findFirstNonWhitespace(code, &pos);
-					}
-
-					if (code[pos] == '.') {
-						// Push onto deref expression and loop again
-						if (anyDerefs) derefExpression += '.';
-						derefExpression += nextWord;
-						if (array) derefExpression += "[" + arrayIndex + "]";
-
-						pos++;
-						nextWord = getWord(code, &pos);
-						anyDerefs = true;
-					}
-					else {
-						// Write the deref expression if one is needed, then go to the next part
-						if (anyDerefs) {
-							unsigned char val[3];
-							if (!_makeVal(derefExpression.c_str(), (unsigned int)derefExpression.size(), val)) return false;
-							output.push_back(OP_DEREF);
-							output.push_back(val[0]);
-							output.push_back(val[1]);
-							output.push_back(val[2]);
-						}
-						break;
-					}
-				}
-
-				// Now the references are set correctly, so we just need to write an assignment operator: set local var, set game value, set instance variable, or set field.
-				// The variable name is stored in nextWord so let's figure out which one to do.
-				unsigned int varIx;
-				CRVarType type = _getVarType(nextWord, &varIx); // Only send the locals if there are no derefs, cause otherwise the variable can't be local
-				switch (type) {
-					case VARTYPE_FIELD:
-						if (array) {
-							output.push_back(OP_SET_ARRAY);
-							unsigned char val[3];
-							if (!_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val)) return false;
-							output.push_back(val[0]);
-							output.push_back(val[1]);
-							output.push_back(val[2]);
-						}
-						else {
-							output.push_back(OP_SET_FIELD);
-						}
-						output.push_back((unsigned char)(varIx & 0xFF));
-						output.push_back((unsigned char)((varIx >> 8) & 0xFF));
-						break;
-					case VARTYPE_INSTANCE:
-						if (array != (bool)(varIx == IV_ALARM)) { // if instance var is alarm and an array isn't used, OR it's not alarm and an array is used
-							// Invalid instance var
-							return false;
-						}
-						output.push_back(OP_SET_INSTANCE_VAR);
-						output.push_back((unsigned char)(varIx & 0xFF));
-						unsigned char val[3];
-						if (array) {
-							if (!_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val)) return false;
-						}
-						output.push_back(val[0]);
-						output.push_back(val[1]);
-						output.push_back(val[2]);
-						break;
-					case VARTYPE_GAME:
-						output.push_back(OP_SET_GAME_VALUE);
-						output.push_back((unsigned char)varIx);
-						break;
-					default:
-						return false;
-				}
-
-				// No matter what OP type we wrote, the rest is the same. Next we need to work out the SET METHOD.
-				findFirstNonWhitespace(code, &pos);
-				CRSetMethod method;
-				if (!getSetMethod(code, &pos, &method)) {
-					// Invalid gml
-					return false;
-				}
-				output.push_back(method);
-
-				// Now we just have to get the VAL to assign.
-				unsigned char val[3];
-				if (! _getExpression(code, &pos, val)) return false;
-				output.push_back(val[0]);
-				output.push_back(val[1]);
-				output.push_back(val[2]);
-
-				if (anyDerefs) {
-					// Write a "reset deref" instruction after we're done here.
-					output.push_back(OP_RESET_DEREF);
-				}
-				if (code[pos] == ';') pos++;
-				continue;
-			}
-		}
+		unsigned char* lineBytes;
+		unsigned int lineByteCount;
+		if (!_CompileLine(code, &pos, &lineBytes, &lineByteCount)) return false;
+		std::copy(lineBytes, lineBytes + lineByteCount, std::back_inserter(output));
+		free(lineBytes);
 	}
 
 	// Our bytecode must be terminated by an 01. So if the last instruction doesn't happen to be an 01, we'll put one there.
@@ -1007,7 +1017,7 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 					}
 					else {
 						// Internal function
-						output.push_back(OP_RUN_INTERNAL_FUNC);
+						output.push_back(EVTYPE_INTERNAL_FUNC);
 
 						// First resolve the function name to an internal function id.
 						unsigned int funcId;
@@ -1078,7 +1088,7 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 						// Next, check if it's a GML const. If so, it's just an integer.
 						if (word == "pi") {
 							// Special case for pi because it's the only one that isn't an int.
-							unsigned int ix = _RegConstantDouble(3.141592653589793);
+							unsigned int ix = _RegConstantDouble(PI);
 							output.push_back(EVTYPE_VAL);
 							output.push_back((2 << 6) | (ix >> 16));
 							output.push_back((ix >> 8) & 0xFF);
@@ -1117,7 +1127,7 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 								if (code[pos] == '[') {
 									array = true;
 									std::string arrayIndex = getBracketContents(code, &pos, '[', ']');
-									if (!_makeVal(arrayIndex.c_str(), arrayIndex.size(), val)) return false;
+									if (!_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val)) return false;
 								}
 
 								// Get what type of variable we've been given
@@ -1128,20 +1138,24 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 										output.push_back(array ? EVTYPE_ARRAY : EVTYPE_FIELD);
 										output.push_back(index & 0xFF);
 										output.push_back((index >> 8) & 0xFF);
+										if (array) {
+											output.push_back(val[0]);
+											output.push_back(val[1]);
+											output.push_back(val[2]);
+										}
 										break;
 									case VARTYPE_GAME:
+										if (array) return false;
 										output.push_back(EVTYPE_GAME_VALUE);
 										output.push_back(index & 0xFF);
 										break;
 									case VARTYPE_INSTANCE:
 										output.push_back(EVTYPE_INSTANCEVAR);
 										output.push_back(index & 0xFF);
+										output.push_back(val[0]);
+										output.push_back(val[1]);
+										output.push_back(val[2]);
 										break;
-								}
-								if (array) {
-									output.push_back(val[0]);
-									output.push_back(val[1]);
-									output.push_back(val[2]);
 								}
 							}
 						}
@@ -1172,7 +1186,7 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 		else {
 			for (const auto& pair : _operators) {
 				if (!strcmp(code.substr(pos, strlen(pair.first)).c_str(), pair.first)) {
-					opLen = strlen(pair.first);
+					opLen = (unsigned int)strlen(pair.first);
 					op = pair.second;
 					if(strlen(pair.first) - 1) break; // Only break if the length of the matched operator is larger than 1, eg. to prevent matching "<" when it's actually "<=".
 				}
@@ -1192,6 +1206,7 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 		if (!_CompileExpression(code.substr(pos).c_str(), &extraOutput, true, &extraCharsUsed, &extraOutputSize)) return false;
 		std::copy(extraOutput, extraOutput + extraOutputSize, std::back_inserter(output));
 		pos += extraCharsUsed;
+		free(extraOutput);
 	}
 	else {
 		// Move the position back before the word AFTER the expression. But only if that word isn't "then", which can be used to end an expression.
@@ -1210,7 +1225,7 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 		(*outCharsUsed) = pos;
 	}
 	if (outSize) {
-		(*outSize) = output.size();
+		(*outSize) = (unsigned int)output.size();
 	}
 
 

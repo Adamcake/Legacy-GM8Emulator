@@ -9,11 +9,17 @@ const GLchar* fragmentShaderCode = "#version 440\n"
 "uniform sampler2D tex;\n"
 "uniform double objAlpha;\n"
 "uniform vec3 objBlend;\n"
+"uniform vec3 hardColour;\n"
 "in vec2 fragTexCoord;\n"
 "out vec4 colourOut;\n"
 "void main() {\n"
 "vec4 col = texture2D(tex, fragTexCoord);\n"
+"if(hardColour.xyz == vec3(0, 0, 0)) {\n"
 "colourOut = vec4((col.x * objBlend.x), (col.y * objBlend.y), (col.z * objBlend.z), (col.w * clamp(objAlpha, 0, 1)));\n"
+"}\n"
+"else {\n"
+"colourOut = vec4(hardColour, 1.0);\n"
+"}\n"
 "}";
 
 const GLchar* vertexShaderCode = "#version 440\n"
@@ -70,7 +76,6 @@ bool GameRenderer::MakeGameWindow(GameSettings* settings, unsigned int w, unsign
 	}
 
 	// Required GL features
-	//glEnable(GL_CULL_FACE);
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -153,6 +158,12 @@ void GameRenderer::GetCursorPos(double* xpos, double* ypos) {
 
 bool GameRenderer::ShouldClose() {
 	return glfwWindowShouldClose(window);
+}
+
+void GameRenderer::SetBGColour(unsigned int col) {
+	bgR = (double)(col & 0xFF) / 0xFF;
+	bgG = (double)((col >> 8) & 0xFF) / 0xFF;
+	bgB = (double)((col >> 16) & 0xFF) / 0xFF;
 }
 
 RImageIndex GameRenderer::MakeImage(unsigned int w, unsigned int h, unsigned int originX, unsigned int originY, unsigned char * bytes) {
@@ -243,6 +254,30 @@ void GameRenderer::RenderFrame() {
 	glfwPollEvents(); // This probably won't be here later on, but it needs to happen every frame for the window to update properly.
 	glUseProgram(_glProgram);
 	glClear(GL_COLOR_BUFFER_BIT);
+
+	GLfloat ident[16] = {
+		1, 0, 0, 0,
+		0, 1, 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1
+	};
+	GLfloat proj[16] = {
+		2, 0, 0, 0,
+		0, 2, 0, 0,
+		0, 0, 1, 0,
+		-1, -1, 0, 1
+	};
+	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "translateToMiddle"), 1, GL_FALSE, ident);
+	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "rotate"), 1, GL_FALSE, ident);
+	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "translateBack"), 1, GL_FALSE, ident);
+	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "project"), 1, GL_FALSE, proj);
+
+	GLint vertTexCoord = glGetAttribLocation(_glProgram, "vertTexCoord");
+	glEnableVertexAttribArray(vertTexCoord);
+	glUniform3f(glGetUniformLocation(_glProgram, "hardColour"), bgR, bgG, bgB);
+	glVertexAttribPointer(vertTexCoord, 2, GL_FLOAT, GL_TRUE, 3 * sizeof(GLfloat), 0);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glUniform3f(glGetUniformLocation(_glProgram, "hardColour"), 0, 0, 0);
 }
 
 
@@ -255,11 +290,10 @@ void GameRenderer::_DrawTex(unsigned int ix, GLuint obj) {
 	glUniform1i(tex, ix);
 	glActiveTexture(GL_TEXTURE0 + ix);
 	glBindTexture(GL_TEXTURE_2D, obj);
-	glEnableVertexAttribArray(vertTexCoord);
 	glVertexAttribPointer(vertTexCoord, 2, GL_FLOAT, GL_TRUE, 3 * sizeof(GLfloat), 0);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	glEnableVertexAttribArray(NULL);
 	glBindTexture(GL_TEXTURE_2D, NULL);
+	glActiveTexture(NULL);
 }
 
 void GameRenderer::_RegImg(unsigned int ix, RImage* i) {

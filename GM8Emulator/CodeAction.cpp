@@ -395,7 +395,7 @@ bool CodeAction::Compile(CodeRunner* runner) {
 	return runner->Compile(codeObj);
 }
 
-bool CodeAction::Run(CodeRunner* runner, Instance* self, Instance* other, bool* response) {
+bool CodeAction::Run(CodeRunner* runner, unsigned int self, unsigned int other, bool* response) {
 	if (question) {
 		return runner->Query(codeObj, self, other, response);
 	}

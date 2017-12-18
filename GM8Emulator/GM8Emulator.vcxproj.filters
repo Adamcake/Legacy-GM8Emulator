@@ -60,6 +60,12 @@
     <ClCompile Include="CodeRunnerRunning.cpp">
       <Filter>Code Runner\Source</Filter>
     </ClCompile>
+    <ClCompile Include="CodeRunnerGMLFunctions.cpp">
+      <Filter>Code Runner\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="RNG.cpp">
+      <Filter>Code Runner\Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Game.hpp">
@@ -102,6 +108,9 @@
       <Filter>Code Runner\Headers</Filter>
     </ClInclude>
     <ClInclude Include="CREnums.hpp">
+      <Filter>Code Runner\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="RNG.hpp">
       <Filter>Code Runner\Headers</Filter>
     </ClInclude>
   </ItemGroup>

@@ -55,11 +55,10 @@ class Game {
 		GameSettings settings;
 
 		// Misc game variables
-		unsigned int _nextInstanceId;
 		unsigned int _lastUsedRoomSpeed;
 
 		// Private function for running a list of CodeActions
-		bool _runActions(CodeAction* actions, unsigned int count, Instance* self, Instance* other);
+		bool _runActions(CodeAction* actions, unsigned int count, unsigned int self, unsigned int other);
 
 	public:
 		Game();

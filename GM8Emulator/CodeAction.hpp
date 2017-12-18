@@ -28,7 +28,7 @@ class CodeAction {
 
 		// Run this action. Returns true on success, false on error (ie. game should close.)
 		// If this is a question, supply a pointer to a boolean where the response will be output.
-		bool Run(CodeRunner* runner, Instance* self, Instance* other, bool* response = nullptr);
+		bool Run(CodeRunner* runner, unsigned int self, unsigned int other, bool* response = nullptr);
 
 		inline bool IsQuestion() { return question; }
 		inline unsigned int getActID() { return actionID; }

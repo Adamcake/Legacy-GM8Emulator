@@ -64,8 +64,8 @@ void InstanceList::ClearAll() {
 void InstanceList::ClearNonPersistent() {
 	unsigned int placed = 0;
 	for (unsigned int i = 0; i < _size; i++) {
-		if (_list[i].persistent && _list[i].exists && (placed != i)) {
-			memcpy(_list + placed, _list + i, sizeof(Instance));
+		if (_list[i].persistent && _list[i].exists) {
+			if(placed != i) memcpy(_list + placed, _list + i, sizeof(Instance));
 			placed++;
 		}
 	}
@@ -75,8 +75,8 @@ void InstanceList::ClearNonPersistent() {
 void InstanceList::ClearDeleted() {
 	unsigned int placed = 0;
 	for (unsigned int i = 0; i < _size; i++) {
-		if (_list[i].exists && (placed != i)) {
-			memcpy(_list + placed, _list + i, sizeof(Instance));
+		if (_list[i].exists) {
+			if(placed != i) memcpy(_list + placed, _list + i, sizeof(Instance));
 			placed++;
 		}
 	}
@@ -90,7 +90,7 @@ Instance * InstanceList::GetInstanceByNumber(unsigned int num) {
 			if (_list[i].id == num) {
 				return (_list[i].exists) ? (_list + i) : NULL;
 			}
-			if (_list[i].id < num) {
+			if (_list[i].id > num) {
 				return NULL;
 			}
 		}
@@ -117,6 +117,8 @@ Instance * InstanceList::operator[](unsigned int index) {
 bool InstanceList::_InitInstance(Instance* instance, unsigned int id, double x, double y, unsigned int objectId) {
 	Object* obj = _assetManager->GetObject(objectId);
 	if (!obj->exists) return false;
+	instance->exists = true;
+	instance->id = id;
 
 	instance->object_index = objectId;
 	instance->solid = obj->solid;
@@ -134,10 +136,12 @@ bool InstanceList::_InitInstance(Instance* instance, unsigned int id, double x, 
 	instance->image_angle = 0;
 	instance->mask_index = obj->maskIndex;
 	instance->direction = 0;
+	instance->gravity = 0;
 	instance->gravity_direction = 270;
 	instance->hspeed = 0;
 	instance->vspeed = 0;
 	instance->speed = 0;
+	instance->friction = 0;
 	instance->x = x;
 	instance->y = y;
 	instance->xprevious = x;

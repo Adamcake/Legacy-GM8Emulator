@@ -241,9 +241,8 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 Game::Game() : _instances(&_assetManager) {
 	_info.caption = NULL;
 	_info.gameInfo = NULL;
-	_runner = new CodeRunner(&_assetManager, &_instances);
+	_runner = new CodeRunner(&_assetManager, &_instances, &_globals);
 	_renderer = new GameRenderer();
-	_nextInstanceId = 100001;
 	_roomOrder = NULL;
 	_lastUsedRoomSpeed = 0;
 }
@@ -705,11 +704,11 @@ bool Game::Load(const char * pFilename) {
 			for (i = 0; i < sprite->frameCount; i++) {
 				dataPos += 4;
 
-				unsigned int w = ReadDword(data, &dataPos);
-				unsigned int h = ReadDword(data, &dataPos);
+				sprite->width = ReadDword(data, &dataPos);
+				sprite->height = ReadDword(data, &dataPos);
 				unsigned int pixelDataLength = ReadDword(data, &dataPos);
 
-				if (pixelDataLength != (w * h * 4)) {
+				if (pixelDataLength != (sprite->width * sprite->height * 4)) {
 					// This should never happen
 					free(data);
 					free(buffer);
@@ -726,7 +725,7 @@ bool Game::Load(const char * pFilename) {
 					data[dataPos + 2] = tmp;
 				}
 
-				sprite->frames[i] = _renderer->MakeImage(w, h, sprite->originX, sprite->originY, pixelData);
+				sprite->frames[i] = _renderer->MakeImage(sprite->width, sprite->height, sprite->originX, sprite->originY, pixelData);
 			}
 
 			// Collision data
@@ -772,6 +771,11 @@ bool Game::Load(const char * pFilename) {
 					map->collision[ii] = ReadDword(data, &dataPos);
 				}
 			}
+		}
+		else {
+			// No frames
+			sprite->width = 0;
+			sprite->height = 0;
 		}
 	}
 
@@ -1298,6 +1302,8 @@ bool Game::Load(const char * pFilename) {
 
 	// Rooms
 
+	unsigned int nextInstanceId = 100001;
+
 	pos += 4;
 	count = ReadDword(buffer, &pos);
 	unsigned int roomCount = count;
@@ -1387,8 +1393,8 @@ bool Game::Load(const char * pFilename) {
 			instance->creation = _runner->Register(code, codeLen);
 			free(code);
 
-			if (_nextInstanceId <= instance->id) {
-				_nextInstanceId = instance->id + 1;
+			if (nextInstanceId <= instance->id) {
+				nextInstanceId = instance->id + 1;
 			}
 		}
 
@@ -1496,6 +1502,9 @@ bool Game::Load(const char * pFilename) {
 	for (unsigned int i = 0; i < count; i++) {
 		_roomOrder[i] = ReadDword(buffer, &pos);
 	}
+
+	// Update runner with end of static instance id range
+	_runner->SetNextInstanceID(nextInstanceId);
 
 	// Compile scripts
 	for (unsigned int i = 0; i < scriptCount; i++) {

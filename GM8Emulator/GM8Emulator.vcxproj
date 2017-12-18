@@ -158,12 +158,14 @@
     <ClCompile Include="CodeAction.cpp" />
     <ClCompile Include="CodeRunner.cpp" />
     <ClCompile Include="CodeRunnerCompiling.cpp" />
+    <ClCompile Include="CodeRunnerGMLFunctions.cpp" />
     <ClCompile Include="CodeRunnerRunning.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="GameFrame.cpp" />
     <ClCompile Include="GameRenderer.cpp" />
     <ClCompile Include="InstanceList.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="RNG.cpp" />
     <ClCompile Include="StreamUtil.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -178,6 +180,7 @@
     <ClInclude Include="GlobalValues.hpp" />
     <ClInclude Include="Instance.hpp" />
     <ClInclude Include="InstanceList.hpp" />
+    <ClInclude Include="RNG.hpp" />
     <ClInclude Include="StreamUtil.hpp" />
     <ClInclude Include="zlib\zconf.h" />
     <ClInclude Include="zlib\zlib.h" />
