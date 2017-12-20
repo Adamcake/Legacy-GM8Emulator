@@ -155,7 +155,7 @@
   <ItemGroup>
     <ClCompile Include="AssetManager.cpp" />
     <ClCompile Include="Assets.cpp" />
-    <ClCompile Include="CodeAction.cpp" />
+    <ClCompile Include="CodeActionManager.cpp" />
     <ClCompile Include="CodeRunner.cpp" />
     <ClCompile Include="CodeRunnerCompiling.cpp" />
     <ClCompile Include="CodeRunnerGMLFunctions.cpp" />
@@ -171,7 +171,7 @@
   <ItemGroup>
     <ClInclude Include="AssetManager.hpp" />
     <ClInclude Include="Assets.hpp" />
-    <ClInclude Include="CodeAction.hpp" />
+    <ClInclude Include="CodeActionManager.hpp" />
     <ClInclude Include="CodeRunner.hpp" />
     <ClInclude Include="CREnums.hpp" />
     <ClInclude Include="Game.hpp" />

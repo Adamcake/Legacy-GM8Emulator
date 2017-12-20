@@ -4,6 +4,7 @@
 #include "GlobalValues.hpp"
 #include "Instance.hpp"
 #include "RNG.hpp"
+#include "CodeActionManager.hpp"
 
 /*
 All GML functions have this format:
@@ -28,13 +29,15 @@ bool CodeRunner::execute_string(unsigned int argc, GMLType* argv, GMLType* out) 
 
 bool CodeRunner::instance_create(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[0].state == GML_TYPE_STRING || argv[1].state == GML_TYPE_STRING || argv[2].state == GML_TYPE_STRING) return false;
-	_instances->AddInstance(_nextInstanceID, argv[0].dVal, argv[1].dVal, _round(argv[2].dVal));
+	unsigned int objID = _round(argv[2].dVal);
+	_instances->AddInstance(_nextInstanceID, argv[0].dVal, argv[1].dVal, objID);
 	if (out) {
 		out->state = GML_TYPE_DOUBLE;
 		out->dVal = (double)_nextInstanceID;
 	}
+	Object* o = _assetManager->GetObject(objID);
+	if (!_codeActions->Run(o->evCreate, o->evCreateActionCount, _nextInstanceID, NULL)) return false;
 	_nextInstanceID++;
-	// TODO: call new instance's create event here
 	return true;
 }
 
@@ -54,15 +57,82 @@ bool CodeRunner::irandom_range(unsigned int argc, GMLType* argv, GMLType* out) {
 }
 
 bool CodeRunner::make_color_hsv(unsigned int argc, GMLType* argv, GMLType* out) {
-	// tbd
-	return false;
+	if (argv[0].state == GML_TYPE_STRING || argv[1].state == GML_TYPE_STRING || argv[2].state == GML_TYPE_STRING) return false;
+	if (out) {
+		double h = argv[0].dVal;
+		double s = argv[1].dVal;
+		double v = argv[2].dVal;
+		unsigned char r, g, b;
+
+		if (s == 0) {
+			r = v;
+			g = v;
+			b = v;
+		}
+		else {
+			int i;
+			double f, p, q, t;
+			h /= (256.0/6.0);
+			s /= 255.0;
+			v /= 255.0;
+
+			i = (int)trunc(h);
+			f = h - i;
+			p = v * (1.0 - s);
+			q = v * (1.0 - (s * f));
+			t = v * (1.0 - (s * (1.0 - f)));
+
+			switch (i)
+			{
+			case 0:
+				r = (unsigned char)(v * 255);
+				g = (unsigned char)(t * 255);
+				b = (unsigned char)(p * 255);
+				break;
+
+			case 1:
+				r = (unsigned char)(q * 255);
+				g = (unsigned char)(v * 255);
+				b = (unsigned char)(p * 255);
+				break;
+
+			case 2:
+				r = (unsigned char)(p * 255);
+				g = (unsigned char)(v * 255);
+				b = (unsigned char)(t * 255);
+				break;
+
+			case 3:
+				r = (unsigned char)(p * 255);
+				g = (unsigned char)(q * 255);
+				b = (unsigned char)(v * 255);
+				break;
+
+			case 4:
+				r = (unsigned char)(t * 255);
+				g = (unsigned char)(p * 255);
+				b = (unsigned char)(v * 255);
+				break;
+
+			default:
+				r = (unsigned char)(v * 255);
+				g = (unsigned char)(p * 255);
+				b = (unsigned char)(q * 255);
+				break;
+			}
+		}
+
+		out->state = GML_TYPE_DOUBLE;
+		out->dVal = ((unsigned int)r) | (((unsigned int)g) << 8) | (((unsigned int)b) << 16);
+	}
+	return true;
 }
 
 bool CodeRunner::move_wrap(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[2].state == GML_TYPE_STRING) return false;
 	bool hor = _isTrue(argv + 0);
 	bool ver = _isTrue(argv + 1);
-	int margin = argv[2].dVal;
+	double margin = argv[2].dVal;
 	Instance* instance = _instances->GetInstanceByNumber(_contexts.top().self);
 
 	if (hor) {

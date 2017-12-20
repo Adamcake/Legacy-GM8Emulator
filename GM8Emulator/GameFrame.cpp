@@ -1,79 +1,8 @@
 #include "Game.hpp"
 #include "GameRenderer.hpp"
 #include "Instance.hpp"
-#include "CodeAction.hpp"
+#include "CodeActionManager.hpp"
 #include "CodeRunner.hpp"
-
-bool Game::_runActions(CodeAction* actions, unsigned int count, unsigned int self, unsigned int other) {
-	unsigned int pos = 0;
-	while (pos < count) {
-		bool run = true;
-		if (actions[pos].IsQuestion()) {
-			// Multiple questions can be chained together with the end statement dependent on all of them.
-			while (actions[pos].IsQuestion()) {
-				if (run) {
-					bool r;
-					if (!actions[pos].Run(_runner, self, other, &r)) return false;
-					run &= r;
-				}
-				pos++;
-			}
-		}
-		if(run) {
-			// This action isn't a question and we are going to run it.
-
-			switch (actions[pos].getActID()) {
-				case 422: {
-					// "start block", so run until the matching end
-					pos++;
-					CodeAction* start = actions + pos;
-					unsigned int depth = 1;
-					unsigned int count = 0;
-					while (depth) {
-						if (actions[pos].getActID() == 422) depth++;
-						else if (actions[pos].getActID() == 424) depth--;
-						count++;
-						pos++;
-					}
-					count--; // Skips running the "end block" itself
-					if (!_runActions(start, count, self, other)) return false;
-					break;
-				}
-				case 605: {
-					// Comment, don't bother doing anything
-					break;
-				}
-				default: {
-					if (!actions[pos].Run(_runner, self, other)) return false;
-					pos++;
-					break;
-				}
-			}
-		}
-		else {
-			// Not a question and we are NOT going to run it.
-			switch (actions[pos].getActID()) {
-				case 422: {
-					// "start block", so skip until matching end block
-					pos++;
-					unsigned int depth = 1;
-					while (depth) {
-						if (actions[pos].getActID() == 422) depth++;
-						else if (actions[pos].getActID() == 424) depth--;
-						pos++;
-					}
-					break;
-				}
-				default: {
-					pos++;
-					break;
-				}
-			}
-		}
-	}
-	return true;
-}
-
 
 
 bool Game::LoadRoom(unsigned int id) {
@@ -91,7 +20,7 @@ bool Game::LoadRoom(unsigned int id) {
 		Object* o = _assetManager.GetObject(_instances[i]->object_index);
 		for (IndexedEvent e : o->evOther) {
 			if (e.index == 5) {
-				_runActions(e.actions, e.actionCount, _instances[i]->id, NULL);
+				if (!_codeActions->Run(e.actions, e.actionCount, _instances[i]->id, NULL)) return false;
 				break;
 			}
 		}
@@ -127,7 +56,7 @@ bool Game::LoadRoom(unsigned int id) {
 			if (!_runner->Run(room->instances[i].creation, id, NULL)) return false;
 			// run instance create event
 			Object* o = _assetManager.GetObject(instance->object_index);
-			if (!_runActions(o->evCreate, o->evCreateActionCount, instance->id, NULL)) return false;
+			if (!_codeActions->Run(o->evCreate, o->evCreateActionCount, instance->id, NULL)) return false;
 		}
 	}
 
@@ -139,7 +68,7 @@ bool Game::LoadRoom(unsigned int id) {
 		Object* o = _assetManager.GetObject(_instances[i]->object_index);
 		for (IndexedEvent e : o->evOther) {
 			if (e.index == 4) {
-				if (!_runActions(e.actions, e.actionCount, _instances[i]->id, NULL)) return false;
+				if (!_codeActions->Run(e.actions, e.actionCount, _instances[i]->id, NULL)) return false;
 				break;
 			}
 		}
@@ -159,7 +88,7 @@ bool Game::Frame() {
 			Object* obj = _assetManager.GetObject(instance->object_index);
 			if (obj->evDraw) {
 				// This object has a custom draw event.
-				if (!_runActions(obj->evDraw, obj->evDrawActionCount, instance->id, NULL)) return false;
+				if (!_codeActions->Run(obj->evDraw, obj->evDrawActionCount, instance->id, NULL)) return false;
 			}
 			else {
 				// This is the default draw action if no draw event is present for this object (more or less.)
@@ -189,7 +118,7 @@ bool Game::Frame() {
 		Instance* instance = _instances[i];
 		if (instance->exists) {
 			Object* o = _assetManager.GetObject(instance->object_index);
-			if (!_runActions(o->evStepBegin, o->evStepBeginActionCount, instance->id, NULL)) return false;
+			if (!_codeActions->Run(o->evStepBegin, o->evStepBeginActionCount, instance->id, NULL)) return false;
 		}
 	}
 
@@ -212,7 +141,7 @@ bool Game::Frame() {
 		Instance* instance = _instances[i];
 		if (instance->exists) {
 			Object* o = _assetManager.GetObject(instance->object_index);
-			if (!_runActions(o->evStep, o->evStepActionCount, instance->id, NULL)) return false;
+			if (!_codeActions->Run(o->evStep, o->evStepActionCount, instance->id, NULL)) return false;
 		}
 	}
 
@@ -264,7 +193,7 @@ bool Game::Frame() {
 		Instance* instance = _instances[i];
 		if (instance->exists) {
 			Object* o = _assetManager.GetObject(instance->object_index);
-			if (!_runActions(o->evStepEnd, o->evStepEndActionCount, instance->id, NULL)) return false;
+			if (!_codeActions->Run(o->evStepEnd, o->evStepEndActionCount, instance->id, NULL)) return false;
 		}
 	}
 

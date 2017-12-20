@@ -1,22 +1,17 @@
 #include <stdlib.h>
-#include "CodeAction.hpp"
+#include "CodeActionManager.hpp"
 #include "CodeRunner.hpp"
 #include "Instance.hpp"
 #include "StreamUtil.hpp"
 
 
-CodeAction::CodeAction() {
-}
+bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, CodeAction* out) {
+	CACodeAction action;
 
-CodeAction::~CodeAction() {
-}
-
-bool CodeAction::Read(const unsigned char* stream, unsigned int* pos, CodeRunner* runner)
-{
 	(*pos) += 8; // Skips version id and useless lib id
-	actionID = ReadDword(stream, pos);
+	action.actionID = ReadDword(stream, pos);
 	(*pos) += 8; // Skips the useless "kind" variable and a flag for whether it can be relative
-	question = ReadDword(stream, pos);
+	action.question = ReadDword(stream, pos);
 	(*pos) += 8; // Skips a flag for whether this action applies to something, and the useless "type" var
 	(*pos) += ReadDword(stream, pos); // Function name?
 	(*pos) += ReadDword(stream, pos); // Function code?
@@ -44,7 +39,7 @@ bool CodeAction::Read(const unsigned char* stream, unsigned int* pos, CodeRunner
 	// Now we have to generate some GML and register this with the code runner.
 	char* gml = NULL;
 	unsigned int gmlLen = 0;
-	switch (actionID) {
+	switch (action.actionID) {
 		case 101: {
 			// Start moving in a direction
 			const char* baseGml = "direction=%d;speed=%s;";
@@ -271,7 +266,7 @@ bool CodeAction::Read(const unsigned char* stream, unsigned int* pos, CodeRunner
 		}
 		case 423: {
 			// Repeat n times
-			param = std::atoi(args[0]);
+			action.param = std::atoi(args[0]);
 			break;
 		}
 		case 424: {
@@ -375,14 +370,16 @@ bool CodeAction::Read(const unsigned char* stream, unsigned int* pos, CodeRunner
 	}
 
 	// Register the code we just generated
-	if (question) {
-		codeObj = runner->RegisterQuestion(gml, gmlLen);
+	if (action.question) {
+		action.codeObj = _runner->RegisterQuestion(gml, gmlLen);
 	}
 	else {
-		codeObj = runner->Register(gml, gmlLen);
+		action.codeObj = _runner->Register(gml, gmlLen);
 	}
 
 	// Clean up
+	(*out) = (CodeAction)_actions.size();
+	_actions.push_back(action);
 	free(gml);
 	for (i = 0; i < argCount; i++) {
 		free(args[i]);
@@ -391,15 +388,46 @@ bool CodeAction::Read(const unsigned char* stream, unsigned int* pos, CodeRunner
 	return true;
 }
 
-bool CodeAction::Compile(CodeRunner* runner) {
-	return runner->Compile(codeObj);
+bool CodeActionManager::Compile(CodeAction action) {
+	return _runner->Compile(_actions[action].codeObj);
 }
 
-bool CodeAction::Run(CodeRunner* runner, unsigned int self, unsigned int other, bool* response) {
-	if (question) {
-		return runner->Query(codeObj, self, other, response);
+bool CodeActionManager::Run(CodeAction* actions, unsigned int count, unsigned int self, unsigned int other) {
+	unsigned int pos = 0;
+	while (pos < count) {
+		bool run = true;
+		if (_actions[actions[pos]].question) {
+			// Multiple questions can be chained together with the end statement dependent on all of them.
+			while (_actions[actions[pos]].question) {
+				if (run) {
+					bool r;
+					if (!_runner->Query(_actions[actions[pos]].codeObj, self, other, &r)) return false;
+					run &= r;
+				}
+				pos++;
+			}
+		}
+
+		if(run) {
+			if (!_runner->Run(_actions[actions[pos]].codeObj, self, other)) return false;
+			pos++;
+		}
+		else {
+			// Not a question and we are NOT going to run it.
+			if(_actions[actions[pos]].actionID == 422) {
+				// "start block", so skip until matching end block
+				pos++;
+				unsigned int depth = 1;
+				while (depth) {
+					if (_actions[actions[pos]].actionID == 422) depth++;
+					else if (_actions[actions[pos]].actionID == 424) depth--;
+					pos++;
+				}
+			}
+			else {
+				pos++;
+			}
+		}
 	}
-	else {
-		return runner->Run(codeObj, self, other);
-	}
+	return true;
 }

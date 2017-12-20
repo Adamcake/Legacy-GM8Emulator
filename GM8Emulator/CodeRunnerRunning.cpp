@@ -109,7 +109,7 @@ bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const 
 			out->dVal = instance->image_alpha;
 			break;
 		case IV_SPRITE_WIDTH:
-			if (instance->sprite_index < 0 || instance->sprite_index >= _assetManager->GetSpriteCount()) {
+			if (instance->sprite_index < 0 || instance->sprite_index >= (int)_assetManager->GetSpriteCount()) {
 				out->dVal = 0;
 			}
 			else {
@@ -118,7 +118,7 @@ bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const 
 			}
 			break;
 		case IV_SPRITE_HEIGHT:
-			if (instance->sprite_index < 0 || instance->sprite_index >= _assetManager->GetSpriteCount()) {
+			if (instance->sprite_index < 0 || instance->sprite_index >= (int)_assetManager->GetSpriteCount()) {
 				out->dVal = 0;
 			}
 			else {

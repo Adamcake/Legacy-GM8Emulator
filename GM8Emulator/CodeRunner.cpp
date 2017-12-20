@@ -1,14 +1,16 @@
 #include "CodeRunner.hpp"
 #include "AssetManager.hpp"
 #include "InstanceList.hpp"
+#include "CodeActionManager.hpp"
 #include "CREnums.hpp"
 #include "RNG.hpp"
 
 
-CodeRunner::CodeRunner(AssetManager* assets, InstanceList* instances, GlobalValues* globals) {
+CodeRunner::CodeRunner(AssetManager* assets, InstanceList* instances, GlobalValues* globals, CodeActionManager* codeActions) {
 	_assetManager = assets;
 	_instances = instances;
 	_globalValues = globals;
+	_codeActions = codeActions;
 	_rng = new RNG();
 }
 

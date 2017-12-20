@@ -33,9 +33,6 @@
     <ClCompile Include="Assets.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CodeAction.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="StreamUtil.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -66,6 +63,9 @@
     <ClCompile Include="RNG.cpp">
       <Filter>Code Runner\Source</Filter>
     </ClCompile>
+    <ClCompile Include="CodeActionManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Game.hpp">
@@ -78,9 +78,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="zlib\zlib.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CodeAction.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="StreamUtil.hpp">
@@ -112,6 +109,9 @@
     </ClInclude>
     <ClInclude Include="RNG.hpp">
       <Filter>Code Runner\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="CodeActionManager.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

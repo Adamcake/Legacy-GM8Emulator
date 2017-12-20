@@ -3,6 +3,7 @@
 class AssetManager;
 class InstanceList;
 class GameRenderer;
+class CodeActionManager;
 class RNG;
 struct GlobalValues;
 struct Instance;
@@ -227,6 +228,7 @@ class CodeRunner {
 		InstanceList* _instances;
 		GameRenderer* _renderer;
 		GlobalValues* _globalValues;
+		CodeActionManager* _codeActions;
 		RNG* _rng;
 
 		// Internal code object
@@ -329,7 +331,7 @@ class CodeRunner {
 		bool room_goto_previous(unsigned int argc, GMLType* argv, GMLType* out);
 
 	public:
-		CodeRunner(AssetManager* assets, InstanceList* instances, GlobalValues* globals);
+		CodeRunner(AssetManager* assets, InstanceList* instances, GlobalValues* globals, CodeActionManager* codeActions);
 		~CodeRunner();
 
 		// For populating the constant vectors. This should be called before anything else.

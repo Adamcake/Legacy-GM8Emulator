@@ -1,7 +1,7 @@
 #include <list>
 
 #include "Game.hpp"
-#include "CodeAction.hpp"
+#include "CodeActionManager.hpp"
 #include "StreamUtil.hpp"
 #include "GameRenderer.hpp"
 #include "CodeRunner.hpp"
@@ -241,7 +241,9 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 Game::Game() : _instances(&_assetManager) {
 	_info.caption = NULL;
 	_info.gameInfo = NULL;
-	_runner = new CodeRunner(&_assetManager, &_instances, &_globals);
+	_codeActions = new CodeActionManager();
+	_runner = new CodeRunner(&_assetManager, &_instances, &_globals, _codeActions);
+	_codeActions->SetRunner(_runner);
 	_renderer = new GameRenderer();
 	_roomOrder = NULL;
 	_lastUsedRoomSpeed = 0;
@@ -251,6 +253,7 @@ Game::~Game() {
 	_assetManager.Clear();
 	free(_info.caption);
 	free(_info.gameInfo);
+	delete _codeActions;
 	delete _runner;
 	delete[] _roomOrder;
 	delete _renderer;
@@ -969,7 +972,7 @@ bool Game::Load(const char * pFilename) {
 			timeline->moments[i].actions = new CodeAction[timeline->moments[i].actionCount];
 
 			for (unsigned int j = 0; j < timeline->moments[i].actionCount; j++) {
-				if (!timeline->moments[i].actions[j].Read(data, &dataPos, _runner)) {
+				if(!_codeActions->Read(data, &dataPos, timeline->moments[i].actions + j)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1024,7 +1027,7 @@ bool Game::Load(const char * pFilename) {
 			object->evCreateActionCount = ReadDword(data, &dataPos);
 			object->evCreate = new CodeAction[object->evCreateActionCount];
 			for (unsigned int i = 0; i < object->evCreateActionCount; i++) {
-				if (!object->evCreate[i].Read(data, &dataPos, _runner)) {
+				if(!_codeActions->Read(data, &dataPos, object->evCreate + i)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1040,7 +1043,7 @@ bool Game::Load(const char * pFilename) {
 			object->evDestroyActionCount = ReadDword(data, &dataPos);
 			object->evDestroy = new CodeAction[object->evDestroyActionCount];
 			for (unsigned int i = 0; i < object->evDestroyActionCount; i++) {
-				if (!object->evDestroy[i].Read(data, &dataPos, _runner)) {
+				if (!_codeActions->Read(data, &dataPos, object->evDestroy + i)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1060,8 +1063,7 @@ bool Game::Load(const char * pFilename) {
 			e.actionCount = ReadDword(data, &dataPos);
 			e.actions = new CodeAction[e.actionCount];
 			for (unsigned int i = 0; i < e.actionCount; i++) {
-
-				if (!e.actions[i].Read(data, &dataPos, _runner)) {
+				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1089,7 +1091,12 @@ bool Game::Load(const char * pFilename) {
 				object->evStepActionCount = ReadDword(data, &dataPos);
 				object->evStep = new CodeAction[object->evStepActionCount];
 				for (unsigned int i = 0; i < object->evStepActionCount; i++) {
-					object->evStep[i].Read(data, &dataPos, _runner);
+					if (!_codeActions->Read(data, &dataPos, object->evStep + i)) {
+						// Error reading action
+						free(data);
+						free(buffer);
+						return false;
+					}
 				}
 			}
 			else if (index == 1) {
@@ -1105,7 +1112,12 @@ bool Game::Load(const char * pFilename) {
 				object->evStepBeginActionCount = ReadDword(data, &dataPos);
 				object->evStepBegin = new CodeAction[object->evStepBeginActionCount];
 				for (unsigned int i = 0; i < object->evStepBeginActionCount; i++) {
-					object->evStepBegin[i].Read(data, &dataPos, _runner);
+					if (!_codeActions->Read(data, &dataPos, object->evStepBegin + i)) {
+						// Error reading action
+						free(data);
+						free(buffer);
+						return false;
+					}
 				}
 			}
 			else if (index == 2) {
@@ -1121,7 +1133,12 @@ bool Game::Load(const char * pFilename) {
 				object->evStepEndActionCount = ReadDword(data, &dataPos);
 				object->evStepEnd = new CodeAction[object->evStepEndActionCount];
 				for (unsigned int i = 0; i < object->evStepEndActionCount; i++) {
-					object->evStepEnd[i].Read(data, &dataPos, _runner);
+					if (!_codeActions->Read(data, &dataPos, object->evStepEnd + i)) {
+						// Error reading action
+						free(data);
+						free(buffer);
+						return false;
+					}
 				}
 			}
 		}
@@ -1136,8 +1153,7 @@ bool Game::Load(const char * pFilename) {
 			e.actionCount = ReadDword(data, &dataPos);
 			e.actions = new CodeAction[e.actionCount];
 			for (unsigned int i = 0; i < e.actionCount; i++) {
-
-				if (!e.actions[i].Read(data, &dataPos, _runner)) {
+				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1158,8 +1174,7 @@ bool Game::Load(const char * pFilename) {
 			e.actionCount = ReadDword(data, &dataPos);
 			e.actions = new CodeAction[e.actionCount];
 			for (unsigned int i = 0; i < e.actionCount; i++) {
-
-				if (!e.actions[i].Read(data, &dataPos, _runner)) {
+				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1180,8 +1195,7 @@ bool Game::Load(const char * pFilename) {
 			e.actionCount = ReadDword(data, &dataPos);
 			e.actions = new CodeAction[e.actionCount];
 			for (unsigned int i = 0; i < e.actionCount; i++) {
-
-				if (!e.actions[i].Read(data, &dataPos, _runner)) {
+				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1202,8 +1216,7 @@ bool Game::Load(const char * pFilename) {
 			e.actionCount = ReadDword(data, &dataPos);
 			e.actions = new CodeAction[e.actionCount];
 			for (unsigned int i = 0; i < e.actionCount; i++) {
-
-				if (!e.actions[i].Read(data, &dataPos, _runner)) {
+				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1220,7 +1233,7 @@ bool Game::Load(const char * pFilename) {
 			object->evDrawActionCount = ReadDword(data, &dataPos);
 			object->evDraw = new CodeAction[object->evDrawActionCount];
 			for (unsigned int i = 0; i < object->evDrawActionCount; i++) {
-				if (!object->evDraw[i].Read(data, &dataPos, _runner)) {
+				if (!_codeActions->Read(data, &dataPos, object->evDraw + i)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1240,8 +1253,7 @@ bool Game::Load(const char * pFilename) {
 			e.actionCount = ReadDword(data, &dataPos);
 			e.actions = new CodeAction[e.actionCount];
 			for (unsigned int i = 0; i < e.actionCount; i++) {
-
-				if (!e.actions[i].Read(data, &dataPos, _runner)) {
+				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1262,8 +1274,7 @@ bool Game::Load(const char * pFilename) {
 			e.actionCount = ReadDword(data, &dataPos);
 			e.actions = new CodeAction[e.actionCount];
 			for (unsigned int i = 0; i < e.actionCount; i++) {
-
-				if (!e.actions[i].Read(data, &dataPos, _runner)) {
+				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1284,8 +1295,7 @@ bool Game::Load(const char * pFilename) {
 			e.actionCount = ReadDword(data, &dataPos);
 			e.actions = new CodeAction[e.actionCount];
 			for (unsigned int i = 0; i < e.actionCount; i++) {
-
-				if (!e.actions[i].Read(data, &dataPos, _runner)) {
+				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1523,7 +1533,7 @@ bool Game::Load(const char * pFilename) {
 		if (t->exists) {
 			for (unsigned int j = 0; j < t->momentCount; j++) {
 				for (unsigned int k = 0; k < t->moments[j].actionCount; k++) {
-					if (!t->moments[j].actions[k].Compile(_runner)) {
+					if(!_codeActions->Compile(t->moments[j].actions[k])) {
 						// Error compiling script
 						free(data);
 						free(buffer);
@@ -1538,7 +1548,7 @@ bool Game::Load(const char * pFilename) {
 		if (o->exists) {
 			for (IndexedEvent ev : o->evAlarm) {
 				for (unsigned int j = 0; j < ev.actionCount; j++) {
-					if (!ev.actions[j].Compile(_runner)) {
+					if (!_codeActions->Compile(ev.actions[j])) {
 						// Error compiling script
 						free(data);
 						free(buffer);
@@ -1548,7 +1558,7 @@ bool Game::Load(const char * pFilename) {
 			}
 			for (IndexedEvent ev : o->evCollision) {
 				for (unsigned int j = 0; j < ev.actionCount; j++) {
-					if (!ev.actions[j].Compile(_runner)) {
+					if (!_codeActions->Compile(ev.actions[j])) {
 						// Error compiling script
 						free(data);
 						free(buffer);
@@ -1558,7 +1568,7 @@ bool Game::Load(const char * pFilename) {
 			}
 			for (IndexedEvent ev : o->evKeyboard) {
 				for (unsigned int j = 0; j < ev.actionCount; j++) {
-					if (!ev.actions[j].Compile(_runner)) {
+					if (!_codeActions->Compile(ev.actions[j])) {
 						// Error compiling script
 						free(data);
 						free(buffer);
@@ -1568,7 +1578,7 @@ bool Game::Load(const char * pFilename) {
 			}
 			for (IndexedEvent ev : o->evKeyPress) {
 				for (unsigned int j = 0; j < ev.actionCount; j++) {
-					if (!ev.actions[j].Compile(_runner)) {
+					if (!_codeActions->Compile(ev.actions[j])) {
 						// Error compiling script
 						free(data);
 						free(buffer);
@@ -1578,7 +1588,7 @@ bool Game::Load(const char * pFilename) {
 			}
 			for (IndexedEvent ev : o->evKeyRelease) {
 				for (unsigned int j = 0; j < ev.actionCount; j++) {
-					if (!ev.actions[j].Compile(_runner)) {
+					if (!_codeActions->Compile(ev.actions[j])) {
 						// Error compiling script
 						free(data);
 						free(buffer);
@@ -1588,7 +1598,7 @@ bool Game::Load(const char * pFilename) {
 			}
 			for (IndexedEvent ev : o->evMouse) {
 				for (unsigned int j = 0; j < ev.actionCount; j++) {
-					if (!ev.actions[j].Compile(_runner)) {
+					if (!_codeActions->Compile(ev.actions[j])) {
 						// Error compiling script
 						free(data);
 						free(buffer);
@@ -1598,7 +1608,7 @@ bool Game::Load(const char * pFilename) {
 			}
 			for (IndexedEvent ev : o->evOther) {
 				for (unsigned int j = 0; j < ev.actionCount; j++) {
-					if (!ev.actions[j].Compile(_runner)) {
+					if (!_codeActions->Compile(ev.actions[j])) {
 						// Error compiling script
 						free(data);
 						free(buffer);
@@ -1608,7 +1618,7 @@ bool Game::Load(const char * pFilename) {
 			}
 			for (IndexedEvent ev : o->evTrigger) {
 				for (unsigned int j = 0; j < ev.actionCount; j++) {
-					if (!ev.actions[j].Compile(_runner)) {
+					if (!_codeActions->Compile(ev.actions[j])) {
 						// Error compiling script
 						free(data);
 						free(buffer);
@@ -1618,7 +1628,7 @@ bool Game::Load(const char * pFilename) {
 			}
 
 			for (unsigned int j = 0; j < o->evCreateActionCount; j++) {
-				if (!o->evCreate[j].Compile(_runner)) {
+				if (!_codeActions->Compile(o->evCreate[j])) {
 					// Error compiling script
 					free(data);
 					free(buffer);
@@ -1626,7 +1636,7 @@ bool Game::Load(const char * pFilename) {
 				}
 			}
 			for (unsigned int j = 0; j < o->evDestroyActionCount; j++) {
-				if (!o->evDestroy[j].Compile(_runner)) {
+				if (!_codeActions->Compile(o->evDestroy[j])) {
 					// Error compiling script
 					free(data);
 					free(buffer);
@@ -1634,7 +1644,7 @@ bool Game::Load(const char * pFilename) {
 				}
 			}
 			for (unsigned int j = 0; j < o->evStepActionCount; j++) {
-				if (!o->evStep[j].Compile(_runner)) {
+				if (!_codeActions->Compile(o->evStep[j])) {
 					// Error compiling script
 					free(data);
 					free(buffer);
@@ -1642,7 +1652,7 @@ bool Game::Load(const char * pFilename) {
 				}
 			}
 			for (unsigned int j = 0; j < o->evStepBeginActionCount; j++) {
-				if (!o->evStepBegin[j].Compile(_runner)) {
+				if (!_codeActions->Compile(o->evStepBegin[j])) {
 					// Error compiling script
 					free(data);
 					free(buffer);
@@ -1650,7 +1660,7 @@ bool Game::Load(const char * pFilename) {
 				}
 			}
 			for (unsigned int j = 0; j < o->evStepEndActionCount; j++) {
-				if (!o->evStepEnd[j].Compile(_runner)) {
+				if (!_codeActions->Compile(o->evStepEnd[j])) {
 					// Error compiling script
 					free(data);
 					free(buffer);
@@ -1658,7 +1668,7 @@ bool Game::Load(const char * pFilename) {
 				}
 			}
 			for (unsigned int j = 0; j < o->evDrawActionCount; j++) {
-				if (!o->evDraw[j].Compile(_runner)) {
+				if (!_codeActions->Compile(o->evDraw[j])) {
 					// Error compiling script
 					free(data);
 					free(buffer);

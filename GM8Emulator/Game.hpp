@@ -6,7 +6,7 @@
 #include "GlobalValues.hpp"
 class GameRenderer;
 class CodeRunner;
-
+class CodeActionManager;
 
 
 // This is the overall structure for the game state.
@@ -40,6 +40,9 @@ class Game {
 		// Object for compiling and running GML
 		CodeRunner* _runner;
 
+		// Manager for drag-n-drop code actions
+		CodeActionManager* _codeActions;
+
 		// This refers to the "game information" text box that comes up if you press F1.
 		GameInfo _info;
 
@@ -56,9 +59,6 @@ class Game {
 
 		// Misc game variables
 		unsigned int _lastUsedRoomSpeed;
-
-		// Private function for running a list of CodeActions
-		bool _runActions(CodeAction* actions, unsigned int count, unsigned int self, unsigned int other);
 
 	public:
 		Game();

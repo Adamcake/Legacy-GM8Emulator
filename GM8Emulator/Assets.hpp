@@ -2,9 +2,10 @@
 #define _GM8_ASSETS_HPP_
 #include <vector>
 #include <list>
-class CodeAction;
+class CodeActionManager;
 typedef unsigned int RImageIndex;
 typedef unsigned int CodeObject;
+typedef unsigned int CodeAction;
 
 
 // Subclasses used by main asset types
