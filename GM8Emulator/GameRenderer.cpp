@@ -13,9 +13,9 @@ const GLchar* fragmentShaderCode = "#version 440\n"
 "in vec2 fragTexCoord;\n"
 "out vec4 colourOut;\n"
 "void main() {\n"
-"vec4 col = texture2D(tex, fragTexCoord);\n"
 "if(hardColour.xyz == vec3(0, 0, 0)) {\n"
-"colourOut = vec4((col.x * objBlend.x), (col.y * objBlend.y), (col.z * objBlend.z), (col.w * clamp(objAlpha, 0, 1)));\n"
+"vec4 col = texture2D(tex, fragTexCoord);\n"
+"colourOut = vec4((col.x * objBlend.x), (col.y * objBlend.y), (col.z * objBlend.z), (col.w * objAlpha));\n"
 "}\n"
 "else {\n"
 "colourOut = vec4(hardColour, 1.0);\n"
@@ -25,17 +25,22 @@ const GLchar* fragmentShaderCode = "#version 440\n"
 const GLchar* vertexShaderCode = "#version 440\n"
 "in vec3 vert;\n"
 "in vec2 vertTexCoord;\n"
-"uniform mat4 translateToMiddle;\n"
-"uniform mat4 rotate;\n"
-"uniform mat4 translateBack;\n"
 "uniform mat4 project;\n"
-"uniform int calced;\n"
 "out vec2 fragTexCoord;\n"
 
 "void main() {\n"
 "fragTexCoord = vertTexCoord;\n"
-"gl_Position = project * translateBack * rotate * translateToMiddle * vec4(vert.x, vert.y, vert.z, 1);\n"
+"gl_Position = project * vec4(vert.x, vert.y, vert.z, 1);\n"
 "}";
+
+
+void mat4Mult(const GLfloat* lhs, const GLfloat* rhs, GLfloat* out) {
+	for (unsigned int y = 0; y < 4; y++) {
+		for (unsigned int x = 0; x < 4; x++) {
+			out[(y * 4) + x] = (lhs[y * 4] * rhs[x]) + (lhs[(y * 4) + 1] * rhs[x + 4]) + (lhs[(y * 4) + 2] * rhs[x + 8]) + (lhs[(y * 4) + 3] * rhs[x + 12]);
+		}
+	}
+}
 
 
 GameRenderer::GameRenderer() {
@@ -189,37 +194,22 @@ RImageIndex GameRenderer::MakeImage(unsigned int w, unsigned int h, unsigned int
 void GameRenderer::DrawImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha) {
 	RImage* img = _images._Myfirst() + ix;
 
-	// Bind shader values needed for GPU calculations
-	double dRot = rot * PI / 180;
+	// Calculate a single matrix for scaling and transforming the sprite
+	double dRot = -rot * PI / 180;
 	GLfloat sinRot = (GLfloat)sin(dRot);
 	GLfloat cosRot = (GLfloat)cos(dRot);
-	GLfloat translateToMiddle[16] = {
-		1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, 0,
-		-((GLfloat)img->originX / img->w), -((GLfloat)img->originY / img->h), 0, 1
-	};
-	GLfloat rotate[16] = {
-		cosRot, sinRot, 0, 0,
-		-sinRot, cosRot, 0, 0,
-		0, 0, 1, 0,
-		0, 0, 0, 1
-	};
-	GLfloat translateBack[16] = {
-		1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, 0,
-		((GLfloat)img->originX / img->w), ((GLfloat)img->originY / img->h), 0, 1
-	};
+	GLfloat dx = ((GLfloat)img->originX / img->w);
+	GLfloat dy = ((GLfloat)img->originY / img->h);
+	GLfloat xs = (GLfloat)(img->w * xscale * 2.0 / windowW);
+	GLfloat ys = (GLfloat)(img->h * yscale * 2.0 / windowH);
 	GLfloat project[16] = {
-		(GLfloat)(img->w * xscale * 2.0 / windowW), 0, 0, 0,
-		0, -(GLfloat)(img->h * yscale * 2.0 / windowH), 0, 0,
+		(cosRot * xs), (sinRot *-ys), 0, 0,
+		(-sinRot *xs), (cosRot *-ys), 0, 0,
 		0, 0, 1, 0,
-		(GLfloat)(((x - (img->originX * xscale)) / windowW) * 2.0 - 1.0), -(GLfloat)(((y - (img->originY * yscale)) / windowH) * 2.0 - 1.0), 0, 1
+		((((-dx * cosRot) + (dy * sinRot)) * xs) + ((2 * x / windowW) - 1)), ((((-dx * sinRot) + (-dy * cosRot)) * -ys) + (-(2 * y / windowH) + 1)), 0, 1
 	};
-	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "translateToMiddle"), 1, GL_FALSE, translateToMiddle);
-	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "rotate"), 1, GL_FALSE, rotate);
-	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "translateBack"), 1, GL_FALSE, translateBack);
+
+	// Bind uniform shader values
 	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "project"), 1, GL_FALSE, project);
 	glUniform1d(glGetUniformLocation(_glProgram, "objAlpha"), alpha);
 	glUniform3f(glGetUniformLocation(_glProgram, "objBlend"), (GLfloat)(blend & 0xFF) / 0xFF, (GLfloat)(blend & 0xFF00) / 0xFF00, (GLfloat)(blend & 0xFF0000) / 0xFF0000);
@@ -254,22 +244,12 @@ void GameRenderer::RenderFrame() {
 	glfwPollEvents(); // This probably won't be here later on, but it needs to happen every frame for the window to update properly.
 	glUseProgram(_glProgram);
 	glClear(GL_COLOR_BUFFER_BIT);
-
-	GLfloat ident[16] = {
-		1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, 0,
-		0, 0, 0, 1
-	};
 	GLfloat proj[16] = {
-		2, 0, 0, 0,
-		0, 2, 0, 0,
-		0, 0, 1, 0,
-		-1, -1, 0, 1
+		2.0, 0.0, 0.0, 0.0,
+		0.0, 2.0, 0.0, 0.0,
+		0.0, 0.0, 1.0, 0.0,
+		-1.0,-1.0,0.0, 1.0
 	};
-	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "translateToMiddle"), 1, GL_FALSE, ident);
-	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "rotate"), 1, GL_FALSE, ident);
-	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "translateBack"), 1, GL_FALSE, ident);
 	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "project"), 1, GL_FALSE, proj);
 
 	GLint vertTexCoord = glGetAttribLocation(_glProgram, "vertTexCoord");

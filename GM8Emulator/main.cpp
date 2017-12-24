@@ -17,8 +17,7 @@
 
 
 int main(int argc, char** argv) {
-	std::chrono::high_resolution_clock::time_point t1;
-	std::chrono::high_resolution_clock::time_point t2;
+	std::chrono::high_resolution_clock::time_point t1, t2;
 
 #if OUTPUT_FRAME_TIME
 	t1 = std::chrono::high_resolution_clock::now();
@@ -61,16 +60,23 @@ int main(int argc, char** argv) {
 		if (!game->Frame()) {
 			break;
 		}
+		
+#if OUTPUT_FRAME_TIME
 		t2 = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
 		double mus = time_span.count() * 1000000.0;
-		long long waitMus = (long long)((((double)1000000.0) / game->GetRoomSpeed()) - mus);
-		if (waitMus > 0) {
-			std::this_thread::sleep_for(std::chrono::microseconds(waitMus));
-		}
-#if OUTPUT_FRAME_TIME
-		std::cout << "Frame took " << mus << " microseconds, waiting " << waitMus << " microseconds" << std::endl;
+		std::cout << "Frame took " << (int)mus << " microseconds" << std::endl;
 #endif
+
+		while (true) {
+			t2 = std::chrono::high_resolution_clock::now();
+			std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+			double mus2 = time_span.count() * 1000000.0;
+			long long waitMus = (long long)((((double)1000000.0) / game->GetRoomSpeed()) - mus2);
+			if (waitMus <= 0) {
+				break;
+			}
+		}
 	}
 
 	// Natural end of application

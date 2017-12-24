@@ -85,6 +85,7 @@ bool Game::Frame() {
 		Instance* instance = _instances[i];
 		// Don't run draw event for instances that don't exist or aren't visible.
 		if (instance->exists && instance->visible) {
+
 			Object* obj = _assetManager.GetObject(instance->object_index);
 			if (obj->evDraw) {
 				// This object has a custom draw event.
