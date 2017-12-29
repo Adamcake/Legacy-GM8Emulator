@@ -5,6 +5,7 @@
 #include "Instance.hpp"
 #include "RNG.hpp"
 #include "CodeActionManager.hpp"
+#include "InputHandler.hpp"
 
 /*
 All GML functions have this format:
@@ -47,83 +48,167 @@ bool CodeRunner::instance_destroy(unsigned int argc, GMLType* argv, GMLType* out
 }
 
 bool CodeRunner::irandom(unsigned int argc, GMLType* argv, GMLType* out) {
-	// tbd
-	return false;
+	if (argv[0].state == GML_TYPE_STRING) return false;
+	int rand = _rng->Irandom(_round(argv[0].dVal));
+	if (out) {
+		out->state = GML_TYPE_DOUBLE;
+		out->dVal = (double)rand;
+	}
+	return true;
 }
 
 bool CodeRunner::irandom_range(unsigned int argc, GMLType* argv, GMLType* out) {
-	// tbd
-	return false;
+	if (argv[0].state == GML_TYPE_STRING || argv[1].state == GML_TYPE_STRING) return false;
+	int rand = _rng->Irandom(_round(argv[0].dVal));
+	if (out) {
+		out->state = GML_TYPE_DOUBLE;
+		out->dVal = (double)rand;
+	}
+	return true;
+}
+
+bool CodeRunner::keyboard_check(unsigned int argc, GMLType* argv, GMLType* out) {
+	out->state = GML_TYPE_DOUBLE;
+	int gmlKeycode = (argv[0].state == GML_TYPE_DOUBLE ? _round(argv[0].dVal) : 0);
+
+	if (gmlKeycode == 0) {
+		// vk_nokey
+		out->dVal = (InputCountKeys() == 0 ? 1.0 : 0.0);
+	}
+	else if (gmlKeycode == 1) {
+		// vk_anykey
+		out->dVal = (InputCountKeys() == 0 ? 0.0 : 1.0);
+	}
+	else if (gmlKeycode == 39) {
+		out->dVal = (InputCheckKey(262) ? 1.0 : 0.0);
+	}
+	else if (gmlKeycode == 37) {
+		out->dVal = (InputCheckKey(263) ? 1.0 : 0.0);
+	}
+	else if (gmlKeycode == 40) {
+		out->dVal = (InputCheckKey(264) ? 1.0 : 0.0);
+	}
+	else if (gmlKeycode == 38) {
+		out->dVal = (InputCheckKey(265) ? 1.0 : 0.0);
+	}
+	else if (gmlKeycode == 13) {
+		out->dVal = (InputCheckKey(257) ? 1.0 : 0.0);
+	}
+	else if (gmlKeycode == 27) {
+		out->dVal = (InputCheckKey(256) ? 1.0 : 0.0);
+	}
+	else if (gmlKeycode == 32) {
+		out->dVal = (InputCheckKey(32) ? 1.0 : 0.0);
+	}
+	else if (gmlKeycode == 16) {
+		out->dVal = ((InputCheckKey(340) && InputCheckKey(344)) ? 1.0 : 0.0);
+	}
+	else if (gmlKeycode == 17) {
+		out->dVal = ((InputCheckKey(341) && InputCheckKey(345)) ? 1.0 : 0.0);
+	}
+	else {
+		out->dVal = (InputCheckKey(gmlKeycode) ? 1.0 : 0.0);
+	}
+	return true;
+}
+
+bool CodeRunner::keyboard_check_direct(unsigned int argc, GMLType* argv, GMLType* out) {
+	out->state = GML_TYPE_DOUBLE;
+	int gmlKeycode = (argv[0].state == GML_TYPE_DOUBLE ? _round(argv[0].dVal) : 0);
+	out->dVal = (InputCheckKeyDirect(gmlKeycode) ? 1.0 : 0.0);
+	return true;
+}
+
+bool CodeRunner::keyboard_check_pressed(unsigned int argc, GMLType* argv, GMLType* out) {
+	out->state = GML_TYPE_DOUBLE;
+	int gmlKeycode = (argv[0].state == GML_TYPE_DOUBLE ? _round(argv[0].dVal) : 0);
+
+	if (gmlKeycode == 0) {
+		// vk_nokey
+		out->dVal = (InputCountKeysPressed() == 0 ? 1.0 : 0.0);
+	}
+	else if (gmlKeycode == 1) {
+		// vk_anykey
+		out->dVal = (InputCountKeysPressed() == 0 ? 0.0 : 1.0);
+	}
+	else {
+		out->dVal = (InputCheckKeyPressed(gmlKeycode) ? 1.0 : 0.0);
+	}
+	return true;
+}
+
+bool CodeRunner::keyboard_check_released(unsigned int argc, GMLType* argv, GMLType* out) {
+	(*out).state = GML_TYPE_DOUBLE;
+	int gmlKeycode = (argv[0].state == GML_TYPE_DOUBLE ? _round(argv[0].dVal) : 0);
+
+	if (gmlKeycode == 0) {
+		// vk_nokey
+		out->dVal = (InputCountKeysReleased() == 0 ? 1.0 : 0.0);
+	}
+	else if (gmlKeycode == 1) {
+		// vk_anykey
+		out->dVal = (InputCountKeysReleased() == 0 ? 0.0 : 1.0);
+	}
+	else {
+		out->dVal = (InputCheckKeyReleased(gmlKeycode) ? 1.0 : 0.0);
+	}
+	return true;
 }
 
 bool CodeRunner::make_color_hsv(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[0].state == GML_TYPE_STRING || argv[1].state == GML_TYPE_STRING || argv[2].state == GML_TYPE_STRING) return false;
 	if (out) {
-		double h = argv[0].dVal;
-		double s = argv[1].dVal;
-		double v = argv[2].dVal;
-		unsigned char r, g, b;
+		float fH = (float)((argv[0].dVal / 255.0) * 360.0);
+		float fS = (float)(argv[1].dVal / 255.0);
+		float fV = (float)(argv[2].dVal / 255.0);
+		float fR, fG, fB;
+		float fC = fV * fS; // Chroma
+		float fHPrime = fmod(fH / 60.0, 6);
+		float fX = fC * (1 - fabs(fmod(fHPrime, 2) - 1));
+		float fM = fV - fC;
 
-		if (s == 0) {
-			r = v;
-			g = v;
-			b = v;
+		if (0 <= fHPrime && fHPrime < 1) {
+			fR = fC;
+			fG = fX;
+			fB = 0;
+		}
+		else if (1 <= fHPrime && fHPrime < 2) {
+			fR = fX;
+			fG = fC;
+			fB = 0;
+		}
+		else if (2 <= fHPrime && fHPrime < 3) {
+			fR = 0;
+			fG = fC;
+			fB = fX;
+		}
+		else if (3 <= fHPrime && fHPrime < 4) {
+			fR = 0;
+			fG = fX;
+			fB = fC;
+		}
+		else if (4 <= fHPrime && fHPrime < 5) {
+			fR = fX;
+			fG = 0;
+			fB = fC;
+		}
+		else if (5 <= fHPrime && fHPrime < 6) {
+			fR = fC;
+			fG = 0;
+			fB = fX;
 		}
 		else {
-			int i;
-			double f, p, q, t;
-			h /= (256.0/6.0);
-			s /= 255.0;
-			v /= 255.0;
-
-			i = (int)trunc(h);
-			f = h - i;
-			p = v * (1.0 - s);
-			q = v * (1.0 - (s * f));
-			t = v * (1.0 - (s * (1.0 - f)));
-
-			switch (i)
-			{
-			case 0:
-				r = (unsigned char)(v * 255);
-				g = (unsigned char)(t * 255);
-				b = (unsigned char)(p * 255);
-				break;
-
-			case 1:
-				r = (unsigned char)(q * 255);
-				g = (unsigned char)(v * 255);
-				b = (unsigned char)(p * 255);
-				break;
-
-			case 2:
-				r = (unsigned char)(p * 255);
-				g = (unsigned char)(v * 255);
-				b = (unsigned char)(t * 255);
-				break;
-
-			case 3:
-				r = (unsigned char)(p * 255);
-				g = (unsigned char)(q * 255);
-				b = (unsigned char)(v * 255);
-				break;
-
-			case 4:
-				r = (unsigned char)(t * 255);
-				g = (unsigned char)(p * 255);
-				b = (unsigned char)(v * 255);
-				break;
-
-			default:
-				r = (unsigned char)(v * 255);
-				g = (unsigned char)(p * 255);
-				b = (unsigned char)(q * 255);
-				break;
-			}
+			fR = 0;
+			fG = 0;
+			fB = 0;
 		}
 
+		fR += fM;
+		fG += fM;
+		fB += fM;
+
 		out->state = GML_TYPE_DOUBLE;
-		out->dVal = ((unsigned int)r) | (((unsigned int)g) << 8) | (((unsigned int)b) << 16);
+		out->dVal = ((unsigned int)(fR * 255)) | (((unsigned int)(fG * 255)) << 8) | (((unsigned int)(fB * 255)) << 16);
 	}
 	return true;
 }
@@ -159,17 +244,36 @@ bool CodeRunner::move_wrap(unsigned int argc, GMLType* argv, GMLType* out) {
 }
 
 bool CodeRunner::random(unsigned int argc, GMLType* argv, GMLType* out) {
-	double rand = _rng->Random();
+	if (argv[0].state == GML_TYPE_STRING) return false;
+	double rand = _rng->Random(argv[0].dVal);
 	if (out) {
 		out->state = GML_TYPE_DOUBLE;
-		out->dVal = argv[0].dVal * rand;
+		out->dVal = rand;
 	}
 	return true;
 }
 
 bool CodeRunner::random_range(unsigned int argc, GMLType* argv, GMLType* out) {
-	// tbd
-	return false;
+	if (argv[0].state == GML_TYPE_STRING || argv[1].state == GML_TYPE_STRING) return false;
+	double rand = _rng->Random(argv[1].dVal - argv[0].dVal);
+	if (out) {
+		out->state = GML_TYPE_DOUBLE;
+		out->dVal = rand + argv[0].dVal;
+	}
+	return true;
+}
+
+bool CodeRunner::random_get_seed(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (out) {
+		out->state = GML_TYPE_DOUBLE;
+		out->dVal = (double)_rng->GetSeed();
+	}
+	return true;
+}
+
+bool CodeRunner::random_set_seed(unsigned int argc, GMLType* argv, GMLType* out) {
+	_rng->SetSeed(argv[0].state == GML_TYPE_DOUBLE ? _round(argv[0].dVal) : 0);
+	return true;
 }
 
 bool CodeRunner::room_goto(unsigned int argc, GMLType* argv, GMLType* out) {

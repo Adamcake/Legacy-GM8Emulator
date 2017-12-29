@@ -3,6 +3,7 @@
 #include "Instance.hpp"
 #include "CodeActionManager.hpp"
 #include "CodeRunner.hpp"
+#include "InputHandler.hpp"
 
 
 bool Game::LoadRoom(unsigned int id) {
@@ -15,14 +16,12 @@ bool Game::LoadRoom(unsigned int id) {
 	// Check room exists
 	if (!room->exists) return false;
 
-	for (unsigned int i = 0; i < _instances.Count(); i++) {
+	unsigned int count = _instances.Count();
+	for (unsigned int i = 0; i < count; i++) {
 		// run "room end" event for _instances[i]
 		Object* o = _assetManager.GetObject(_instances[i]->object_index);
-		for (IndexedEvent e : o->evOther) {
-			if (e.index == 5) {
-				if (!_codeActions->Run(e.actions, e.actionCount, _instances[i]->id, NULL)) return false;
-				break;
-			}
+		if (o->evOther.count(5)) {
+			if (!_codeActions->Run(o->evOther[5].actions, o->evOther[5].actionCount, _instances[i]->id, NULL)) return false;
 		}
 	}
 
@@ -63,14 +62,12 @@ bool Game::LoadRoom(unsigned int id) {
 	// run room's creation code
 	if (!_runner->Run(room->creationCode, NULL, NULL)) return false;
 
-	for (unsigned int i = 0; i < _instances.Count(); i++) {
+	count = _instances.Count();
+	for (unsigned int i = 0; i < count; i++) {
 		// run _instances[i] room start event
 		Object* o = _assetManager.GetObject(_instances[i]->object_index);
-		for (IndexedEvent e : o->evOther) {
-			if (e.index == 4) {
-				if (!_codeActions->Run(e.actions, e.actionCount, _instances[i]->id, NULL)) return false;
-				break;
-			}
+		if (o->evOther.count(4)) {
+			if (!_codeActions->Run(o->evOther[4].actions, o->evOther[4].actionCount, _instances[i]->id, NULL)) return false;
 		}
 	}
 
@@ -81,7 +78,8 @@ bool Game::LoadRoom(unsigned int id) {
 
 bool Game::Frame() {
 	// Run draw event for all instances (TODO: correct depth order)
-	for (unsigned int i = 0; i < _instances.Count(); i++) {
+	unsigned int icount = _instances.Count();
+	for (unsigned int i = 0; i < icount; i++) {
 		Instance* instance = _instances[i];
 		// Don't run draw event for instances that don't exist or aren't visible.
 		if (instance->exists && instance->visible) {
@@ -112,10 +110,30 @@ bool Game::Frame() {
 	_renderer->RenderFrame();
 	if (_renderer->ShouldClose()) return false;
 
+	// Update sprite info
+	icount = _instances.Count();
+	for (unsigned int i = 0; i < icount; i++) {
+		Instance* instance = _instances[i];
+		if (instance->exists) {
+			instance->image_index += instance->image_speed;
+
+			if (instance->sprite_index >= 0) {
+				Sprite* s = _assetManager.GetSprite(instance->sprite_index);
+				if (instance->image_index > s->frameCount) {
+					instance->image_index -= s->frameCount;
+				}
+			}
+		}
+	}
+
+	// Update inputs from keyboard and mouse (doesn't really matter where this is in the event order as far as I know)
+	InputUpdate();
+
 	// TODO: "begin step" trigger events
 
 	// Run "begin step" event for all instances
-	for (unsigned int i = 0; i < _instances.Count(); i++) {
+	icount = _instances.Count();
+	for (unsigned int i = 0; i < icount; i++) {
 		Instance* instance = _instances[i];
 		if (instance->exists) {
 			Object* o = _assetManager.GetObject(instance->object_index);
@@ -126,6 +144,21 @@ bool Game::Frame() {
 	// TODO: if timeline_running, add timeline_speed to timeline_position and then run any events in that timeline indexed BELOW (not equal to) the current timeline_position
 
 	// TODO: subtract from alarms and run event if they reach 0
+	icount = _instances.Count();
+	for (unsigned int i = 0; i < icount; i++) {
+		Instance* instance = _instances[i];
+		if (instance->exists) {
+			Object* obj = _assetManager.GetObject(instance->object_index);
+			for (auto const& j : instance->alarm) {
+				if (j.second > 0) {
+					instance->alarm[j.first]--;
+					if (instance->alarm[j.first] == 0) {
+						if (!_codeActions->Run(obj->evAlarm[j.first].actions, obj->evAlarm[j.first].actionCount, instance->id, NULL)) return false;
+					}
+				}
+			}
+		}
+	}
 
 	// TODO: keyboard events
 	
@@ -138,7 +171,8 @@ bool Game::Frame() {
 	// TODO: "normal step" trigger events
 
 	// Run "step" event for all instances
-	for (unsigned int i = 0; i < _instances.Count(); i++) {
+	icount = _instances.Count();
+	for (unsigned int i = 0; i < icount; i++) {
 		Instance* instance = _instances[i];
 		if (instance->exists) {
 			Object* o = _assetManager.GetObject(instance->object_index);
@@ -147,7 +181,8 @@ bool Game::Frame() {
 	}
 
 	// Movement
-	for (unsigned int i = 0; i < _instances.Count(); i++) {
+	icount = _instances.Count();
+	for (unsigned int i = 0; i < icount; i++) {
 		Instance* instance = _instances[i];
 		if (instance->exists) {
 			// Set xprevious and yprevious
@@ -190,7 +225,8 @@ bool Game::Frame() {
 	// TODO: "end step" trigger events
 
 	// Run "end step" event for all instances
-	for (unsigned int i = 0; i < _instances.Count(); i++) {
+	icount = _instances.Count();
+	for (unsigned int i = 0; i < icount; i++) {
 		Instance* instance = _instances[i];
 		if (instance->exists) {
 			Object* o = _assetManager.GetObject(instance->object_index);

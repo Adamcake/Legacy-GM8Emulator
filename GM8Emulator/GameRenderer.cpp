@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 #include "GameRenderer.hpp"
 #include "GameSettings.hpp"
+#include "InputHandler.hpp"
 
 const GLchar* fragmentShaderCode = "#version 440\n"
 "uniform sampler2D tex;\n"
@@ -27,7 +28,6 @@ const GLchar* vertexShaderCode = "#version 440\n"
 "in vec2 vertTexCoord;\n"
 "uniform mat4 project;\n"
 "out vec2 fragTexCoord;\n"
-
 "void main() {\n"
 "fragTexCoord = vertTexCoord;\n"
 "gl_Position = project * vec4(vert.x, vert.y, vert.z, 1);\n"
@@ -62,6 +62,7 @@ bool GameRenderer::MakeGameWindow(GameSettings* settings, unsigned int w, unsign
 
 	// Create window
 	window = glfwCreateWindow(w, h, "", NULL, NULL);
+	InputInit(window);
 	if (!window) {
 		return false;
 	}
@@ -157,8 +158,17 @@ void GameRenderer::SetGameWindowTitle(const char* title) {
 	glfwSetWindowTitle(window, title);
 }
 
-void GameRenderer::GetCursorPos(double* xpos, double* ypos) {
-	glfwGetCursorPos(window, xpos, ypos);
+void GameRenderer::GetCursorPos(int* xpos, int* ypos) {
+	double xp, yp;
+	int actualWinW, actualWinH;
+	glfwGetCursorPos(window, &xp, &yp);
+	glfwGetWindowSize(window, &actualWinW, &actualWinH);
+	xp /= actualWinW;
+	yp /= actualWinH;
+	xp *= windowW;
+	yp *= windowH;
+	if(xpos) (*xpos) = (int)xp;
+	if(ypos) (*ypos) = (int)yp;
 }
 
 bool GameRenderer::ShouldClose() {
@@ -203,10 +213,10 @@ void GameRenderer::DrawImage(RImageIndex ix, double x, double y, double xscale, 
 	GLfloat xs = (GLfloat)(img->w * xscale * 2.0 / windowW);
 	GLfloat ys = (GLfloat)(img->h * yscale * 2.0 / windowH);
 	GLfloat project[16] = {
-		(cosRot * xs), (sinRot *-ys), 0, 0,
-		(-sinRot *xs), (cosRot *-ys), 0, 0,
+		(GLfloat)(cosRot * xs), (GLfloat)(sinRot *-ys), 0, 0,
+		(GLfloat)(-sinRot *xs), (GLfloat)(cosRot *-ys), 0, 0,
 		0, 0, 1, 0,
-		((((-dx * cosRot) + (dy * sinRot)) * xs) + ((2 * x / windowW) - 1)), ((((-dx * sinRot) + (-dy * cosRot)) * -ys) + (-(2 * y / windowH) + 1)), 0, 1
+		(GLfloat)((((-dx * cosRot) + (dy * sinRot)) * xs) + ((2 * x / windowW) - 1)), (GLfloat)((((-dx * sinRot) + (-dy * cosRot)) * -ys) + (-(2 * y / windowH) + 1)), 0, 1
 	};
 
 	// Bind uniform shader values
@@ -241,7 +251,7 @@ void GameRenderer::RenderFrame() {
 	glfwGetWindowSize(window, &actualWinW, &actualWinH);
 	glViewport(0, 0, actualWinW, actualWinH);
 	glfwSwapBuffers(window);
-	glfwPollEvents(); // This probably won't be here later on, but it needs to happen every frame for the window to update properly.
+	glFlush();
 	glUseProgram(_glProgram);
 	glClear(GL_COLOR_BUFFER_BIT);
 	GLfloat proj[16] = {
@@ -254,7 +264,7 @@ void GameRenderer::RenderFrame() {
 
 	GLint vertTexCoord = glGetAttribLocation(_glProgram, "vertTexCoord");
 	glEnableVertexAttribArray(vertTexCoord);
-	glUniform3f(glGetUniformLocation(_glProgram, "hardColour"), bgR, bgG, bgB);
+	glUniform3f(glGetUniformLocation(_glProgram, "hardColour"), (GLfloat)bgR, (GLfloat)bgG, (GLfloat)bgB);
 	glVertexAttribPointer(vertTexCoord, 2, GL_FLOAT, GL_TRUE, 3 * sizeof(GLfloat), 0);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	glUniform3f(glGetUniformLocation(_glProgram, "hardColour"), 0, 0, 0);

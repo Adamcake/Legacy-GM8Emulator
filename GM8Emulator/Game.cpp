@@ -5,6 +5,7 @@
 #include "StreamUtil.hpp"
 #include "GameRenderer.hpp"
 #include "CodeRunner.hpp"
+#include "InputHandler.hpp"
 #include "Instance.hpp"
 #include "zlib\zlib.h"
 
@@ -242,9 +243,9 @@ Game::Game() : _instances(&_assetManager) {
 	_info.caption = NULL;
 	_info.gameInfo = NULL;
 	_codeActions = new CodeActionManager();
-	_runner = new CodeRunner(&_assetManager, &_instances, &_globals, _codeActions);
-	_codeActions->SetRunner(_runner);
 	_renderer = new GameRenderer();
+	_runner = new CodeRunner(&_assetManager, &_instances, &_globals, _codeActions, _renderer);
+	_codeActions->SetRunner(_runner);
 	_roomOrder = NULL;
 	_lastUsedRoomSpeed = 0;
 }
@@ -962,17 +963,16 @@ bool Game::Load(const char * pFilename) {
 
 		dataPos += 4;
 		timeline->momentCount = ReadDword(data, &dataPos);
-		timeline->moments = new IndexedEvent[timeline->momentCount];
 
 		for (unsigned int i = 0; i < timeline->momentCount; i++) {
-			timeline->moments[i].index = ReadDword(data, &dataPos);
+			unsigned int index = ReadDword(data, &dataPos);
 			dataPos += 4;
 
-			timeline->moments[i].actionCount = ReadDword(data, &dataPos);
-			timeline->moments[i].actions = new CodeAction[timeline->moments[i].actionCount];
+			timeline->moments[index].actionCount = ReadDword(data, &dataPos);
+			timeline->moments[index].actions = new CodeAction[timeline->moments[index].actionCount];
 
-			for (unsigned int j = 0; j < timeline->moments[i].actionCount; j++) {
-				if(!_codeActions->Read(data, &dataPos, timeline->moments[i].actions + j)) {
+			for (unsigned int j = 0; j < timeline->moments[index].actionCount; j++) {
+				if(!_codeActions->Read(data, &dataPos, timeline->moments[index].actions + j)) {
 					// Error reading action
 					free(data);
 					free(buffer);
@@ -1057,7 +1057,6 @@ bool Game::Load(const char * pFilename) {
 		while (true) {
 			unsigned int index = ReadDword(data, &dataPos);
 			if (index == -1) break;
-			e.index = index;
 
 			dataPos += 4;
 			e.actionCount = ReadDword(data, &dataPos);
@@ -1071,7 +1070,7 @@ bool Game::Load(const char * pFilename) {
 				}
 			}
 
-			object->evAlarm.push_back(e);
+			object->evAlarm[index] = e;
 		}
 
 		// Step events
@@ -1147,7 +1146,6 @@ bool Game::Load(const char * pFilename) {
 		while (true) {
 			unsigned int index = ReadDword(data, &dataPos);
 			if (index == -1) break;
-			e.index = index;
 
 			dataPos += 4;
 			e.actionCount = ReadDword(data, &dataPos);
@@ -1161,14 +1159,13 @@ bool Game::Load(const char * pFilename) {
 				}
 			}
 
-			object->evCollision.push_back(e);
+			object->evCollision[index] = e;
 		}
 
 		// Keyboard events
 		while (true) {
 			unsigned int index = ReadDword(data, &dataPos);
 			if (index == -1) break;
-			e.index = index;
 
 			dataPos += 4;
 			e.actionCount = ReadDword(data, &dataPos);
@@ -1182,14 +1179,13 @@ bool Game::Load(const char * pFilename) {
 				}
 			}
 
-			object->evKeyboard.push_back(e);
+			object->evKeyboard[index] = e;
 		}
 
 		// Mouse events
 		while (true) {
 			unsigned int index = ReadDword(data, &dataPos);
 			if (index == -1) break;
-			e.index = index;
 
 			dataPos += 4;
 			e.actionCount = ReadDword(data, &dataPos);
@@ -1203,14 +1199,13 @@ bool Game::Load(const char * pFilename) {
 				}
 			}
 
-			object->evMouse.push_back(e);
+			object->evMouse[index] = e;
 		}
 
 		// Other events
 		while (true) {
 			unsigned int index = ReadDword(data, &dataPos);
 			if (index == -1) break;
-			e.index = index;
 
 			dataPos += 4;
 			e.actionCount = ReadDword(data, &dataPos);
@@ -1224,7 +1219,7 @@ bool Game::Load(const char * pFilename) {
 				}
 			}
 
-			object->evOther.push_back(e);
+			object->evOther[index] = e;
 		}
 
 		// Draw event
@@ -1247,7 +1242,6 @@ bool Game::Load(const char * pFilename) {
 		while (true) {
 			unsigned int index = ReadDword(data, &dataPos);
 			if (index == -1) break;
-			e.index = index;
 
 			dataPos += 4;
 			e.actionCount = ReadDword(data, &dataPos);
@@ -1261,14 +1255,13 @@ bool Game::Load(const char * pFilename) {
 				}
 			}
 
-			object->evKeyPress.push_back(e);
+			object->evKeyPress[index] = e;
 		}
 
 		// Key release events
 		while (true) {
 			unsigned int index = ReadDword(data, &dataPos);
 			if (index == -1) break;
-			e.index = index;
 
 			dataPos += 4;
 			e.actionCount = ReadDword(data, &dataPos);
@@ -1282,14 +1275,13 @@ bool Game::Load(const char * pFilename) {
 				}
 			}
 
-			object->evKeyRelease.push_back(e);
+			object->evKeyRelease[index] = e;
 		}
 
 		// Trigger events
 		while (true) {
 			unsigned int index = ReadDword(data, &dataPos);
 			if (index == -1) break;
-			e.index = index;
 
 			dataPos += 4;
 			e.actionCount = ReadDword(data, &dataPos);
@@ -1303,7 +1295,7 @@ bool Game::Load(const char * pFilename) {
 				}
 			}
 
-			object->evTrigger.push_back(e);
+			object->evTrigger[index] = e;
 		}
 
 		e.actions = NULL; // Prevents important memory getting destroyed along with this stack memory
@@ -1546,9 +1538,9 @@ bool Game::Load(const char * pFilename) {
 	for (unsigned int i = 0; i < objectCount; i++) {
 		Object* o = _assetManager.GetObject(i);
 		if (o->exists) {
-			for (IndexedEvent ev : o->evAlarm) {
-				for (unsigned int j = 0; j < ev.actionCount; j++) {
-					if (!_codeActions->Compile(ev.actions[j])) {
+			for(auto const& ev : o->evAlarm) {
+				for (unsigned int j = 0; j < ev.second.actionCount; j++) {
+					if (!_codeActions->Compile(ev.second.actions[j])) {
 						// Error compiling script
 						free(data);
 						free(buffer);
@@ -1556,9 +1548,9 @@ bool Game::Load(const char * pFilename) {
 					}
 				}
 			}
-			for (IndexedEvent ev : o->evCollision) {
-				for (unsigned int j = 0; j < ev.actionCount; j++) {
-					if (!_codeActions->Compile(ev.actions[j])) {
+			for (auto const& ev : o->evCollision) {
+				for (unsigned int j = 0; j < ev.second.actionCount; j++) {
+					if (!_codeActions->Compile(ev.second.actions[j])) {
 						// Error compiling script
 						free(data);
 						free(buffer);
@@ -1566,9 +1558,9 @@ bool Game::Load(const char * pFilename) {
 					}
 				}
 			}
-			for (IndexedEvent ev : o->evKeyboard) {
-				for (unsigned int j = 0; j < ev.actionCount; j++) {
-					if (!_codeActions->Compile(ev.actions[j])) {
+			for (auto const& ev : o->evKeyboard) {
+				for (unsigned int j = 0; j < ev.second.actionCount; j++) {
+					if (!_codeActions->Compile(ev.second.actions[j])) {
 						// Error compiling script
 						free(data);
 						free(buffer);
@@ -1576,9 +1568,9 @@ bool Game::Load(const char * pFilename) {
 					}
 				}
 			}
-			for (IndexedEvent ev : o->evKeyPress) {
-				for (unsigned int j = 0; j < ev.actionCount; j++) {
-					if (!_codeActions->Compile(ev.actions[j])) {
+			for (auto const& ev : o->evKeyPress) {
+				for (unsigned int j = 0; j < ev.second.actionCount; j++) {
+					if (!_codeActions->Compile(ev.second.actions[j])) {
 						// Error compiling script
 						free(data);
 						free(buffer);
@@ -1586,9 +1578,9 @@ bool Game::Load(const char * pFilename) {
 					}
 				}
 			}
-			for (IndexedEvent ev : o->evKeyRelease) {
-				for (unsigned int j = 0; j < ev.actionCount; j++) {
-					if (!_codeActions->Compile(ev.actions[j])) {
+			for (auto const& ev : o->evKeyRelease) {
+				for (unsigned int j = 0; j < ev.second.actionCount; j++) {
+					if (!_codeActions->Compile(ev.second.actions[j])) {
 						// Error compiling script
 						free(data);
 						free(buffer);
@@ -1596,9 +1588,9 @@ bool Game::Load(const char * pFilename) {
 					}
 				}
 			}
-			for (IndexedEvent ev : o->evMouse) {
-				for (unsigned int j = 0; j < ev.actionCount; j++) {
-					if (!_codeActions->Compile(ev.actions[j])) {
+			for (auto const& ev : o->evMouse) {
+				for (unsigned int j = 0; j < ev.second.actionCount; j++) {
+					if (!_codeActions->Compile(ev.second.actions[j])) {
 						// Error compiling script
 						free(data);
 						free(buffer);
@@ -1606,9 +1598,9 @@ bool Game::Load(const char * pFilename) {
 					}
 				}
 			}
-			for (IndexedEvent ev : o->evOther) {
-				for (unsigned int j = 0; j < ev.actionCount; j++) {
-					if (!_codeActions->Compile(ev.actions[j])) {
+			for (auto const& ev : o->evOther) {
+				for (unsigned int j = 0; j < ev.second.actionCount; j++) {
+					if (!_codeActions->Compile(ev.second.actions[j])) {
 						// Error compiling script
 						free(data);
 						free(buffer);
@@ -1616,9 +1608,9 @@ bool Game::Load(const char * pFilename) {
 					}
 				}
 			}
-			for (IndexedEvent ev : o->evTrigger) {
-				for (unsigned int j = 0; j < ev.actionCount; j++) {
-					if (!_codeActions->Compile(ev.actions[j])) {
+			for (auto const& ev : o->evTrigger) {
+				for (unsigned int j = 0; j < ev.second.actionCount; j++) {
+					if (!_codeActions->Compile(ev.second.actions[j])) {
 						// Error compiling script
 						free(data);
 						free(buffer);
@@ -1730,7 +1722,5 @@ bool Game::StartGame() {
 	}
 
 	// Load first room
-	LoadRoom(_roomOrder[0]);
-
-	return true;
+	return LoadRoom(_roomOrder[0]);
 }

@@ -154,9 +154,7 @@ std::string CodeRunner::substituteConstants(std::string input) {
 					}
 					inputNoStrings += "%" + std::to_string(_RegConstantDouble((double)v)) + "%";
 				}
-				else {
-					inputNoStrings += input[i];
-				}
+				inputNoStrings += input[i];
 			}
 		}
 	}
@@ -269,7 +267,7 @@ bool getSetMethod(std::string input, unsigned int* pos, CRSetMethod* method) {
 	return true;
 }
 
-bool CodeRunner::_CompileLine(std::string code, unsigned int * pos, unsigned char ** outHandle, unsigned int* outSize) {
+bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char** outHandle, unsigned int* outSize) {
 	std::vector<unsigned char> output;
 	output.reserve(32); // Prevents a lot of memory re-allocation with small memory amounts
 
@@ -285,7 +283,16 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int * pos, unsigned cha
 
 	// Based on the first word we're going to decide what type of command this is.
 
-	if (firstWord == "exit") {
+	if (firstWord.size() == 0 && code[*pos] == '{') {
+		// Special case. If this code is a pair of curly brackets then we'll compile the whole content of it.
+		std::string newCode = getBracketContents(code, pos, '{', '}');
+		unsigned char* newBytes;
+		unsigned int newByteCount;
+		if (!_CompileCode(newCode.c_str(), &newBytes, &newByteCount, true)) return false;
+		std::copy(newBytes, newBytes + newByteCount, std::back_inserter(output));
+		free(newBytes);
+	}
+	else if (firstWord == "exit") {
 		// This keyword means exit the script, so we compile this into an "01" instruction.
 		output.push_back(OP_EXIT);
 		findFirstNonWhitespace(code, pos);
@@ -342,7 +349,70 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int * pos, unsigned cha
 		if (!_getExpression(code, pos, val)) {
 			return false;
 		}
-		// TBD
+
+		output.push_back(OP_TEST_VAL_NOT);
+		output.push_back(val[0]);
+		output.push_back(val[1]);
+		output.push_back(val[2]);
+
+		unsigned char* ifBlockCode;
+		unsigned int ifBlockCount;
+		if (!_CompileLine(code, pos, &ifBlockCode, &ifBlockCount)) return false;
+
+		// Check whether this "if" has an associated "else"
+		unsigned int tPos = *pos;
+		std::string nextWord = getWord(code, &tPos);
+		if (nextWord == "else") {
+			// This is an if/else block. So we want to format it like: TEST_FALSE(val) JMP(to else block) (if block) JMP(past else block) (else block)
+			(*pos) = tPos;
+			unsigned char* elseBlockCode;
+			unsigned int elseBlockCount;
+			if (!_CompileLine(code, pos, &elseBlockCode, &elseBlockCount)) return false;
+
+			unsigned int bytesToJmp = ifBlockCount + (elseBlockCount > 255 ? 4 : 2);
+			if (bytesToJmp > 255) {
+				output.push_back(OP_JUMP_LONG);
+				output.push_back(bytesToJmp & 0xFF);
+				output.push_back((bytesToJmp >> 8) & 0xFF);
+				output.push_back((bytesToJmp >> 16) & 0xFF);
+			}
+			else {
+				output.push_back(OP_JUMP);
+				output.push_back(bytesToJmp);
+			}
+
+			std::copy(ifBlockCode, ifBlockCode + ifBlockCount, std::back_inserter(output));
+
+			if (elseBlockCount > 255) {
+				output.push_back(OP_JUMP_LONG);
+				output.push_back(elseBlockCount & 0xFF);
+				output.push_back((elseBlockCount >> 8) & 0xFF);
+				output.push_back((elseBlockCount >> 16) & 0xFF);
+			}
+			else {
+				output.push_back(OP_JUMP);
+				output.push_back(elseBlockCount);
+			}
+
+			std::copy(elseBlockCode, elseBlockCode + elseBlockCount, std::back_inserter(output));
+			free(elseBlockCode);
+		}
+		else {
+			// This "if" block doesn't have an "else", so write a test, jump and the code block.
+			if (ifBlockCount > 255) {
+				output.push_back(OP_JUMP_LONG);
+				output.push_back(ifBlockCount & 0xFF);
+				output.push_back((ifBlockCount >> 8) & 0xFF);
+				output.push_back((ifBlockCount >> 16) & 0xFF);
+			}
+			else {
+				output.push_back(OP_JUMP);
+				output.push_back(ifBlockCount);
+			}
+			std::copy(ifBlockCode, ifBlockCount + ifBlockCode, std::back_inserter(output));
+		}
+
+		free(ifBlockCode);
 	}
 	else if (firstWord == "with") {
 		// "with" indicates a change in the "self" and "other" variables for the contained code block.
@@ -771,7 +841,9 @@ bool CodeRunner::_getExpression(std::string input, unsigned int* pos, unsigned c
 	_codeObjects.push_back(CRCodeObject());
 	_codeObjects[codeObj].question = true;
 	_codeObjects[codeObj].code = NULL;
-	if (!_CompileExpression(input.substr(*pos).c_str(), &_codeObjects[codeObj].compiled, true, &charsUsed)) return false;
+	unsigned char* comp;
+	if (!_CompileExpression(input.substr(*pos).c_str(), &comp, true, &charsUsed)) return false;
+	_codeObjects[codeObj].compiled = comp;
 	(*pos) += charsUsed;
 
 	if (codeObj >= 0x400000) return false;
@@ -847,7 +919,7 @@ bool CodeRunner::_isAsset(const char* name, unsigned int* index) {
 
 
 
-bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, bool session) {
+bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, unsigned int* outCount, bool session) {
 	// We only have to remove comments and substitute strings if we're not already in an existing session.
 	std::string code;
 	if(!session)code = substituteConstants(removeComments(str));
@@ -867,16 +939,19 @@ bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, bool s
 	}
 
 	// Our bytecode must be terminated by an 01. So if the last instruction doesn't happen to be an 01, we'll put one there.
-	if (output.size() == 0) {
-		output.push_back(OP_EXIT);
-	}
-	else if (output[output.size() - 1] != OP_EXIT) {
-		output.push_back(OP_EXIT);
+	if (!session) {
+		if (output.size() == 0) {
+			output.push_back(OP_EXIT);
+		}
+		else if (output[output.size() - 1] != OP_EXIT) {
+			output.push_back(OP_EXIT);
+		}
 	}
 
 	// Write the finished operator list to the output pointer
 	(*outHandle) = (unsigned char*)malloc(output.size());
 	memcpy((*outHandle), output._Myfirst(), output.size());
+	if (outCount) (*outCount) = (unsigned int)output.size();
 
 	return true;
 }
@@ -924,7 +999,7 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 	// Now we have to figure out a VAR.
 	
 	std::string word = getWord(code, &pos);
-	if (word.size() == 0 && code[pos] != '.') {
+	if (word.size() == 0 && code[pos] != '.' && code[pos] != '%') {
 		// Expression doesn't start alphanumerically, so it must be brackets
 		if (code[pos] != '(') return false;
 
@@ -982,16 +1057,16 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 		}
 		else {
 			// Next, check if this is a constant
-			if (word[0] == '%') {
+			if (word.size() == 0 && code[pos] == '%') {
 				// We can make a VAL with this int as a const db reference
 				output.push_back(EVTYPE_VAL);
-				std::string ref = word.substr(0, word.find_first_of('%', 1) + 1);
+				std::string ref = code.substr(pos, (code.find_first_of('%', pos + 1) - pos) + 1);
 				unsigned char val[3];
 				if (!_makeVal(ref.c_str(), (unsigned int)ref.size(), val)) return false;
 				output.push_back(val[0]);
 				output.push_back(val[1]);
 				output.push_back(val[2]);
-
+				pos += (unsigned int)ref.size();
 			}
 			else {
 				// Find out if this is a script/function or variable
@@ -1145,9 +1220,11 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 										}
 										break;
 									case VARTYPE_GAME:
-										if (array) return false;
 										output.push_back(EVTYPE_GAME_VALUE);
 										output.push_back(index & 0xFF);
+										output.push_back(val[0]);
+										output.push_back(val[1]);
+										output.push_back(val[2]);
 										break;
 									case VARTYPE_INSTANCE:
 										output.push_back(EVTYPE_INSTANCEVAR);
@@ -1216,9 +1293,9 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 	}
 
 	// Write VAR modifiers
-	if (negative) output[0] |= 0x00010000;
-	if (not) output[0] |= 0x00100000;
-	if (tilde) output[0] |= 0x01000000;
+	if (negative) output[0] |= 0b00010000;
+	if (not) output[0] |= 0b00100000;
+	if (tilde) output[0] |= 0b01000000;
 
 	// Write the output variables
 	if (outCharsUsed) {

@@ -9,7 +9,6 @@ class InstanceList {
 		Instance* _list;
 		AssetManager* _assetManager;
 		unsigned int _size;
-		unsigned int _capacity;
 		unsigned int _highestIdAdded;
 
 		// Give an Instance its default values - returns false if the Object does not exist and game should close

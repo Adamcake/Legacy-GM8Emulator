@@ -99,16 +99,16 @@ each argument is indicated by 3 bytes, each of which is a VAL.
 Followed by a (3+3a) bytes. The first two bytes indicate a script index. The following byte indicates the number of arguments following. Following that,
 each argument is indicated by 3 bytes, each of which is a VAL.
 
-0B: Test a value (next instruction is skipped if the VAL evaluates to false)
-Followed by 3 bytes indicating the VAL to test.
+0B: Test a value (next JMP instruction is skipped if the VAL evaluates to false)
+Followed by 3 bytes indicating the VAL to test. If the next op isn't a jump, the test result is discarded.
 
-0C: Test a value for falseness (next instruction is skipped if the VAL evaluates to true)
-Followed by 3 bytes indicating the VAL to test.
+0C: Test a value for falseness (next JMP instruction is skipped if the VAL evaluates to true)
+Followed by 3 bytes indicating the VAL to test. If the next op isn't a jump, the test result is discarded.
 
-0D: Test two values for equality (next instruction is skipped if the VALs do not match)
-Followed by 6 bytes indicating the two VALs to test.
+0D: Test two values for equality (next JMP instruction is skipped if the VALs do not match)
+Followed by 6 bytes indicating the two VALs to test. If the next op isn't a jump, the test result is discarded.
 
-0E: Else (ie. the following op only gets run if the previous one was skipped by a test)
+0E: Else (ie. the following JMP only gets run if the previous one was skipped by a test)
 Followed by 0 bytes.
 
 0F: Change context
@@ -286,7 +286,7 @@ class CodeRunner {
 
 		// Compile some code and return the position of the compiled code in outHandle.
 		// Returns true on success, false on failure to compile (ie. program should exit.)
-		bool _CompileCode(const char* str, unsigned char** outHandle, bool session = false);
+		bool _CompileCode(const char* str, unsigned char** outHandle, unsigned int* outCount = NULL, bool session = false);
 
 		// Compile an expression and return the position of the compiled expression in outHandle.
 		// Returns true on success, false on failure to compile (ie. program should exit.)
@@ -310,6 +310,7 @@ class CodeRunner {
 		bool _runCode(const unsigned char* code, GMLType* out);
 		bool _parseVal(const unsigned char* val, GMLType* out);
 		bool _setGameValue(CRGameVar index, const unsigned char* arrayIndexVal, CRSetMethod method, GMLType value);
+		bool _getGameValue(CRGameVar index, const unsigned char* arrayIndexVal, GMLType* out);
 		bool _setInstanceVar(Instance* instance, CRInstanceVar index, const unsigned char* arrayIndexVal, CRSetMethod method, GMLType value);
 		bool _getInstanceVar(Instance* instance, CRInstanceVar index, const unsigned char* arrayIndexVal, GMLType* out);
 		bool _evalExpression(unsigned char* code, GMLType* out);
@@ -322,16 +323,22 @@ class CodeRunner {
 		bool instance_destroy(unsigned int argc, GMLType* argv, GMLType* out);
 		bool irandom(unsigned int argc, GMLType* argv, GMLType* out);
 		bool irandom_range(unsigned int argc, GMLType* argv, GMLType* out);
+		bool keyboard_check(unsigned int argc, GMLType* argv, GMLType* out);
+		bool keyboard_check_direct(unsigned int argc, GMLType* argv, GMLType* out);
+		bool keyboard_check_pressed(unsigned int argc, GMLType* argv, GMLType* out);
+		bool keyboard_check_released(unsigned int argc, GMLType* argv, GMLType* out);
 		bool make_color_hsv(unsigned int argc, GMLType* argv, GMLType* out);
 		bool move_wrap(unsigned int argc, GMLType* argv, GMLType* out);
 		bool random(unsigned int argc, GMLType* argv, GMLType* out);
 		bool random_range(unsigned int argc, GMLType* argv, GMLType* out);
+		bool random_get_seed(unsigned int argc, GMLType* argv, GMLType* out);
+		bool random_set_seed(unsigned int argc, GMLType* argv, GMLType* out);
 		bool room_goto(unsigned int argc, GMLType* argv, GMLType* out);
 		bool room_goto_next(unsigned int argc, GMLType* argv, GMLType* out);
 		bool room_goto_previous(unsigned int argc, GMLType* argv, GMLType* out);
 
 	public:
-		CodeRunner(AssetManager* assets, InstanceList* instances, GlobalValues* globals, CodeActionManager* codeActions);
+		CodeRunner(AssetManager* assets, InstanceList* instances, GlobalValues* globals, CodeActionManager* codeActions, GameRenderer* renderer);
 		~CodeRunner();
 
 		// For populating the constant vectors. This should be called before anything else.

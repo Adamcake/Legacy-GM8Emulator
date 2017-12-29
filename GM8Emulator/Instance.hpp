@@ -1,5 +1,6 @@
 #ifndef _A_INSTANCE_HPP_
 #define _A_INSTANCE_HPP_
+#include <map>
 
 typedef unsigned int InstanceID;
 
@@ -13,7 +14,7 @@ struct Instance {
 	bool visible;
 	bool persistent;
 	int depth;
-	int alarm[12];
+	std::map<unsigned int, int> alarm;
 	int sprite_index;
 	double image_alpha;
 	int image_blend;

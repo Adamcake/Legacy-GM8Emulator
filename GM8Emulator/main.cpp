@@ -13,6 +13,7 @@
 
 #if OUTPUT_FRAME_TIME
 #include <iostream>
+#include <string>
 #endif
 
 

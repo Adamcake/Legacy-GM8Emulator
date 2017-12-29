@@ -2,6 +2,7 @@
 #define _GM8_ASSETS_HPP_
 #include <vector>
 #include <list>
+#include <map>
 class CodeActionManager;
 typedef unsigned int RImageIndex;
 typedef unsigned int CodeObject;
@@ -27,7 +28,6 @@ struct PathPoint {
 };
 
 struct IndexedEvent {
-	unsigned int index;
 	unsigned int actionCount = 0;
 	CodeAction* actions = NULL;
 };
@@ -247,7 +247,7 @@ class Timeline {
 		bool exists;
 
 		unsigned int momentCount;
-		IndexedEvent* moments;
+		std::map<unsigned int, IndexedEvent> moments;
 };
 
 class Object {
@@ -278,14 +278,14 @@ class Object {
 		unsigned int evDrawActionCount;
 		CodeAction* evDraw;
 
-		std::list<IndexedEvent> evAlarm;
-		std::list<IndexedEvent> evCollision;
-		std::list<IndexedEvent> evKeyboard;
-		std::list<IndexedEvent> evKeyPress;
-		std::list<IndexedEvent> evKeyRelease;
-		std::list<IndexedEvent> evMouse;
-		std::list<IndexedEvent> evOther;
-		std::list<IndexedEvent> evTrigger;
+		std::map<unsigned int, IndexedEvent> evAlarm;
+		std::map<unsigned int, IndexedEvent> evCollision;
+		std::map<unsigned int, IndexedEvent> evKeyboard;
+		std::map<unsigned int, IndexedEvent> evKeyPress;
+		std::map<unsigned int, IndexedEvent> evKeyRelease;
+		std::map<unsigned int, IndexedEvent> evMouse;
+		std::map<unsigned int, IndexedEvent> evOther;
+		std::map<unsigned int, IndexedEvent> evTrigger;
 };
 
 class Room {

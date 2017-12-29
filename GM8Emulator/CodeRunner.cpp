@@ -6,7 +6,8 @@
 #include "RNG.hpp"
 
 
-CodeRunner::CodeRunner(AssetManager* assets, InstanceList* instances, GlobalValues* globals, CodeActionManager* codeActions) {
+CodeRunner::CodeRunner(AssetManager* assets, InstanceList* instances, GlobalValues* globals, CodeActionManager* codeActions, GameRenderer* renderer) {
+	_renderer = renderer;
 	_assetManager = assets;
 	_instances = instances;
 	_globalValues = globals;
@@ -98,6 +99,22 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("irandom_range");
 				_gmlFuncs.push_back(&CodeRunner::irandom_range);
 				break;
+			case KEYBOARD_CHECK:
+				_internalFuncNames.push_back("keyboard_check");
+				_gmlFuncs.push_back(&CodeRunner::keyboard_check);
+				break;
+			case KEYBOARD_CHECK_DIRECT:
+				_internalFuncNames.push_back("keyboard_check_direct");
+				_gmlFuncs.push_back(&CodeRunner::keyboard_check_direct);
+				break;
+			case KEYBOARD_CHECK_PRESSED:
+				_internalFuncNames.push_back("keyboard_check_pressed");
+				_gmlFuncs.push_back(&CodeRunner::keyboard_check_pressed);
+				break;
+			case KEYBOARD_CHECK_RELEASED:
+				_internalFuncNames.push_back("keyboard_check_released");
+				_gmlFuncs.push_back(&CodeRunner::keyboard_check_released);
+				break;
 			case MAKE_COLOR_HSV:
 				_internalFuncNames.push_back("make_color_hsv");
 				_gmlFuncs.push_back(&CodeRunner::make_color_hsv);
@@ -113,6 +130,14 @@ bool CodeRunner::Init() {
 			case RANDOM_RANGE:
 				_internalFuncNames.push_back("random_range");
 				_gmlFuncs.push_back(&CodeRunner::random_range);
+				break;
+			case RANDOM_GET_SEED:
+				_internalFuncNames.push_back("random_get_seed");
+				_gmlFuncs.push_back(&CodeRunner::random_get_seed);
+				break;
+			case RANDOM_SET_SEED:
+				_internalFuncNames.push_back("random_set_seed");
+				_gmlFuncs.push_back(&CodeRunner::random_set_seed);
 				break;
 			case ROOM_GOTO:
 				_internalFuncNames.push_back("room_goto");
@@ -140,6 +165,12 @@ bool CodeRunner::Init() {
 				break;
 			case LIVES:
 				_gameValueNames.push_back("lives");
+				break;
+			case MOUSE_X:
+				_gameValueNames.push_back("mouse_x");
+				break;
+			case MOUSE_Y:
+				_gameValueNames.push_back("mouse_y");
 				break;
 			case ROOM:
 				_gameValueNames.push_back("room");

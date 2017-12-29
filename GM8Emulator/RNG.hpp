@@ -7,8 +7,11 @@ class RNG {
 	public:
 		RNG();
 
-		// Cycles the seed and returns a pseudo-random number between 0 and 1.
-		double Random();
+		// Cycles the seed and returns a pseudo-random double between 0 and the given bound.
+		double Random(double bound);
+
+		// Cycles the seed and returns a pseudo-random integer between 0 and the given bound (inclusive).
+		int Irandom(int bound);
 
 		// Get and set seed
 

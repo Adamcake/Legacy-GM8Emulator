@@ -2,29 +2,21 @@
 #include "Instance.hpp"
 #include "AssetManager.hpp"
 #include <cstring>
-#define START_CAPACITY 1
+#define INSTANCE_CAPACITY 1000
 
 
 InstanceList::InstanceList(AssetManager* manager) {
-	_list = new Instance[START_CAPACITY];
+	_list = new Instance[INSTANCE_CAPACITY];
 	_size = 0;
-	_capacity = START_CAPACITY;
 	_highestIdAdded = 0;
 	_assetManager = manager;
 }
 
 InstanceList::~InstanceList() {
-	delete _list;
+	delete[] _list;
 }
 
 Instance* InstanceList::AddInstance(unsigned int id, double x, double y, unsigned int objectId) {
-	if (_size >= _capacity) {
-		Instance* newList = new Instance[_capacity * 2];
-		memcpy(newList, _list, _size * sizeof(Instance));
-		delete _list;
-		_list = newList;
-		_capacity *= 2;
-	}
 	if (_highestIdAdded > id) {
 		for (unsigned int i = 0; i < _size; i++) {
 			if (_list[i].id < id) {
@@ -65,7 +57,8 @@ void InstanceList::ClearNonPersistent() {
 	unsigned int placed = 0;
 	for (unsigned int i = 0; i < _size; i++) {
 		if (_list[i].persistent && _list[i].exists) {
-			if(placed != i) memcpy(_list + placed, _list + i, sizeof(Instance));
+			if (placed != i)
+				_list[placed] = _list[i];
 			placed++;
 		}
 	}
@@ -76,7 +69,8 @@ void InstanceList::ClearDeleted() {
 	unsigned int placed = 0;
 	for (unsigned int i = 0; i < _size; i++) {
 		if (_list[i].exists) {
-			if(placed != i) memcpy(_list + placed, _list + i, sizeof(Instance));
+			if(placed != i)
+				_list[placed] = _list[i];
 			placed++;
 		}
 	}
@@ -125,7 +119,7 @@ bool InstanceList::_InitInstance(Instance* instance, unsigned int id, double x, 
 	instance->visible = obj->visible;
 	instance->persistent = obj->persistent;
 	instance->depth = obj->depth;
-	for (unsigned int i = 0; i < 12; i++) instance->alarm[i] = 0;
+	instance->alarm.clear();
 	instance->sprite_index = obj->spriteIndex;
 	instance->image_alpha = 1;
 	instance->image_blend = 0xFFFFFF;

@@ -47,7 +47,6 @@ class Game {
 		GameInfo _info;
 
 
-
 		// Order in which rooms should be played (this is different than the resource tree order)
 		unsigned int* _roomOrder;
 

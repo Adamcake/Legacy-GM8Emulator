@@ -161,17 +161,14 @@ Timeline::Timeline()
 	name = NULL;
 	exists = true;
 	momentCount = 0;
-	moments = NULL;
 }
 
 Timeline::~Timeline()
 {
 	free(name);
-	while (momentCount) {
-		momentCount--;
-		delete[] moments[momentCount].actions;
+	for (const auto& i : moments) {
+		delete[] i.second.actions;
 	}
-	delete[] moments;
 }
 
 Object::Object()
@@ -202,29 +199,29 @@ Object::~Object()
 	delete[] evStepEnd;
 	delete[] evDraw;
 
-	for (IndexedEvent e : evAlarm) {
-		delete[] e.actions;
+	for (const auto& i : evAlarm) {
+		delete[] i.second.actions;
 	}
-	for (IndexedEvent e : evCollision) {
-		delete[] e.actions;
+	for (const auto& i : evCollision) {
+		delete[] i.second.actions;
 	}
-	for (IndexedEvent e : evKeyboard) {
-		delete[] e.actions;
+	for (const auto& i : evKeyboard) {
+		delete[] i.second.actions;
 	}
-	for (IndexedEvent e : evKeyPress) {
-		delete[] e.actions;
+	for (const auto& i : evKeyPress) {
+		delete[] i.second.actions;
 	}
-	for (IndexedEvent e : evKeyRelease) {
-		delete[] e.actions;
+	for (const auto& i : evKeyRelease) {
+		delete[] i.second.actions;
 	}
-	for (IndexedEvent e : evMouse) {
-		delete[] e.actions;
+	for (const auto& i : evMouse) {
+		delete[] i.second.actions;
 	}
-	for (IndexedEvent e : evOther) {
-		delete[] e.actions;
+	for (const auto& i : evOther) {
+		delete[] i.second.actions;
 	}
-	for (IndexedEvent e : evTrigger) {
-		delete[] e.actions;
+	for (const auto& i : evTrigger) {
+		delete[] i.second.actions;
 	}
 }
 

@@ -60,7 +60,7 @@ class GameRenderer {
 		void SetBGColour(unsigned int col);
 
 		// Get cursor pos
-		void GetCursorPos(double* xpos, double* ypos);
+		void GetCursorPos(int* xpos, int* ypos);
 
 		// Our GL window will tell us when it's supposed to close, then we have to close it. This is for getting that value.
 		bool ShouldClose();

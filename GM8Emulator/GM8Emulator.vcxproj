@@ -163,6 +163,7 @@
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="GameFrame.cpp" />
     <ClCompile Include="GameRenderer.cpp" />
+    <ClCompile Include="InputHandler.cpp" />
     <ClCompile Include="InstanceList.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="RNG.cpp" />
@@ -178,6 +179,7 @@
     <ClInclude Include="GameRenderer.hpp" />
     <ClInclude Include="GameSettings.hpp" />
     <ClInclude Include="GlobalValues.hpp" />
+    <ClInclude Include="InputHandler.hpp" />
     <ClInclude Include="Instance.hpp" />
     <ClInclude Include="InstanceList.hpp" />
     <ClInclude Include="RNG.hpp" />

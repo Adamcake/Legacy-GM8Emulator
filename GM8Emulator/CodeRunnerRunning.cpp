@@ -4,6 +4,7 @@
 #include "InstanceList.hpp"
 #include "AssetManager.hpp"
 #include "GameRenderer.hpp"
+#include "GlobalValues.hpp"
 
 #define ARG_STACK_SIZE 4
 
@@ -50,6 +51,29 @@ bool CodeRunner::_setGameValue(CRGameVar index, const unsigned char* arrayIndexV
 	return true;
 }
 
+bool CodeRunner::_getGameValue(CRGameVar index, const unsigned char* arrayIndexVal, GMLType* out) {
+	out->state = GML_TYPE_DOUBLE;
+	switch (index) {
+		case MOUSE_X:
+			int mx;
+			_renderer->GetCursorPos(&mx, NULL);
+			out->dVal = (double)mx;
+			break;
+		case MOUSE_Y:
+			int my;
+			_renderer->GetCursorPos(NULL, &my);
+			out->dVal = (double)my;
+			break;
+		case ROOM_SPEED:
+			out->dVal = (double)_globalValues->room_speed;
+			break;
+		default:
+			return false;
+	}
+	return true;
+}
+
+
 bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const unsigned char * arrayIndexVal, CRSetMethod method, GMLType value) {
 	// No instance vars are strings. In GML if you set an instance var to a string, it gets set to 0.
 	GMLType t;
@@ -59,13 +83,27 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 		value.dVal = 0;
 	}
 
+	GMLType arrayId;
+	int roundedAId;
 	switch (index) {
+		case IV_ALARM:
+			if (!_parseVal(arrayIndexVal, &arrayId)) return false;
+			if (arrayId.state != GML_TYPE_DOUBLE) return false;
+			roundedAId = _round(arrayId.dVal);
+			if (roundedAId < 0) return false;
+			instance->alarm[(unsigned int)roundedAId] = (int)(value.state == GML_TYPE_DOUBLE ? value.dVal : 0.0);
+			break;
 		case IV_DIRECTION:
 			t.dVal = instance->direction;
 			if (!_applySetMethod(&t, method, &value)) return false;
 			instance->direction = (t.dVal);
 			instance->hspeed = cos(instance->direction * PI / 180.0) * instance->speed;
 			instance->vspeed = -sin(instance->direction * PI / 180.0) * instance->speed;
+			break;
+		case IV_IMAGE_SPEED:
+			t.dVal = instance->image_speed;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->image_speed = t.dVal;
 			break;
 		case IV_FRICTION:
 			t.dVal = instance->friction;
@@ -82,12 +120,37 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 			if (!_applySetMethod(&t, method, &value)) return false;
 			instance->image_alpha = t.dVal;
 			break;
+		case IV_IMAGE_ANGLE:
+			t.dVal = instance->image_angle;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->image_angle = t.dVal;
+			break;
+		case IV_IMAGE_XSCALE:
+			t.dVal = instance->image_xscale;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->image_xscale = t.dVal;
+			break;
+		case IV_IMAGE_YSCALE:
+			t.dVal = instance->image_yscale;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->image_yscale = t.dVal;
+			break;
 		case IV_SPEED:
 			t.dVal = instance->speed;
 			if (!_applySetMethod(&t, method, &value)) return false;
 			instance->speed = t.dVal;
 			instance->hspeed = cos(instance->direction * PI / 180.0) * instance->speed;
 			instance->vspeed = -sin(instance->direction * PI / 180.0) * instance->speed;
+			break;
+		case IV_X:
+			t.dVal = instance->x;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->x = t.dVal;
+			break;
+		case IV_Y:
+			t.dVal = instance->y;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->y = t.dVal;
 			break;
 		// more tbd
 		default:
@@ -99,11 +162,20 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const unsigned char* arrayIndexVal, GMLType* out) {
 	out->state = GML_TYPE_DOUBLE;
 	switch (index) {
+		case IV_INSTANCE_ID:
+			out->dVal = instance->id;
+			break;
 		case IV_X:
 			out->dVal = instance->x;
 			break;
 		case IV_Y:
 			out->dVal = instance->y;
+			break;
+		case IV_DIRECTION:
+			out->dVal = instance->direction;
+			break;
+		case IV_SPEED:
+			out->dVal = instance->speed;
 			break;
 		case IV_IMAGE_ALPHA:
 			out->dVal = instance->image_alpha;
@@ -200,9 +272,12 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 	GMLType stack[ARG_STACK_SIZE];
 	
 	// read a VAR
+	bool negative = code[0] & 0b00010000;
+	bool not = code[0] & 0b00100000;
+	bool tilde = code[0] & 0b01000000;
 
 	GMLType var;
-	switch (code[0]) {
+	switch (code[0] & 0b00001111) {
 		case EVTYPE_VAL: {
 			if (!_parseVal(code + 1, &var)) return false;
 			pos += 4;
@@ -224,6 +299,11 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 			if (!(this->*_gmlFuncs[func])(argc, argv, &var)) return false;
 
 			if (argc > ARG_STACK_SIZE) delete argv;
+			break;
+		}
+		case EVTYPE_GAME_VALUE: {
+			if (!_getGameValue((CRGameVar)code[1], code + 2, &var)) return false;
+			pos += 5;
 			break;
 		}
 		case EVTYPE_INSTANCEVAR: {
@@ -250,6 +330,20 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 		}
 	}
 
+	// Apply mods to var
+	if (negative && var.state == GML_TYPE_DOUBLE) var.dVal = -var.dVal;
+	if (not) {
+		var.state = GML_TYPE_DOUBLE;
+		var.dVal = (_isTrue(&var) ? 1.0 : 0.0);
+	}
+	if (tilde) {
+		if (var.state == GML_TYPE_DOUBLE) var.dVal = (double)(~_round(var.dVal));
+		else {
+			var.state = GML_TYPE_DOUBLE;
+			var.dVal = -1.0;
+		}
+	}
+
 	// read an operator, then read the rest of the expression, apply it and return
 
 	switch (code[pos]) {
@@ -262,6 +356,14 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 			GMLType rest;
 			if (!_evalExpression(code + pos, &rest)) return false;
 			if (!_applySetMethod(&var, SM_ADD, &rest)) return false;
+			(*out) = var;
+			return true;
+		}
+		case OPERATOR_SUBTRACT: {
+			pos++;
+			GMLType rest;
+			if (!_evalExpression(code + pos, &rest)) return false;
+			if (!_applySetMethod(&var, SM_SUBTRACT, &rest)) return false;
 			(*out) = var;
 			return true;
 		}
@@ -316,6 +418,7 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 
 bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 	unsigned int derefBuffer = _contexts.top().self;
+	bool dereferenced = false;
 	unsigned int pos = 0;
 	GMLType stack[ARG_STACK_SIZE];
 
@@ -339,7 +442,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 			case OP_SET_INSTANCE_VAR: { // Set instance variable
 				GMLType valToSet;
 				if (!_parseVal(bytes + pos + 6, &valToSet)) return false;
-				if (!_setInstanceVar(_instances->GetInstanceByNumber(derefBuffer), (CRInstanceVar)bytes[pos + 1], bytes + 2, (CRSetMethod)bytes[pos + 5], valToSet)) return false;
+				if (!_setInstanceVar(_instances->GetInstanceByNumber(derefBuffer), (CRInstanceVar)bytes[pos + 1], bytes + pos + 2, (CRSetMethod)bytes[pos + 5], valToSet)) return false;
 				pos += 9;
 				break;
 			}
@@ -350,7 +453,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				if (!_parseVal(bytes + pos + 4, &val)) return false;
 				pos += 7;
 
-				if (_contexts.top().locals.count(fieldNum)) {
+				if (_contexts.top().locals.count(fieldNum) && !dereferenced) {
 					// This is a local
 					if (!_applySetMethod(&_contexts.top().locals[fieldNum], setMethod, &val)) return false;
 				}
@@ -362,7 +465,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				break;
 			}
 			case OP_SET_ARRAY: { // Set a field array (also check if it's bound to a local)
-				// TBD
+				// TODO
 				pos += 10;
 				break;
 			}
@@ -384,11 +487,13 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				if (val.state != GML_TYPE_DOUBLE) return false;
 				derefBuffer = _round(val.dVal);
 				pos += 4;
+				dereferenced = true;
 				break;
 			}
 			case OP_RESET_DEREF: { // Put default buffer back to default "self" for this context
 				derefBuffer = _contexts.top().self;
 				pos++;
+				dereferenced = false;
 				break;
 			}
 			case OP_RUN_INTERNAL_FUNC: { // Run an internal function, not caring about the return value
@@ -409,6 +514,38 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 			}
 			case OP_RUN_SCRIPT: { // Run a user script, not caring about the return value
 				// TODO
+				break;
+			}
+			case OP_TEST_VAL: { // Test if a VAL evaluates to true
+				pos++;
+				GMLType v;
+				if (!_parseVal(bytes + pos, &v)) return false;
+				pos += 3;
+
+				if (!_isTrue(&v)) {
+					if (bytes[pos] == OP_JUMP || bytes[pos] == OP_JUMP_BACK)
+						pos += 2;
+					else if (bytes[pos] == OP_JUMP_LONG || bytes[pos] == OP_JUMP_BACK_LONG)
+						pos += 4;
+				}
+				break;
+			}
+			case OP_TEST_VAL_NOT: { // Test if a VAL evaluates to false
+				pos++;
+				GMLType v;
+				if (!_parseVal(bytes + pos, &v)) return false;
+				pos += 3;
+
+				if (_isTrue(&v)) {
+					if (bytes[pos] == OP_JUMP || bytes[pos] == OP_JUMP_BACK)
+						pos += 2;
+					else if (bytes[pos] == OP_JUMP_LONG || bytes[pos] == OP_JUMP_BACK_LONG)
+						pos += 4;
+				}
+				break;
+			}
+			case OP_JUMP: { // short jump forward
+				pos += 2 + bytes[pos + 1];
 				break;
 			}
 			default: {
