@@ -67,10 +67,10 @@ void RefreshInstanceBbox(Instance* i, AssetManager* assets) {
 bool CollisionCheck(Instance * i1, Instance * i2, AssetManager * assets) {
 	RefreshInstanceBbox(i1, assets);
 	RefreshInstanceBbox(i2, assets);
-	if ((i1->bbox_right + 1) <= i2->bbox_left) return false;
-	if ((i2->bbox_right + 1) <= i1->bbox_left) return false;
-	if ((i1->bbox_bottom + 1) <= i2->bbox_top) return false;
-	if ((i2->bbox_bottom + 1) <= i1->bbox_top) return false;
+	if (i1->bbox_right < i2->bbox_left) return false;
+	if (i2->bbox_right < i1->bbox_left) return false;
+	if (i1->bbox_bottom < i2->bbox_top) return false;
+	if (i2->bbox_bottom < i1->bbox_top) return false;
 
 	int cTop = (i1->bbox_top > i2->bbox_top ? i1->bbox_top : i2->bbox_top);
 	int cBottom = (i1->bbox_bottom > i2->bbox_bottom ? i2->bbox_bottom : i1->bbox_bottom);
@@ -86,10 +86,12 @@ bool CollisionCheck(Instance * i1, Instance * i2, AssetManager * assets) {
 	Sprite* spr2 = assets->GetSprite(spriteIndex);
 	CollisionMap* map2 = (spr2->separateCollision ? (spr2->collisionMaps + (int)i2->image_index) : spr2->collisionMaps);
 
-	double c1 = cos(i1->image_angle * PI / 180.0);
-	double s1 = sin(i1->image_angle * PI / 180.0);
-	double c2 = cos(i2->image_angle * PI / 180.0);
-	double s2 = sin(i2->image_angle * PI / 180.0);
+	double a1 = i1->image_angle * PI / 180.0;
+	double a2 = i2->image_angle * PI / 180.0;
+	double c1 = cos(a1);
+	double s1 = sin(a1);
+	double c2 = cos(a2);
+	double s2 = sin(a2);
 	int w1 = (map1->right + 1 - map1->left);
 	int w2 = (map2->right + 1 - map2->left);
 
@@ -98,8 +100,8 @@ bool CollisionCheck(Instance * i1, Instance * i2, AssetManager * assets) {
 			double curX = (double)x;
 			double curY = (double)y;
 			rotateAround(&curX, &curY, i1->x, i1->y, s1, c1);
-			curX = spr1->originX + ((curX - dRound(i1->x)) / i1->image_xscale);
-			curY = spr1->originY + ((curY - dRound(i1->y)) / i1->image_yscale);
+			curX = spr1->originX + ((curX - i1->x) / i1->image_xscale);
+			curY = spr1->originY + ((curY - i1->y) / i1->image_yscale);
 			int nx = dRound(curX);
 			int ny = dRound(curY);
 			if (nx >= map1->left && nx <= map1->right && ny >= map1->top && ny <= map1->bottom) {
