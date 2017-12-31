@@ -49,6 +49,12 @@ struct Instance {
 	double timeline_speed;
 	double timeline_position;
 	bool timeline_loop;
+
+	int bbox_top;
+	int bbox_left;
+	int bbox_right;
+	int bbox_bottom;
+	bool bboxIsStale;
 };
 
 #endif

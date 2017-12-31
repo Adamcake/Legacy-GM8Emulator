@@ -336,7 +336,7 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 		// TBD
 	}
 	else if (firstWord == "do") {
-		// "do" generates a loop in which the first iteration is always run. It can only be terminated by a "while" or "until" statement.
+		// "do" generates a loop in which the first iteration is always run. It can only be terminated by an "until" statement.
 		// TBD
 	}
 	else if (firstWord == "for") {
@@ -345,6 +345,7 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 	}
 	else if (firstWord == "if") {
 		// "if" incurs a simple test to see whether the following expression evaluates to true.
+		findFirstNonWhitespace(code, pos);
 		unsigned char val[3];
 		if (!_getExpression(code, pos, val)) {
 			return false;
@@ -416,7 +417,26 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 	}
 	else if (firstWord == "with") {
 		// "with" indicates a change in the "self" and "other" variables for the contained code block.
-		// TBD
+		findFirstNonWhitespace(code, pos);
+		unsigned char val[3];
+		if (!_getExpression(code, pos, val)) {
+			return false;
+		}
+
+		unsigned char* withBlockCode;
+		unsigned int withBlockCount;
+		if (!_CompileLine(code, pos, &withBlockCode, &withBlockCount)) return false;
+		withBlockCount++;
+		output.push_back(OP_CHANGE_CONTEXT);
+		output.push_back(val[0]);
+		output.push_back(val[1]);
+		output.push_back(val[2]);
+		output.push_back(withBlockCount & 0xFF);
+		output.push_back((withBlockCount >> 8) & 0xFF);
+		output.push_back((withBlockCount >> 16) & 0xFF);
+		withBlockCount--;
+		std::copy(withBlockCode, withBlockCount + withBlockCode, std::back_inserter(output));
+		output.push_back(OP_REVERT_CONTEXT);
 	}
 	else if (firstWord == "repeat") {
 		// "repeat" is followed by an expression telling us how many times to repeat the code block after it.

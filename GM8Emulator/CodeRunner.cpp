@@ -12,7 +12,7 @@ CodeRunner::CodeRunner(AssetManager* assets, InstanceList* instances, GlobalValu
 	_instances = instances;
 	_globalValues = globals;
 	_codeActions = codeActions;
-	_rng = new RNG();
+	RNGRandomize();
 }
 
 CodeRunner::~CodeRunner() {
@@ -20,13 +20,9 @@ CodeRunner::~CodeRunner() {
 		free(_codeObjects[i].code);
 		free(_codeObjects[i].compiled);
 	}
-	for (GMLType g : _constants) {
-		if (g.state == GML_TYPE_STRING) free(g.sVal);
-	}
 	for (char* c : _fields) {
 		free(c);
 	}
-	delete _rng;
 }
 
 CodeObject CodeRunner::Register(char* code, unsigned int len) {
@@ -316,11 +312,24 @@ bool CodeRunner::Init() {
 			case IV_TIMELINE_LOOP:
 				_instanceVarNames.push_back("timeline_loop");
 				break;
+
 			case IV_SPRITE_WIDTH:
 				_instanceVarNames.push_back("sprite_width");
 				break;
 			case IV_SPRITE_HEIGHT:
 				_instanceVarNames.push_back("sprite_height");
+				break;
+			case IV_BBOX_LEFT:
+				_instanceVarNames.push_back("bbox_left");
+				break;
+			case IV_BBOX_RIGHT:
+				_instanceVarNames.push_back("bbox_right");
+				break;
+			case IV_BBOX_BOTTOM:
+				_instanceVarNames.push_back("bbox_bottom");
+				break;
+			case IV_BBOX_TOP:
+				_instanceVarNames.push_back("bbox_top");
 				break;
 			default:
 				// Something in the enum isn't listed here

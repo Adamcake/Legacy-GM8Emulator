@@ -18,6 +18,18 @@ class InstanceList {
 		InstanceList(AssetManager* manager);
 		~InstanceList();
 
+		// Iterator class for getting all instances matching a certain id.
+		// Just create using InstanceList::Iterator(list, id) and then call Next() until it returns NULL.
+		class Iterator {
+			InstanceList* _list;
+			unsigned int _id;
+			unsigned int _pos;
+			unsigned int _limit;
+			public:
+				Iterator(InstanceList* list, unsigned int id);
+				Instance* Next();
+		};
+
 		// Adds a new instance and returns the pointer. This should always be used instead of Instance's constructor. This is like instance_create() in GML.
 		// The instance's ID, x and y will be set appropriately. All other values will be default for that object type or global default where applicable.
 		// If this returns a null pointer, there was an error and the game should close.
@@ -36,7 +48,7 @@ class InstanceList {
 		void ClearDeleted();
 
 		// Gets instance by a number. Similar to GML, if the number is > 100000 it'll be treated as an instance ID, otherwise an object ID.
-		Instance* GetInstanceByNumber(unsigned int id);
+		Instance* GetInstanceByNumber(unsigned int id, unsigned int startPos = 0, unsigned int* endPos = nullptr);
 
 		// Get the number of active instances
 		inline unsigned int Count() const { return _size; }

@@ -27,7 +27,7 @@ class CodeActionManager {
 		bool Compile(CodeAction action);
 
 		// Run a list of actions. Returns true on success, false on error (ie. game should close.)
-		bool Run(CodeAction* actions, unsigned int count, unsigned int self, unsigned int other);
+		bool Run(CodeAction* actions, unsigned int count, Instance* self, Instance* other);
 
 		// Must be done before
 		inline void SetRunner(CodeRunner* runner) { _runner = runner; }

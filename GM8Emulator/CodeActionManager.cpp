@@ -392,7 +392,7 @@ bool CodeActionManager::Compile(CodeAction action) {
 	return _runner->Compile(_actions[action].codeObj);
 }
 
-bool CodeActionManager::Run(CodeAction* actions, unsigned int count, unsigned int self, unsigned int other) {
+bool CodeActionManager::Run(CodeAction* actions, unsigned int count, Instance* self, Instance* other) {
 	unsigned int pos = 0;
 	while (pos < count) {
 		bool run = true;

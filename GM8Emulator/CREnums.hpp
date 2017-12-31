@@ -165,6 +165,10 @@ enum CRInstanceVar {
 
 	IV_SPRITE_WIDTH,
 	IV_SPRITE_HEIGHT,
+	IV_BBOX_LEFT,
+	IV_BBOX_RIGHT,
+	IV_BBOX_BOTTOM,
+	IV_BBOX_TOP,
 	_INSTANCE_VAR_COUNT // As long as this one is last, it'll tell us how many things are in this enum. So don't move it.
 };
 

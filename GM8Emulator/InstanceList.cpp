@@ -2,7 +2,7 @@
 #include "Instance.hpp"
 #include "AssetManager.hpp"
 #include <cstring>
-#define INSTANCE_CAPACITY 1000
+#define INSTANCE_CAPACITY 10000
 
 
 InstanceList::InstanceList(AssetManager* manager) {
@@ -77,11 +77,12 @@ void InstanceList::ClearDeleted() {
 	_size = placed;
 }
 
-Instance * InstanceList::GetInstanceByNumber(unsigned int num) {
+Instance * InstanceList::GetInstanceByNumber(unsigned int num, unsigned int startPos, unsigned int* endPos) {
 	if (num > 100000) {
 		// Instance ID
-		for (unsigned int i = 0; i < _size; i++) {
+		for (unsigned int i = startPos; i < _size; i++) {
 			if (_list[i].id == num) {
+				if(endPos) (*endPos) = i;
 				return (_list[i].exists) ? (_list + i) : NULL;
 			}
 			if (_list[i].id > num) {
@@ -91,8 +92,9 @@ Instance * InstanceList::GetInstanceByNumber(unsigned int num) {
 	}
 	else {
 		// Object ID
-		for (unsigned int i = 0; i < _size; i++) {
+		for (unsigned int i = startPos; i < _size; i++) {
 			if (_list[i].object_index == num && _list[i].exists) {
+				if (endPos) (*endPos) = i;
 				return _list + i;
 			}
 		}
@@ -154,5 +156,20 @@ bool InstanceList::_InitInstance(Instance* instance, unsigned int id, double x, 
 	instance->timeline_speed = 1;
 	instance->timeline_position = 0;
 	instance->timeline_loop = false;
+	instance->bboxIsStale = true;
 	return true;
+}
+
+
+InstanceList::Iterator::Iterator(InstanceList* list, unsigned int id) : _list(list), _id(id), _pos(0) {
+	if(list) _limit = list->Count();
+}
+
+Instance* InstanceList::Iterator::Next() {
+	unsigned int endpos;
+	Instance* ret = _list->GetInstanceByNumber(_id, _pos, &endpos);
+	if ((ret) && (endpos >= _limit)) return NULL;
+	endpos++;
+	_pos = endpos;
+	return ret;
 }

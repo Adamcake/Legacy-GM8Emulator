@@ -160,6 +160,7 @@
     <ClCompile Include="CodeRunnerCompiling.cpp" />
     <ClCompile Include="CodeRunnerGMLFunctions.cpp" />
     <ClCompile Include="CodeRunnerRunning.cpp" />
+    <ClCompile Include="Collision.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="GameFrame.cpp" />
     <ClCompile Include="GameRenderer.cpp" />
@@ -174,6 +175,7 @@
     <ClInclude Include="Assets.hpp" />
     <ClInclude Include="CodeActionManager.hpp" />
     <ClInclude Include="CodeRunner.hpp" />
+    <ClInclude Include="Collision.hpp" />
     <ClInclude Include="CREnums.hpp" />
     <ClInclude Include="Game.hpp" />
     <ClInclude Include="GameRenderer.hpp" />

@@ -31,25 +31,25 @@ bool CodeRunner::execute_string(unsigned int argc, GMLType* argv, GMLType* out) 
 bool CodeRunner::instance_create(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[0].state == GML_TYPE_STRING || argv[1].state == GML_TYPE_STRING || argv[2].state == GML_TYPE_STRING) return false;
 	unsigned int objID = _round(argv[2].dVal);
-	_instances->AddInstance(_nextInstanceID, argv[0].dVal, argv[1].dVal, objID);
+	Instance* i = _instances->AddInstance(_nextInstanceID, argv[0].dVal, argv[1].dVal, objID);
 	if (out) {
 		out->state = GML_TYPE_DOUBLE;
 		out->dVal = (double)_nextInstanceID;
 	}
 	Object* o = _assetManager->GetObject(objID);
-	if (!_codeActions->Run(o->evCreate, o->evCreateActionCount, _nextInstanceID, NULL)) return false;
+	if (!_codeActions->Run(o->evCreate, o->evCreateActionCount, i, NULL)) return false;
 	_nextInstanceID++;
 	return true;
 }
 
 bool CodeRunner::instance_destroy(unsigned int argc, GMLType* argv, GMLType* out) {
-	_instances->GetInstanceByNumber(_contexts.top().self)->exists = false;
+	_contexts.top().self->exists = false;
 	return true;
 }
 
 bool CodeRunner::irandom(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[0].state == GML_TYPE_STRING) return false;
-	int rand = _rng->Irandom(_round(argv[0].dVal));
+	int rand = RNGIrandom(_round(argv[0].dVal));
 	if (out) {
 		out->state = GML_TYPE_DOUBLE;
 		out->dVal = (double)rand;
@@ -59,7 +59,7 @@ bool CodeRunner::irandom(unsigned int argc, GMLType* argv, GMLType* out) {
 
 bool CodeRunner::irandom_range(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[0].state == GML_TYPE_STRING || argv[1].state == GML_TYPE_STRING) return false;
-	int rand = _rng->Irandom(_round(argv[0].dVal));
+	int rand = RNGIrandom(_round(argv[0].dVal));
 	if (out) {
 		out->state = GML_TYPE_DOUBLE;
 		out->dVal = (double)rand;
@@ -163,8 +163,8 @@ bool CodeRunner::make_color_hsv(unsigned int argc, GMLType* argv, GMLType* out) 
 		float fV = (float)(argv[2].dVal / 255.0);
 		float fR, fG, fB;
 		float fC = fV * fS; // Chroma
-		float fHPrime = fmod(fH / 60.0, 6);
-		float fX = fC * (1 - fabs(fmod(fHPrime, 2) - 1));
+		float fHPrime = (float)fmod(fH / 60.0, 6);
+		float fX = fC * (float)(1 - fabs(fmod(fHPrime, 2) - 1));
 		float fM = fV - fC;
 
 		if (0 <= fHPrime && fHPrime < 1) {
@@ -218,7 +218,7 @@ bool CodeRunner::move_wrap(unsigned int argc, GMLType* argv, GMLType* out) {
 	bool hor = _isTrue(argv + 0);
 	bool ver = _isTrue(argv + 1);
 	double margin = argv[2].dVal;
-	Instance* instance = _instances->GetInstanceByNumber(_contexts.top().self);
+	Instance* instance = _contexts.top().self;
 
 	if (hor) {
 		unsigned int roomW = _assetManager->GetRoom(_globalValues->room)->width;
@@ -245,7 +245,7 @@ bool CodeRunner::move_wrap(unsigned int argc, GMLType* argv, GMLType* out) {
 
 bool CodeRunner::random(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[0].state == GML_TYPE_STRING) return false;
-	double rand = _rng->Random(argv[0].dVal);
+	double rand = RNGRandom(argv[0].dVal);
 	if (out) {
 		out->state = GML_TYPE_DOUBLE;
 		out->dVal = rand;
@@ -255,7 +255,7 @@ bool CodeRunner::random(unsigned int argc, GMLType* argv, GMLType* out) {
 
 bool CodeRunner::random_range(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[0].state == GML_TYPE_STRING || argv[1].state == GML_TYPE_STRING) return false;
-	double rand = _rng->Random(argv[1].dVal - argv[0].dVal);
+	double rand = RNGRandom(argv[1].dVal - argv[0].dVal);
 	if (out) {
 		out->state = GML_TYPE_DOUBLE;
 		out->dVal = rand + argv[0].dVal;
@@ -266,13 +266,13 @@ bool CodeRunner::random_range(unsigned int argc, GMLType* argv, GMLType* out) {
 bool CodeRunner::random_get_seed(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (out) {
 		out->state = GML_TYPE_DOUBLE;
-		out->dVal = (double)_rng->GetSeed();
+		out->dVal = (double)RNGGetSeed();
 	}
 	return true;
 }
 
 bool CodeRunner::random_set_seed(unsigned int argc, GMLType* argv, GMLType* out) {
-	_rng->SetSeed(argv[0].state == GML_TYPE_DOUBLE ? _round(argv[0].dVal) : 0);
+	RNGSetSeed(argv[0].state == GML_TYPE_DOUBLE ? _round(argv[0].dVal) : 0);
 	return true;
 }
 

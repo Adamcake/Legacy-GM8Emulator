@@ -1,23 +1,21 @@
 #ifndef _A_CODERUNNER_HPP_
 #define _A_CODERUNNER_HPP_
 class AssetManager;
-class InstanceList;
 class GameRenderer;
 class CodeActionManager;
-class RNG;
 struct GlobalValues;
 struct Instance;
-#include <vector>
-#include <map>
-#include <stack>
-#include <string>
-
 typedef unsigned int CodeObject;
 enum CRGameVar;
 enum CRInstanceVar;
 enum CRVarType;
 enum CROperator;
 enum CRSetMethod;
+#include <vector>
+#include <map>
+#include <stack>
+#include <string>
+#include "InstanceList.hpp"
 
 #define PI 3.141592653589793
 
@@ -112,10 +110,12 @@ Followed by 6 bytes indicating the two VALs to test. If the next op isn't a jump
 Followed by 0 bytes.
 
 0F: Change context
-Followed by 4 bytes indicating the target ID to use as "self". "other" will be set to the previous "self". The current state before changing will be pushed onto a session stack.
+Followed by 6 bytes. The first 3 indicate a VAL to dereference and use as "self". The last 3 indicate how far to JMP ahead (excluding this instruction) if no instances are found.
+"other" will be set to the previous "self". The current state before changing will be pushed onto a session stack.
 
 10: Revert context
-Followed by 0 bytes. Pops values of "self" and "other" from the stack mentioned above.
+Followed by 0 bytes. Goes back to the start of the context and changes the "self" to be the next one iterated. If there are no more instances,
+then the context will be popped from the stack and running will continue from here.
 
 11: Set top stack integer
 Followed by 3 bytes indicating VAL.
@@ -229,7 +229,6 @@ class CodeRunner {
 		GameRenderer* _renderer;
 		GlobalValues* _globalValues;
 		CodeActionManager* _codeActions;
-		RNG* _rng;
 
 		// Internal code object
 		struct CRCodeObject {
@@ -256,10 +255,13 @@ class CodeRunner {
 
 		// Runtime context
 		struct CRContext {
-			unsigned int self;
-			unsigned int other;
+			Instance* self;
+			Instance* other;
+			unsigned int startpos;
+			InstanceList::Iterator iterator;
 			std::map<unsigned int, GMLType> locals;
-			CRContext(unsigned int s, unsigned int o) : self(s), other(o) {}
+			CRContext(Instance* s, Instance* o) : self(s), other(o), startpos(0), iterator(NULL, 0) {}
+			CRContext(Instance* o, unsigned int start, InstanceList* list, unsigned int id) : other(o), startpos(start), iterator(list, id) { self = iterator.Next(); }
 		};
 		std::stack<CRContext> _contexts;
 
@@ -273,7 +275,7 @@ class CodeRunner {
 		std::vector<const char*> _internalFuncNames;
 		std::vector<const char*> _gameValueNames;
 		std::vector<const char*> _instanceVarNames;
-		std::map<const char*, unsigned char> _gmlConsts;
+		std::map<const char*, int> _gmlConsts;
 		std::map<const char*, CROperator> _operators;
 		std::map<const char*, CROperator> _ANOperators; //AlphaNumeric
 		std::vector<bool(CodeRunner::*)(unsigned int,GMLType*,GMLType*)> _gmlFuncs;
@@ -359,11 +361,11 @@ class CodeRunner {
 
 		// Run a compiled code object. Returns true on success, false on error (ie. the game should close.)
 		// Most be passed the instance ID of the "self" and "other" instances in this context. ("other" may be NULL.)
-		bool Run(CodeObject code, unsigned int self, unsigned int other);
+		bool Run(CodeObject code, Instance* self, Instance* other);
 
 		// Run a compiled GML question (boolean expression). Returns true on success, false on error (ie. the game should close.)
 		// The output value is stored in the supplied pointer.
-		bool Query(CodeObject code, unsigned int self, unsigned int other, bool* response);
+		bool Query(CodeObject code, Instance* self, Instance* other, bool* response);
 };
 
 #endif

@@ -205,19 +205,51 @@ void GameRenderer::DrawImage(RImageIndex ix, double x, double y, double xscale, 
 	RImage* img = _images._Myfirst() + ix;
 
 	// Calculate a single matrix for scaling and transforming the sprite
-	double dRot = -rot * PI / 180;
+	double dRot = rot * PI / 180;
 	GLfloat sinRot = (GLfloat)sin(dRot);
 	GLfloat cosRot = (GLfloat)cos(dRot);
 	GLfloat dx = ((GLfloat)img->originX / img->w);
 	GLfloat dy = ((GLfloat)img->originY / img->h);
-	GLfloat xs = (GLfloat)(img->w * xscale * 2.0 / windowW);
-	GLfloat ys = (GLfloat)(img->h * yscale * 2.0 / windowH);
-	GLfloat project[16] = {
-		(GLfloat)(cosRot * xs), (GLfloat)(sinRot *-ys), 0, 0,
-		(GLfloat)(-sinRot *xs), (GLfloat)(cosRot *-ys), 0, 0,
+
+	GLfloat toMiddle[16] = {
+		1, 0, 0, 0,
+		0, 1, 0, 0,
 		0, 0, 1, 0,
-		(GLfloat)((((-dx * cosRot) + (dy * sinRot)) * xs) + ((2 * x / windowW) - 1)), (GLfloat)((((-dx * sinRot) + (-dy * cosRot)) * -ys) + (-(2 * y / windowH) + 1)), 0, 1
+		-dx, -dy, 0, 1
 	};
+	GLfloat scale[16] = {
+		(GLfloat)(img->w * xscale), 0, 0, 0,
+		0,(GLfloat)(img->h * -yscale), 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1
+	};
+	GLfloat rotate[16] = {
+		cosRot, sinRot, 0, 0,
+		-sinRot, cosRot, 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1
+	};
+	GLfloat scale2[16] = {
+		2.0 / windowW, 0, 0, 0,
+		0, 2.0 / windowH, 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1
+	};
+	GLfloat transform[16] = {
+		1, 0, 0, 0,
+		0, 1, 0, 0,
+		0, 0, 1, 0,
+		(x * 2.0 / windowW) - 1, -((y * 2.0 / windowH) - 1), 0, 1
+	};
+
+
+	GLfloat tmp[16];
+	GLfloat project[16];
+
+	mat4Mult(toMiddle, scale, tmp);
+	mat4Mult(tmp, rotate, project);
+	mat4Mult(project, scale2, tmp);
+	mat4Mult(tmp, transform, project);
 
 	// Bind uniform shader values
 	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "project"), 1, GL_FALSE, project);

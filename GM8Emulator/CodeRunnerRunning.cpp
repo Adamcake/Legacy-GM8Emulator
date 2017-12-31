@@ -5,6 +5,7 @@
 #include "AssetManager.hpp"
 #include "GameRenderer.hpp"
 #include "GlobalValues.hpp"
+#include "Collision.hpp"
 
 #define ARG_STACK_SIZE 4
 
@@ -124,16 +125,19 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 			t.dVal = instance->image_angle;
 			if (!_applySetMethod(&t, method, &value)) return false;
 			instance->image_angle = t.dVal;
+			instance->bboxIsStale = true;
 			break;
 		case IV_IMAGE_XSCALE:
 			t.dVal = instance->image_xscale;
 			if (!_applySetMethod(&t, method, &value)) return false;
 			instance->image_xscale = t.dVal;
+			instance->bboxIsStale = true;
 			break;
 		case IV_IMAGE_YSCALE:
 			t.dVal = instance->image_yscale;
 			if (!_applySetMethod(&t, method, &value)) return false;
 			instance->image_yscale = t.dVal;
+			instance->bboxIsStale = true;
 			break;
 		case IV_SPEED:
 			t.dVal = instance->speed;
@@ -146,11 +150,13 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 			t.dVal = instance->x;
 			if (!_applySetMethod(&t, method, &value)) return false;
 			instance->x = t.dVal;
+			instance->bboxIsStale = true;
 			break;
 		case IV_Y:
 			t.dVal = instance->y;
 			if (!_applySetMethod(&t, method, &value)) return false;
 			instance->y = t.dVal;
+			instance->bboxIsStale = true;
 			break;
 		// more tbd
 		default:
@@ -197,6 +203,22 @@ bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const 
 				Sprite* s = _assetManager->GetSprite(instance->sprite_index);
 				out->dVal = (s->exists ? s->height : 0);
 			}
+			break;
+		case IV_BBOX_LEFT:
+			RefreshInstanceBbox(instance, _assetManager);
+			out->dVal = instance->bbox_left;
+			break;
+		case IV_BBOX_RIGHT:
+			RefreshInstanceBbox(instance, _assetManager);
+			out->dVal = instance->bbox_right;
+			break;
+		case IV_BBOX_BOTTOM:
+			RefreshInstanceBbox(instance, _assetManager);
+			out->dVal = instance->bbox_bottom;
+			break;
+		case IV_BBOX_TOP:
+			RefreshInstanceBbox(instance, _assetManager);
+			out->dVal = instance->bbox_top;
 			break;
 		default:
 			return false;
@@ -267,7 +289,7 @@ bool CodeRunner::_applySetMethod(CodeRunner::GMLType* lhs, CRSetMethod method, c
 
 
 bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) {
-	unsigned int derefBuffer = _contexts.top().self;
+	Instance* derefBuffer = _contexts.top().self;
 	unsigned int pos = 0;
 	GMLType stack[ARG_STACK_SIZE];
 	
@@ -277,56 +299,67 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 	bool tilde = code[0] & 0b01000000;
 
 	GMLType var;
-	switch (code[0] & 0b00001111) {
-		case EVTYPE_VAL: {
-			if (!_parseVal(code + 1, &var)) return false;
-			pos += 4;
-			break;
-		}
-		case EVTYPE_INTERNAL_FUNC: {
-			unsigned int func = code[1] | (code[2] << 8);
-			unsigned int argc = code[3];
-			GMLType* argv = (argc > ARG_STACK_SIZE ? new GMLType[argc] : stack);
+	bool loop = true;
+	while (loop) {
+		loop = false;
+		switch (code[pos] & 0b00001111) {
+			case EVTYPE_VAL: {
+				if (!_parseVal(code + pos + 1, &var)) return false;
+				pos += 4;
+				break;
+			}
+			case EVTYPE_INTERNAL_FUNC: {
+				unsigned int func = code[pos + 1] | (code[pos + 2] << 8);
+				unsigned int argc = code[pos + 3];
+				GMLType* argv = (argc > ARG_STACK_SIZE ? new GMLType[argc] : stack);
 
-			pos += 4;
-			for (unsigned int i = 0; i < argc; i++) {
-				if (!_parseVal(code + pos, argv + i)) {
-					if (argc > ARG_STACK_SIZE) delete argv;
+				pos += 4;
+				for (unsigned int i = 0; i < argc; i++) {
+					if (!_parseVal(code + pos, argv + i)) {
+						if (argc > ARG_STACK_SIZE) delete argv;
+						return false;
+					}
+					pos += 3;
+				}
+				if (!(this->*_gmlFuncs[func])(argc, argv, &var)) return false;
+
+				if (argc > ARG_STACK_SIZE) delete argv;
+				break;
+			}
+			case EVTYPE_GAME_VALUE: {
+				if (!_getGameValue((CRGameVar)code[pos + 1], code + pos + 2, &var)) return false;
+				pos += 5;
+				break;
+			}
+			case EVTYPE_INSTANCEVAR: {
+				if (!_getInstanceVar(derefBuffer, (CRInstanceVar)code[pos + 1], code + pos + 2, &var)) return false;
+				pos += 5;
+				break;
+			}
+			case EVTYPE_FIELD: {
+				unsigned int fieldNum = code[pos + 1] | (code[pos + 2] << 8);
+				if (_contexts.top().locals.count(fieldNum)) {
+					// This is a local var
+					var = _contexts.top().locals[fieldNum];
+				}
+				else {
+					// This is a normal field
+					// TODO
 					return false;
 				}
 				pos += 3;
+				break;
 			}
-			if (!(this->*_gmlFuncs[func])(argc, argv, &var)) return false;
-
-			if (argc > ARG_STACK_SIZE) delete argv;
-			break;
-		}
-		case EVTYPE_GAME_VALUE: {
-			if (!_getGameValue((CRGameVar)code[1], code + 2, &var)) return false;
-			pos += 5;
-			break;
-		}
-		case EVTYPE_INSTANCEVAR: {
-			if (!_getInstanceVar(_instances->GetInstanceByNumber(derefBuffer), (CRInstanceVar)code[1], code + 2, &var)) return false;
-			pos += 5;
-			break;
-		}
-		case EVTYPE_FIELD: {
-			unsigned int fieldNum = code[1] | (code[2] << 8);
-			if (_contexts.top().locals.count(fieldNum)) {
-				// This is a local var
-				var = _contexts.top().locals[fieldNum];
-			}
-			else {
-				// This is a normal field
-				// TODO
+			default: {
 				return false;
 			}
-			pos += 3;
-			break;
 		}
-		default: {
-			return false;
+
+		// If we're dereferencing this value, put it in the deref buffer and loop back around
+		if (code[pos] == OPERATOR_DEREF) {
+			pos++;
+			derefBuffer = _instances->GetInstanceByNumber(var.dVal);
+			loop = true;
 		}
 	}
 
@@ -407,6 +440,22 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 			out->dVal = (var.dVal > rest.dVal ? 1.0 : 0.0);
 			return true;
 		}
+		case OPERATOR_EQUALS: {
+			pos++;
+			GMLType rest;
+			if (!_evalExpression(code + pos, &rest)) return false;
+			out->state = GML_TYPE_DOUBLE;
+			out->dVal = (var.dVal == rest.dVal ? 1.0 : 0.0);
+			return true;
+		}
+		case OPERATOR_NOT_EQUAL: {
+			pos++;
+			GMLType rest;
+			if (!_evalExpression(code + pos, &rest)) return false;
+			out->state = GML_TYPE_DOUBLE;
+			out->dVal = (var.dVal != rest.dVal ? 1.0 : 0.0);
+			return true;
+		}
 		// more tbd
 		default: {
 			return false;
@@ -417,7 +466,7 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 
 
 bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
-	unsigned int derefBuffer = _contexts.top().self;
+	Instance* derefBuffer = _contexts.top().self;
 	bool dereferenced = false;
 	unsigned int pos = 0;
 	GMLType stack[ARG_STACK_SIZE];
@@ -442,7 +491,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 			case OP_SET_INSTANCE_VAR: { // Set instance variable
 				GMLType valToSet;
 				if (!_parseVal(bytes + pos + 6, &valToSet)) return false;
-				if (!_setInstanceVar(_instances->GetInstanceByNumber(derefBuffer), (CRInstanceVar)bytes[pos + 1], bytes + pos + 2, (CRSetMethod)bytes[pos + 5], valToSet)) return false;
+				if (!_setInstanceVar(derefBuffer, (CRInstanceVar)bytes[pos + 1], bytes + pos + 2, (CRSetMethod)bytes[pos + 5], valToSet)) return false;
 				pos += 9;
 				break;
 			}
@@ -485,7 +534,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				GMLType val;
 				if (!_parseVal(bytes + pos + 1, &val)) return false;
 				if (val.state != GML_TYPE_DOUBLE) return false;
-				derefBuffer = _round(val.dVal);
+				derefBuffer = _instances->GetInstanceByNumber(_round(val.dVal));
 				pos += 4;
 				dereferenced = true;
 				break;
@@ -494,6 +543,49 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				derefBuffer = _contexts.top().self;
 				pos++;
 				dereferenced = false;
+				break;
+			}
+			case OP_CHANGE_CONTEXT: { // Push new values onto the context stack
+				GMLType val;
+				if (!_parseVal(bytes + pos + 1, &val)) return false;
+				if (val.state != GML_TYPE_DOUBLE) return false;
+				int id = _round(val.dVal);
+				pos += 7;
+
+				if (id >= 0) {
+					_contexts.push(CRContext(_contexts.top().self, pos, _instances, id));
+				}
+				else if (id == -1) {
+					_contexts.push(CRContext(_contexts.top().self, pos, _instances, _contexts.top().self->id));
+				}
+				else if (id == -2) {
+					_contexts.push(CRContext(_contexts.top().self, pos, _instances, _contexts.top().other->id));
+				}
+				else if (id == -3) {
+					// with(all) - todo
+					return false;
+				}
+				else {
+					pos += bytes[pos - 3] + ((unsigned int)bytes[pos - 2] << 8) + ((unsigned int)bytes[pos - 1] << 16);
+				}
+
+				if (_contexts.top().self == NULL) {
+					// No instances to use in this context
+					pos += bytes[pos - 3] + ((unsigned int)bytes[pos - 2] << 8) + ((unsigned int)bytes[pos - 1] << 16);
+					_contexts.pop();
+				}
+				break;
+			}
+			case OP_REVERT_CONTEXT: { // End of context - get the next instance to run that context on, and continue from here if there are no more.
+				Instance* next = _contexts.top().iterator.Next();
+				if (next) {
+					_contexts.top().self = next;
+					pos = _contexts.top().startpos;
+				}
+				else {
+					_contexts.pop();
+					pos++;
+				}
 				break;
 			}
 			case OP_RUN_INTERNAL_FUNC: { // Run an internal function, not caring about the return value
@@ -548,6 +640,10 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				pos += 2 + bytes[pos + 1];
 				break;
 			}
+			case OP_JUMP_BACK: { // short jump forward
+				pos -= bytes[pos + 1] - 2;
+				break;
+			}
 			default: {
 				// Unknown operator
 				return false;
@@ -558,7 +654,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 	return false;
 }
 
-bool CodeRunner::Run(CodeObject code, unsigned int self, unsigned int other) {
+bool CodeRunner::Run(CodeObject code, Instance* self, Instance* other) {
 	_contexts.push(CRContext(self, other));
 	GMLType out;
 	bool ret = _runCode(_codeObjects[code].compiled, &out);
@@ -566,7 +662,7 @@ bool CodeRunner::Run(CodeObject code, unsigned int self, unsigned int other) {
 	return ret;
 }
 
-bool CodeRunner::Query(CodeObject code, unsigned int self, unsigned int other, bool* response) {
+bool CodeRunner::Query(CodeObject code, Instance* self, Instance* other, bool* response) {
 	_contexts.push(CRContext(self, other));
 	GMLType resp;
 	if (!_evalExpression(_codeObjects[code].compiled, &resp)) return false;

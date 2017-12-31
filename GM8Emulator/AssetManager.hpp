@@ -67,19 +67,19 @@ class AssetManager {
 		Room* GetRoom(unsigned int index);
 		IncludeFile* GetIncludeFile(unsigned int index);
 
-		inline unsigned int GetExtensionCount() { return (unsigned int)_extensions.size(); }
-		inline unsigned int GetTriggerCount() { return (unsigned int)_triggers.size(); }
-		inline unsigned int GetConstantCount() { return (unsigned int)_constants.size(); }
-		inline unsigned int GetSoundCount() { return (unsigned int)_sounds.size(); }
-		inline unsigned int GetSpriteCount() { return (unsigned int)_sprites.size(); }
-		inline unsigned int GetBackgroundCount() { return (unsigned int)_backgrounds.size(); }
-		inline unsigned int GetPathCount() { return (unsigned int)_paths.size(); }
-		inline unsigned int GetScriptCount() { return (unsigned int)_scripts.size(); }
-		inline unsigned int GetFontCount() { return (unsigned int)_fonts.size(); }
-		inline unsigned int GetTimelineCount() { return (unsigned int)_timelines.size(); }
-		inline unsigned int GetObjectCount() { return (unsigned int)_objects.size(); }
-		inline unsigned int GetRoomCount() { return (unsigned int)_rooms.size(); }
-		inline unsigned int GetIncludeFileCount() { return (unsigned int)_includeFiles.size(); }
+		inline unsigned int GetExtensionCount() const { return (unsigned int)_extensions.size(); }
+		inline unsigned int GetTriggerCount() const { return (unsigned int)_triggers.size(); }
+		inline unsigned int GetConstantCount() const { return (unsigned int)_constants.size(); }
+		inline unsigned int GetSoundCount() const { return (unsigned int)_sounds.size(); }
+		inline unsigned int GetSpriteCount() const { return (unsigned int)_sprites.size(); }
+		inline unsigned int GetBackgroundCount() const { return (unsigned int)_backgrounds.size(); }
+		inline unsigned int GetPathCount() const { return (unsigned int)_paths.size(); }
+		inline unsigned int GetScriptCount() const { return (unsigned int)_scripts.size(); }
+		inline unsigned int GetFontCount() const { return (unsigned int)_fonts.size(); }
+		inline unsigned int GetTimelineCount() const { return (unsigned int)_timelines.size(); }
+		inline unsigned int GetObjectCount() const { return (unsigned int)_objects.size(); }
+		inline unsigned int GetRoomCount() const { return (unsigned int)_rooms.size(); }
+		inline unsigned int GetIncludeFileCount() const { return (unsigned int)_includeFiles.size(); }
 };
 
 #endif

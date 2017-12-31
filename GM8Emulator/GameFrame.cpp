@@ -4,6 +4,7 @@
 #include "CodeActionManager.hpp"
 #include "CodeRunner.hpp"
 #include "InputHandler.hpp"
+#include "Collision.hpp"
 
 
 bool Game::LoadRoom(unsigned int id) {
@@ -21,7 +22,7 @@ bool Game::LoadRoom(unsigned int id) {
 		// run "room end" event for _instances[i]
 		Object* o = _assetManager.GetObject(_instances[i]->object_index);
 		if (o->evOther.count(5)) {
-			if (!_codeActions->Run(o->evOther[5].actions, o->evOther[5].actionCount, _instances[i]->id, NULL)) return false;
+			if (!_codeActions->Run(o->evOther[5].actions, o->evOther[5].actionCount, _instances[i], NULL)) return false;
 		}
 	}
 
@@ -52,10 +53,10 @@ bool Game::LoadRoom(unsigned int id) {
 				return false;
 			}
 			// run room->instances[i] creation code
-			if (!_runner->Run(room->instances[i].creation, id, NULL)) return false;
+			if (!_runner->Run(room->instances[i].creation, instance, NULL)) return false;
 			// run instance create event
 			Object* o = _assetManager.GetObject(instance->object_index);
-			if (!_codeActions->Run(o->evCreate, o->evCreateActionCount, instance->id, NULL)) return false;
+			if (!_codeActions->Run(o->evCreate, o->evCreateActionCount, instance, NULL)) return false;
 		}
 	}
 
@@ -67,7 +68,7 @@ bool Game::LoadRoom(unsigned int id) {
 		// run _instances[i] room start event
 		Object* o = _assetManager.GetObject(_instances[i]->object_index);
 		if (o->evOther.count(4)) {
-			if (!_codeActions->Run(o->evOther[4].actions, o->evOther[4].actionCount, _instances[i]->id, NULL)) return false;
+			if (!_codeActions->Run(o->evOther[4].actions, o->evOther[4].actionCount, _instances[i], NULL)) return false;
 		}
 	}
 
@@ -87,11 +88,10 @@ bool Game::Frame() {
 			Object* obj = _assetManager.GetObject(instance->object_index);
 			if (obj->evDraw) {
 				// This object has a custom draw event.
-				if (!_codeActions->Run(obj->evDraw, obj->evDrawActionCount, instance->id, NULL)) return false;
+				if (!_codeActions->Run(obj->evDraw, obj->evDrawActionCount, instance, NULL)) return false;
 			}
 			else {
-				// This is the default draw action if no draw event is present for this object (more or less.)
-				// We can just do this for now until we have code compilation working.
+				// This is the default draw action if no draw event is present for this object.
 				if (instance->sprite_index >= 0) {
 					Sprite* sprite = _assetManager.GetSprite(instance->sprite_index);
 					if (sprite->exists) {
@@ -122,6 +122,7 @@ bool Game::Frame() {
 				if (instance->image_index > s->frameCount) {
 					instance->image_index -= s->frameCount;
 				}
+				if (instance->image_speed && s->separateCollision) instance->bboxIsStale = true;
 			}
 		}
 	}
@@ -137,7 +138,7 @@ bool Game::Frame() {
 		Instance* instance = _instances[i];
 		if (instance->exists) {
 			Object* o = _assetManager.GetObject(instance->object_index);
-			if (!_codeActions->Run(o->evStepBegin, o->evStepBeginActionCount, instance->id, NULL)) return false;
+			if (!_codeActions->Run(o->evStepBegin, o->evStepBeginActionCount, instance, NULL)) return false;
 		}
 	}
 
@@ -153,7 +154,7 @@ bool Game::Frame() {
 				if (j.second > 0) {
 					instance->alarm[j.first]--;
 					if (instance->alarm[j.first] == 0) {
-						if (!_codeActions->Run(obj->evAlarm[j.first].actions, obj->evAlarm[j.first].actionCount, instance->id, NULL)) return false;
+						if (!_codeActions->Run(obj->evAlarm[j.first].actions, obj->evAlarm[j.first].actionCount, instance, NULL)) return false;
 					}
 				}
 			}
@@ -176,7 +177,7 @@ bool Game::Frame() {
 		Instance* instance = _instances[i];
 		if (instance->exists) {
 			Object* o = _assetManager.GetObject(instance->object_index);
-			if (!_codeActions->Run(o->evStep, o->evStepActionCount, instance->id, NULL)) return false;
+			if (!_codeActions->Run(o->evStep, o->evStepActionCount, instance, NULL)) return false;
 		}
 	}
 
@@ -214,6 +215,7 @@ bool Game::Frame() {
 			// Apply hspeed and vspeed to x and y
 			instance->x += instance->hspeed;
 			instance->y += instance->vspeed;
+			if(instance->hspeed || instance->vspeed) instance->bboxIsStale = true;
 		}
 	}
 
@@ -221,6 +223,24 @@ bool Game::Frame() {
 	// TODO: in this order, if views are enabled: "outside view x" events for all instances, "intersect boundary view x" events for all instances
 
 	// TODO: collision events for all instances
+	icount = _instances.Count();
+	for (unsigned int i = 0; i < icount; i++) {
+		Instance* instance = _instances[i];
+		if (instance->exists) {
+			Object* o = _assetManager.GetObject(instance->object_index);
+			for (const auto& e : o->evCollision) {
+				InstanceList::Iterator iter(&_instances, e.first);
+				
+				Instance* target = iter.Next();
+				while (target) {
+					if (CollisionCheck(instance, target, &_assetManager)) {
+						if (!_codeActions->Run(e.second.actions, e.second.actionCount, instance, target)) return false;
+					}
+					target = iter.Next();
+				}
+			}
+		}
+	}
 
 	// TODO: "end step" trigger events
 
@@ -230,7 +250,7 @@ bool Game::Frame() {
 		Instance* instance = _instances[i];
 		if (instance->exists) {
 			Object* o = _assetManager.GetObject(instance->object_index);
-			if (!_codeActions->Run(o->evStepEnd, o->evStepEndActionCount, instance->id, NULL)) return false;
+			if (!_codeActions->Run(o->evStepEnd, o->evStepEndActionCount, instance, NULL)) return false;
 		}
 	}
 
