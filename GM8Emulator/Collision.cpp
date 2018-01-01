@@ -92,11 +92,11 @@ bool CollisionCheck(Instance * i1, Instance * i2, AssetManager * assets) {
 	double s1 = sin(a1);
 	double c2 = cos(a2);
 	double s2 = sin(a2);
-	int w1 = (map1->right + 1 - map1->left);
-	int w2 = (map2->right + 1 - map2->left);
+	int w1 = map1->width;
+	int w2 = map2->width;
 
-	for (int y = cTop; y < cBottom; y++) {
-		for (int x = cLeft; x < cRight; x++) {
+	for (int y = cTop; y <= cBottom; y++) {
+		for (int x = cLeft; x <= cRight; x++) {
 			double curX = (double)x;
 			double curY = (double)y;
 			rotateAround(&curX, &curY, i1->x, i1->y, s1, c1);

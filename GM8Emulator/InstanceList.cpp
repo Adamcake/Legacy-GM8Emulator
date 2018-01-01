@@ -161,15 +161,31 @@ bool InstanceList::_InitInstance(Instance* instance, unsigned int id, double x, 
 }
 
 
-InstanceList::Iterator::Iterator(InstanceList* list, unsigned int id) : _list(list), _id(id), _pos(0) {
+InstanceList::IDIterator::IDIterator(InstanceList* list, unsigned int id) : _list(list), _id(id), _pos(0) {
 	if(list) _limit = list->Count();
 }
 
-Instance* InstanceList::Iterator::Next() {
+Instance* InstanceList::IDIterator::Next() {
 	unsigned int endpos;
 	Instance* ret = _list->GetInstanceByNumber(_id, _pos, &endpos);
 	if ((ret) && (endpos >= _limit)) return NULL;
 	endpos++;
 	_pos = endpos;
+	return ret;
+}
+
+
+InstanceList::Iterator::Iterator(InstanceList* list) : _list(list), _pos(0) {
+	if (list) _limit = list->Count();
+}
+
+Instance* InstanceList::Iterator::Next() {
+	Instance* ret;
+	while (true) {
+		if (_pos >= _limit) return NULL;
+		ret = (*_list)[_pos];
+		_pos++;
+		if (ret->exists) break;
+	}
 	return ret;
 }

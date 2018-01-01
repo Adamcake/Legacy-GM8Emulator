@@ -18,15 +18,26 @@ class InstanceList {
 		InstanceList(AssetManager* manager);
 		~InstanceList();
 
-		// Iterator class for getting all instances matching a certain id.
-		// Just create using InstanceList::Iterator(list, id) and then call Next() until it returns NULL.
+		// Iterator for looping through all instances that exist when the iterator was created.
+		// Just create using InstanceList::Iterator(list) and then call Next() until it returns NULL.
+		// Note: it's not valid to retain an iterator outside of a single frame.
 		class Iterator {
+			InstanceList* _list;
+			unsigned int _pos;
+			unsigned int _limit;
+			public:
+				Iterator(InstanceList* list);
+				Instance* Next();
+		};
+
+		// Iterator class for getting all instances matching a certain id. Works the same as a regular Iterator.
+		class IDIterator {
 			InstanceList* _list;
 			unsigned int _id;
 			unsigned int _pos;
 			unsigned int _limit;
 			public:
-				Iterator(InstanceList* list, unsigned int id);
+				IDIterator(InstanceList* list, unsigned int id);
 				Instance* Next();
 		};
 

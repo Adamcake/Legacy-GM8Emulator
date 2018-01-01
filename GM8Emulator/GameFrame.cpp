@@ -78,6 +78,9 @@ bool Game::LoadRoom(unsigned int id) {
 
 
 bool Game::Frame() {
+	Instance* instance;
+	InstanceList::Iterator iter(&_instances);
+
 	// Run draw event for all instances (TODO: correct depth order)
 	unsigned int icount = _instances.Count();
 	for (unsigned int i = 0; i < icount; i++) {
@@ -111,19 +114,16 @@ bool Game::Frame() {
 	if (_renderer->ShouldClose()) return false;
 
 	// Update sprite info
-	icount = _instances.Count();
-	for (unsigned int i = 0; i < icount; i++) {
-		Instance* instance = _instances[i];
-		if (instance->exists) {
-			instance->image_index += instance->image_speed;
+	iter = InstanceList::Iterator(&_instances);
+	while (instance = iter.Next()) {
+		instance->image_index += instance->image_speed;
 
-			if (instance->sprite_index >= 0) {
-				Sprite* s = _assetManager.GetSprite(instance->sprite_index);
-				if (instance->image_index > s->frameCount) {
-					instance->image_index -= s->frameCount;
-				}
-				if (instance->image_speed && s->separateCollision) instance->bboxIsStale = true;
+		if (instance->sprite_index >= 0) {
+			Sprite* s = _assetManager.GetSprite(instance->sprite_index);
+			if (instance->image_index > s->frameCount) {
+				instance->image_index -= s->frameCount;
 			}
+			if (instance->image_speed && s->separateCollision) instance->bboxIsStale = true;
 		}
 	}
 
@@ -133,111 +133,96 @@ bool Game::Frame() {
 	// TODO: "begin step" trigger events
 
 	// Run "begin step" event for all instances
-	icount = _instances.Count();
-	for (unsigned int i = 0; i < icount; i++) {
-		Instance* instance = _instances[i];
-		if (instance->exists) {
-			Object* o = _assetManager.GetObject(instance->object_index);
-			if (!_codeActions->Run(o->evStepBegin, o->evStepBeginActionCount, instance, NULL)) return false;
-		}
+	iter = InstanceList::Iterator(&_instances);
+	while (instance = iter.Next()) {
+		Object* o = _assetManager.GetObject(instance->object_index);
+		if (!_codeActions->Run(o->evStepBegin, o->evStepBeginActionCount, instance, NULL)) return false;
 	}
 
 	// TODO: if timeline_running, add timeline_speed to timeline_position and then run any events in that timeline indexed BELOW (not equal to) the current timeline_position
 
-	// TODO: subtract from alarms and run event if they reach 0
-	icount = _instances.Count();
-	for (unsigned int i = 0; i < icount; i++) {
-		Instance* instance = _instances[i];
-		if (instance->exists) {
-			Object* obj = _assetManager.GetObject(instance->object_index);
-			for (auto const& j : instance->alarm) {
-				if (j.second > 0) {
-					instance->alarm[j.first]--;
-					if (instance->alarm[j.first] == 0) {
-						if (!_codeActions->Run(obj->evAlarm[j.first].actions, obj->evAlarm[j.first].actionCount, instance, NULL)) return false;
-					}
+	// Subtract from alarms and run event if they reach 0
+	iter = InstanceList::Iterator(&_instances);
+	while (instance = iter.Next()) {
+		Object* obj = _assetManager.GetObject(instance->object_index);
+		for (auto const& j : instance->alarm) {
+			if (j.second > 0) {
+				instance->alarm[j.first]--;
+				if (instance->alarm[j.first] == 0) {
+					if (!_codeActions->Run(obj->evAlarm[j.first].actions, obj->evAlarm[j.first].actionCount, instance, NULL)) return false;
 				}
 			}
 		}
 	}
 
 	// TODO: keyboard events
-	
+
 	// TODO: mouse events
 
 	// TODO: key press events
-	
+
 	// TODO: key release events
 
 	// TODO: "normal step" trigger events
 
 	// Run "step" event for all instances
-	icount = _instances.Count();
-	for (unsigned int i = 0; i < icount; i++) {
-		Instance* instance = _instances[i];
-		if (instance->exists) {
-			Object* o = _assetManager.GetObject(instance->object_index);
-			if (!_codeActions->Run(o->evStep, o->evStepActionCount, instance, NULL)) return false;
-		}
+	iter = InstanceList::Iterator(&_instances);
+	while (instance = iter.Next()) {
+		Object* o = _assetManager.GetObject(instance->object_index);
+		if (!_codeActions->Run(o->evStep, o->evStepActionCount, instance, NULL)) return false;
 	}
 
 	// Movement
-	icount = _instances.Count();
-	for (unsigned int i = 0; i < icount; i++) {
-		Instance* instance = _instances[i];
-		if (instance->exists) {
-			// Set xprevious and yprevious
-			instance->xprevious = instance->x;
-			instance->yprevious = instance->y;
+	iter = InstanceList::Iterator(&_instances);
+	while (instance = iter.Next()) {
+		// Set xprevious and yprevious
+		instance->xprevious = instance->x;
+		instance->yprevious = instance->y;
 
-			if (instance->friction != 0) {
-				// Subtract friction from speed towards 0
-				bool neg = instance->speed < 0;
-				instance->speed = abs(instance->speed) - instance->friction;
-				if (instance->speed < 0) instance->speed = 0;
-				else if (neg) instance->speed = -instance->speed;
+		if (instance->friction != 0) {
+			// Subtract friction from speed towards 0
+			bool neg = instance->speed < 0;
+			instance->speed = abs(instance->speed) - instance->friction;
+			if (instance->speed < 0) instance->speed = 0;
+			else if (neg) instance->speed = -instance->speed;
 
-				// Recalculate hspeed/vspeed
-				instance->hspeed = cos(instance->direction * PI / 180.0) * instance->speed;
-				instance->vspeed = -sin(instance->direction * PI / 180.0) * instance->speed;
-			}
-
-			if (instance->gravity) {
-				// Apply gravity in gravity_direction to hspeed and vspeed
-				instance->hspeed += cos(instance->gravity_direction * PI / 180.0) * instance->gravity;
-				instance->vspeed += -sin(instance->gravity_direction * PI / 180.0) * instance->gravity;
-
-				// Recalculate speed and direction from hspeed/vspeed
-				instance->direction = atan(-instance->vspeed / instance->hspeed) * 180.0 / PI;
-				instance->speed = sqrt(pow(instance->hspeed, 2) + pow(instance->vspeed, 2));
-			}
-
-			// Apply hspeed and vspeed to x and y
-			instance->x += instance->hspeed;
-			instance->y += instance->vspeed;
-			if(instance->hspeed || instance->vspeed) instance->bboxIsStale = true;
+			// Recalculate hspeed/vspeed
+			instance->hspeed = cos(instance->direction * PI / 180.0) * instance->speed;
+			instance->vspeed = -sin(instance->direction * PI / 180.0) * instance->speed;
 		}
+
+		if (instance->gravity) {
+			// Apply gravity in gravity_direction to hspeed and vspeed
+			instance->hspeed += cos(instance->gravity_direction * PI / 180.0) * instance->gravity;
+			instance->vspeed += -sin(instance->gravity_direction * PI / 180.0) * instance->gravity;
+
+			// Recalculate speed and direction from hspeed/vspeed
+			instance->direction = atan(-instance->vspeed / instance->hspeed) * 180.0 / PI;
+			instance->speed = sqrt(pow(instance->hspeed, 2) + pow(instance->vspeed, 2));
+		}
+
+		// Apply hspeed and vspeed to x and y
+		instance->x += instance->hspeed;
+		instance->y += instance->vspeed;
+		if (instance->hspeed || instance->vspeed) instance->bboxIsStale = true;
 	}
 
 	// TODO: in this order: "outside room" events for all instances, "intersect boundary" events for all instances
 	// TODO: in this order, if views are enabled: "outside view x" events for all instances, "intersect boundary view x" events for all instances
 
-	// TODO: collision events for all instances
-	icount = _instances.Count();
-	for (unsigned int i = 0; i < icount; i++) {
-		Instance* instance = _instances[i];
-		if (instance->exists) {
-			Object* o = _assetManager.GetObject(instance->object_index);
-			for (const auto& e : o->evCollision) {
-				InstanceList::Iterator iter(&_instances, e.first);
-				
-				Instance* target = iter.Next();
-				while (target) {
-					if (CollisionCheck(instance, target, &_assetManager)) {
-						if (!_codeActions->Run(e.second.actions, e.second.actionCount, instance, target)) return false;
-					}
-					target = iter.Next();
+	// Collision events
+	iter = InstanceList::Iterator(&_instances);
+	while (instance = iter.Next()) {
+		Object* o = _assetManager.GetObject(instance->object_index);
+		for (const auto& e : o->evCollision) {
+			InstanceList::IDIterator iter(&_instances, e.first);
+
+			Instance* target = iter.Next();
+			while (target) {
+				if (CollisionCheck(instance, target, &_assetManager)) {
+					if (!_codeActions->Run(e.second.actions, e.second.actionCount, instance, target)) return false;
 				}
+				target = iter.Next();
 			}
 		}
 	}
@@ -245,13 +230,10 @@ bool Game::Frame() {
 	// TODO: "end step" trigger events
 
 	// Run "end step" event for all instances
-	icount = _instances.Count();
-	for (unsigned int i = 0; i < icount; i++) {
-		Instance* instance = _instances[i];
-		if (instance->exists) {
-			Object* o = _assetManager.GetObject(instance->object_index);
-			if (!_codeActions->Run(o->evStepEnd, o->evStepEndActionCount, instance, NULL)) return false;
-		}
+	iter = InstanceList::Iterator(&_instances);
+	while (instance = iter.Next()) {
+		Object* o = _assetManager.GetObject(instance->object_index);
+		if (!_codeActions->Run(o->evStepEnd, o->evStepEndActionCount, instance, NULL)) return false;
 	}
 
 	_instances.ClearDeleted();

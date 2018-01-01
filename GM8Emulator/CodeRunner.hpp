@@ -17,7 +17,7 @@ enum CRSetMethod;
 #include <string>
 #include "InstanceList.hpp"
 
-#define PI 3.141592653589793
+#define PI 3.141592654 // Actual value of PI used by the official runner. Please don't make it more accurate.
 
 /*
 The runner compiles GML into an instruction format that is based on the format of x86 CPU instructions, except massively cut down. This is (vaguely) documented here, for now.
@@ -258,7 +258,7 @@ class CodeRunner {
 			Instance* self;
 			Instance* other;
 			unsigned int startpos;
-			InstanceList::Iterator iterator;
+			InstanceList::IDIterator iterator;
 			std::map<unsigned int, GMLType> locals;
 			CRContext(Instance* s, Instance* o) : self(s), other(o), startpos(0), iterator(NULL, 0) {}
 			CRContext(Instance* o, unsigned int start, InstanceList* list, unsigned int id) : other(o), startpos(start), iterator(list, id) { self = iterator.Next(); }

@@ -97,6 +97,8 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 		case IV_DIRECTION:
 			t.dVal = instance->direction;
 			if (!_applySetMethod(&t, method, &value)) return false;
+			while (t.dVal >= 360.0) t.dVal -= 360.0;
+			while (t.dVal < 0.0) t.dVal += 360.0;
 			instance->direction = (t.dVal);
 			instance->hspeed = cos(instance->direction * PI / 180.0) * instance->speed;
 			instance->vspeed = -sin(instance->direction * PI / 180.0) * instance->speed;
@@ -121,6 +123,11 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 			if (!_applySetMethod(&t, method, &value)) return false;
 			instance->image_alpha = t.dVal;
 			break;
+		case IV_IMAGE_INDEX:
+			t.dVal = instance->image_index;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->image_index = t.dVal;
+			break;
 		case IV_IMAGE_ANGLE:
 			t.dVal = instance->image_angle;
 			if (!_applySetMethod(&t, method, &value)) return false;
@@ -139,12 +146,26 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 			instance->image_yscale = t.dVal;
 			instance->bboxIsStale = true;
 			break;
+		case IV_SOLID:
+			t.dVal = (instance->solid ? 1.0 : 0.0);
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->solid = _isTrue(&t);
 		case IV_SPEED:
 			t.dVal = instance->speed;
 			if (!_applySetMethod(&t, method, &value)) return false;
 			instance->speed = t.dVal;
 			instance->hspeed = cos(instance->direction * PI / 180.0) * instance->speed;
 			instance->vspeed = -sin(instance->direction * PI / 180.0) * instance->speed;
+			break;
+		case IV_GRAVITY:
+			t.dVal = instance->gravity;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->gravity = t.dVal;
+			break;
+		case IV_GRAVITY_DIRECTION:
+			t.dVal = instance->gravity_direction;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->gravity_direction = t.dVal;
 			break;
 		case IV_X:
 			t.dVal = instance->x;
@@ -183,8 +204,17 @@ bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const 
 		case IV_SPEED:
 			out->dVal = instance->speed;
 			break;
+		case IV_GRAVITY:
+			out->dVal = instance->gravity;
+			break;
+		case IV_GRAVITY_DIRECTION:
+			out->dVal = instance->gravity_direction;
+			break;
 		case IV_IMAGE_ALPHA:
 			out->dVal = instance->image_alpha;
+			break;
+		case IV_IMAGE_INDEX:
+			out->dVal = instance->image_index;
 			break;
 		case IV_SPRITE_WIDTH:
 			if (instance->sprite_index < 0 || instance->sprite_index >= (int)_assetManager->GetSpriteCount()) {
