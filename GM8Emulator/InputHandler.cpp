@@ -11,9 +11,9 @@ GLFWwindow* win;
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (key != GLFW_KEY_UNKNOWN) {
-		_current[key] = (action != GLFW_RELEASE);
 		if (action == GLFW_RELEASE) _released[key] = true;
-		else _pressed[key] = true;
+		else if (!_current[key]) _pressed[key] = true;
+		_current[key] = (action != GLFW_RELEASE);
 	}
 }
 

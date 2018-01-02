@@ -2,7 +2,7 @@
 #include "Instance.hpp"
 #include "AssetManager.hpp"
 #include <cstring>
-#define INSTANCE_CAPACITY 10000
+#define INSTANCE_CAPACITY 65536
 
 
 InstanceList::InstanceList(AssetManager* manager) {
@@ -161,25 +161,29 @@ bool InstanceList::_InitInstance(Instance* instance, unsigned int id, double x, 
 }
 
 
-InstanceList::IDIterator::IDIterator(InstanceList* list, unsigned int id) : _list(list), _id(id), _pos(0) {
-	if(list) _limit = list->Count();
-}
-
-Instance* InstanceList::IDIterator::Next() {
-	unsigned int endpos;
-	Instance* ret = _list->GetInstanceByNumber(_id, _pos, &endpos);
-	if ((ret) && (endpos >= _limit)) return NULL;
-	endpos++;
-	_pos = endpos;
-	return ret;
-}
-
-
-InstanceList::Iterator::Iterator(InstanceList* list) : _list(list), _pos(0) {
-	if (list) _limit = list->Count();
-}
-
 Instance* InstanceList::Iterator::Next() {
+	if (_byId) {
+		unsigned int endpos;
+		Instance* ret = _list->GetInstanceByNumber(_id, _pos, &endpos);
+		if ((ret) && (endpos >= _limit)) return NULL;
+		endpos++;
+		_pos = endpos;
+		return ret;
+	}
+	else {
+		Instance* ret;
+		while (true) {
+			if (_pos >= _limit) return NULL;
+			ret = (*_list)[_pos];
+			_pos++;
+			if (ret->exists) break;
+		}
+		return ret;
+	}
+}
+
+/*
+Instance* InstanceList::AllIterator::Next() {
 	Instance* ret;
 	while (true) {
 		if (_pos >= _limit) return NULL;
@@ -189,3 +193,4 @@ Instance* InstanceList::Iterator::Next() {
 	}
 	return ret;
 }
+*/

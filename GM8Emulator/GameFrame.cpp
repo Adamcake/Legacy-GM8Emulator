@@ -215,7 +215,7 @@ bool Game::Frame() {
 	while (instance = iter.Next()) {
 		Object* o = _assetManager.GetObject(instance->object_index);
 		for (const auto& e : o->evCollision) {
-			InstanceList::IDIterator iter(&_instances, e.first);
+			InstanceList::Iterator iter(&_instances, e.first);
 
 			Instance* target = iter.Next();
 			while (target) {

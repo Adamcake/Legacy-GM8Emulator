@@ -150,6 +150,7 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 			t.dVal = (instance->solid ? 1.0 : 0.0);
 			if (!_applySetMethod(&t, method, &value)) return false;
 			instance->solid = _isTrue(&t);
+			break;
 		case IV_SPEED:
 			t.dVal = instance->speed;
 			if (!_applySetMethod(&t, method, &value)) return false;
@@ -157,6 +158,19 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 			instance->hspeed = cos(instance->direction * PI / 180.0) * instance->speed;
 			instance->vspeed = -sin(instance->direction * PI / 180.0) * instance->speed;
 			break;
+		case IV_VSPEED:
+			t.dVal = instance->vspeed;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->vspeed = t.dVal;
+			instance->direction = atan(-instance->vspeed / instance->hspeed) * 180.0 / PI;
+			instance->speed = sqrt(pow(instance->hspeed, 2) + pow(instance->vspeed, 2));
+			break;
+		case IV_HSPEED:
+			t.dVal = instance->hspeed;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->hspeed = t.dVal;
+			instance->direction = atan(-instance->vspeed / instance->hspeed) * 180.0 / PI;
+			instance->speed = sqrt(pow(instance->hspeed, 2) + pow(instance->vspeed, 2));
 		case IV_GRAVITY:
 			t.dVal = instance->gravity;
 			if (!_applySetMethod(&t, method, &value)) return false;
@@ -198,11 +212,20 @@ bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const 
 		case IV_Y:
 			out->dVal = instance->y;
 			break;
+		case IV_SOLID:
+			out->dVal = (instance->solid ? 1.0 : 0.0);
+			break;
 		case IV_DIRECTION:
 			out->dVal = instance->direction;
 			break;
 		case IV_SPEED:
 			out->dVal = instance->speed;
+			break;
+		case IV_VSPEED:
+			out->dVal = instance->vspeed;
+			break;
+		case IV_HSPEED:
+			out->dVal = instance->hspeed;
 			break;
 		case IV_GRAVITY:
 			out->dVal = instance->gravity;
@@ -374,8 +397,7 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 				}
 				else {
 					// This is a normal field
-					// TODO
-					return false;
+					var = _fields[derefBuffer->id][fieldNum];
 				}
 				pos += 3;
 				break;
@@ -388,7 +410,7 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 		// If we're dereferencing this value, put it in the deref buffer and loop back around
 		if (code[pos] == OPERATOR_DEREF) {
 			pos++;
-			derefBuffer = _instances->GetInstanceByNumber(var.dVal);
+			derefBuffer = _instances->GetInstanceByNumber(_round(var.dVal));
 			loop = true;
 		}
 	}
@@ -497,6 +519,7 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 
 bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 	Instance* derefBuffer = _contexts.top().self;
+
 	bool dereferenced = false;
 	unsigned int pos = 0;
 	GMLType stack[ARG_STACK_SIZE];
@@ -538,7 +561,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				}
 				else {
 					// Not a local, so set the actual field
-					// TODO
+					if (!_applySetMethod(&_fields[derefBuffer->id][fieldNum], setMethod, &val)) return false;
 				}
 
 				break;
@@ -564,15 +587,32 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				GMLType val;
 				if (!_parseVal(bytes + pos + 1, &val)) return false;
 				if (val.state != GML_TYPE_DOUBLE) return false;
-				derefBuffer = _instances->GetInstanceByNumber(_round(val.dVal));
 				pos += 4;
+				_stack.push((int)pos);
+				_iterators.push(InstanceList::Iterator(_instances, _round(val.dVal)));
+				derefBuffer = _iterators.top().Next();
 				dereferenced = true;
 				break;
 			}
 			case OP_RESET_DEREF: { // Put default buffer back to default "self" for this context
-				derefBuffer = _contexts.top().self;
-				pos++;
-				dereferenced = false;
+				Instance* in = _iterators.top().Next();
+				if (in) {
+					derefBuffer = in;
+					pos = _stack.top();
+				}
+				else {
+					_iterators.pop();
+					_stack.pop();
+					if (_iterators.empty()) {
+						derefBuffer = _contexts.top().self;
+						pos++;
+						dereferenced = false;
+					}
+					else {
+						derefBuffer = _iterators.top().Next();
+						pos = _stack.top();
+					}
+				}
 				break;
 			}
 			case OP_CHANGE_CONTEXT: { // Push new values onto the context stack
@@ -592,7 +632,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 					_contexts.push(CRContext(_contexts.top().self, pos, _instances, _contexts.top().other->id));
 				}
 				else if (id == -3) {
-					// with(all) - todo
+					_contexts.push(CRContext(_contexts.top().self, pos, _instances));
 					return false;
 				}
 				else {

@@ -6,6 +6,7 @@ class CodeActionManager;
 struct GlobalValues;
 struct Instance;
 typedef unsigned int CodeObject;
+typedef unsigned int InstanceID;
 enum CRGameVar;
 enum CRInstanceVar;
 enum CRVarType;
@@ -258,9 +259,10 @@ class CodeRunner {
 			Instance* self;
 			Instance* other;
 			unsigned int startpos;
-			InstanceList::IDIterator iterator;
+			InstanceList::Iterator iterator;
 			std::map<unsigned int, GMLType> locals;
 			CRContext(Instance* s, Instance* o) : self(s), other(o), startpos(0), iterator(NULL, 0) {}
+			CRContext(Instance* o, unsigned int start, InstanceList* list) : other(o), startpos(start), iterator(list) { self = iterator.Next(); }
 			CRContext(Instance* o, unsigned int start, InstanceList* list, unsigned int id) : other(o), startpos(start), iterator(list, id) { self = iterator.Next(); }
 		};
 		std::stack<CRContext> _contexts;
@@ -269,7 +271,7 @@ class CodeRunner {
 		std::vector<GMLType> _constants;
 
 		// Field name index during compilation
-		std::vector<char*> _fields;
+		std::vector<char*> _fieldNames;
 
 		// Lists of internal names for compiling and running against
 		std::vector<const char*> _internalFuncNames;
@@ -282,6 +284,12 @@ class CodeRunner {
 
 		// Internal register used for loops and such
 		std::stack<int> _stack;
+
+		// Field map
+		std::map<InstanceID, std::map<unsigned int, GMLType>> _fields;
+
+		// Iterator stack for runtime
+		std::stack<InstanceList::Iterator> _iterators;
 
 		// The next instance ID to assign when instance_create is called
 		unsigned int _nextInstanceID;

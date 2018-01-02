@@ -577,10 +577,16 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 				}
 
 				if (code[*pos] == '.') {
-					// Push onto deref expression and loop again
-					if (anyDerefs) derefExpression += '.';
-					derefExpression += nextWord;
+					// Push deref expression and loop again
+					derefExpression = nextWord;
 					if (array) derefExpression += "[" + arrayIndex + "]";
+
+					unsigned char val[3];
+					if (!_makeVal(derefExpression.c_str(), (unsigned int)derefExpression.size(), val)) return false;
+					output.push_back(OP_DEREF);
+					output.push_back(val[0]);
+					output.push_back(val[1]);
+					output.push_back(val[2]);
 
 					(*pos)++;
 					nextWord = getWord(code, pos);
@@ -588,14 +594,6 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 				}
 				else {
 					// Write the deref expression if one is needed, then go to the next part
-					if (anyDerefs) {
-						unsigned char val[3];
-						if (!_makeVal(derefExpression.c_str(), (unsigned int)derefExpression.size(), val)) return false;
-						output.push_back(OP_DEREF);
-						output.push_back(val[0]);
-						output.push_back(val[1]);
-						output.push_back(val[2]);
-					}
 					break;
 				}
 			}
@@ -706,16 +704,16 @@ unsigned int CodeRunner::_RegConstantString(const char* c, unsigned int len) {
 }
 
 unsigned int CodeRunner::_RegField(const char * c, unsigned int len) {
-	for (unsigned int i = 0; i < _fields.size(); i++) {
-		if (strcmp(_fields[i], c) == 0) {
+	for (unsigned int i = 0; i < _fieldNames.size(); i++) {
+		if (strcmp(_fieldNames[i], c) == 0) {
 			return i;
 		}
 	}
-	unsigned int ret = (unsigned int)_fields.size();
+	unsigned int ret = (unsigned int)_fieldNames.size();
 	char* field = (char*)malloc(len + 1);
 	memcpy(field, c, len);
 	field[len] = '\0';
-	_fields.push_back(field);
+	_fieldNames.push_back(field);
 	return ret;
 }
 
