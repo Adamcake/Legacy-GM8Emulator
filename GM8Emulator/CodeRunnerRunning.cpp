@@ -68,6 +68,12 @@ bool CodeRunner::_getGameValue(CRGameVar index, const unsigned char* arrayIndexV
 		case ROOM_SPEED:
 			out->dVal = (double)_globalValues->room_speed;
 			break;
+		case ROOM_WIDTH:
+			out->dVal = (double)_globalValues->room_width;
+			break;
+		case ROOM_HEIGHT:
+			out->dVal = (double)_globalValues->room_height;
+			break;
 		default:
 			return false;
 	}
@@ -100,8 +106,8 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 			while (t.dVal >= 360.0) t.dVal -= 360.0;
 			while (t.dVal < 0.0) t.dVal += 360.0;
 			instance->direction = (t.dVal);
-			instance->hspeed = cos(instance->direction * PI / 180.0) * instance->speed;
-			instance->vspeed = -sin(instance->direction * PI / 180.0) * instance->speed;
+			instance->hspeed = ::cos(instance->direction * PI / 180.0) * instance->speed;
+			instance->vspeed = -::sin(instance->direction * PI / 180.0) * instance->speed;
 			break;
 		case IV_IMAGE_SPEED:
 			t.dVal = instance->image_speed;
@@ -155,8 +161,8 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 			t.dVal = instance->speed;
 			if (!_applySetMethod(&t, method, &value)) return false;
 			instance->speed = t.dVal;
-			instance->hspeed = cos(instance->direction * PI / 180.0) * instance->speed;
-			instance->vspeed = -sin(instance->direction * PI / 180.0) * instance->speed;
+			instance->hspeed = ::cos(instance->direction * PI / 180.0) * instance->speed;
+			instance->vspeed = -::sin(instance->direction * PI / 180.0) * instance->speed;
 			break;
 		case IV_VSPEED:
 			t.dVal = instance->vspeed;
@@ -449,6 +455,14 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 			GMLType rest;
 			if (!_evalExpression(code + pos, &rest)) return false;
 			if (!_applySetMethod(&var, SM_SUBTRACT, &rest)) return false;
+			(*out) = var;
+			return true;
+		}
+		case OPERATOR_MULTIPLY: {
+			pos++;
+			GMLType rest;
+			if (!_evalExpression(code + pos, &rest)) return false;
+			if (!_applySetMethod(&var, SM_MULTIPLY, &rest)) return false;
 			(*out) = var;
 			return true;
 		}

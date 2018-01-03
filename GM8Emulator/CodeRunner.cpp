@@ -12,6 +12,7 @@ CodeRunner::CodeRunner(AssetManager* assets, InstanceList* instances, GlobalValu
 	_instances = instances;
 	_globalValues = globals;
 	_codeActions = codeActions;
+	memset(_userFiles, 0, sizeof(FILE*));
 	RNGRandomize();
 }
 
@@ -75,6 +76,10 @@ bool CodeRunner::Init() {
 	_internalFuncNames.reserve(_INTERNAL_FUNC_COUNT);
 	for (unsigned int func = 0; func < _INTERNAL_FUNC_COUNT; func++) {
 		switch (func) {
+			case COS:
+				_internalFuncNames.push_back("cos");
+				_gmlFuncs.push_back(&CodeRunner::cos);
+				break;
 			case EXECUTE_STRING:
 				_internalFuncNames.push_back("execute_string");
 				_gmlFuncs.push_back(&CodeRunner::execute_string);
@@ -87,6 +92,10 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("instance_destroy");
 				_gmlFuncs.push_back(&CodeRunner::instance_destroy);
 				break;
+			case INSTANCE_EXISTS:
+				_internalFuncNames.push_back("instance_exists");
+				_gmlFuncs.push_back(&CodeRunner::instance_exists);
+				break;
 			case IRANDOM:
 				_internalFuncNames.push_back("irandom");
 				_gmlFuncs.push_back(&CodeRunner::irandom);
@@ -94,6 +103,26 @@ bool CodeRunner::Init() {
 			case IRANDOM_RANGE:
 				_internalFuncNames.push_back("irandom_range");
 				_gmlFuncs.push_back(&CodeRunner::irandom_range);
+				break;
+			case FILE_BIN_OPEN:
+				_internalFuncNames.push_back("file_bin_open");
+				_gmlFuncs.push_back(&CodeRunner::file_bin_open);
+				break;
+			case FILE_BIN_CLOSE:
+				_internalFuncNames.push_back("file_bin_close");
+				_gmlFuncs.push_back(&CodeRunner::file_bin_close);
+				break;
+			case FILE_BIN_READ_BYTE:
+				_internalFuncNames.push_back("file_bin_read_byte");
+				_gmlFuncs.push_back(&CodeRunner::file_bin_read_byte);
+				break;
+			case FILE_BIN_WRITE_BYTE:
+				_internalFuncNames.push_back("file_bin_write_byte");
+				_gmlFuncs.push_back(&CodeRunner::file_bin_write_byte);
+				break;
+			case FLOOR:
+				_internalFuncNames.push_back("floor");
+				_gmlFuncs.push_back(&CodeRunner::floor);
 				break;
 			case KEYBOARD_CHECK:
 				_internalFuncNames.push_back("keyboard_check");
@@ -146,6 +175,10 @@ bool CodeRunner::Init() {
 			case ROOM_GOTO_PREVIOUS:
 				_internalFuncNames.push_back("room_goto_previous");
 				_gmlFuncs.push_back(&CodeRunner::room_goto_previous);
+				break;
+			case SIN:
+				_internalFuncNames.push_back("sin");
+				_gmlFuncs.push_back(&CodeRunner::sin);
 				break;
 			default:
 				// There's something in the enum that isn't listed here. Abort

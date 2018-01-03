@@ -181,16 +181,3 @@ Instance* InstanceList::Iterator::Next() {
 		return ret;
 	}
 }
-
-/*
-Instance* InstanceList::AllIterator::Next() {
-	Instance* ret;
-	while (true) {
-		if (_pos >= _limit) return NULL;
-		ret = (*_list)[_pos];
-		_pos++;
-		if (ret->exists) break;
-	}
-	return ret;
-}
-*/

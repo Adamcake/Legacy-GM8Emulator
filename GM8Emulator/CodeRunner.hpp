@@ -267,6 +267,9 @@ class CodeRunner {
 		};
 		std::stack<CRContext> _contexts;
 
+		// Structure for user file manipulation
+		FILE* _userFiles[32];
+
 		// Constants that can be referred to by compiled code
 		std::vector<GMLType> _constants;
 
@@ -328,11 +331,18 @@ class CodeRunner {
 		bool _applySetMethod(GMLType* lhs, CRSetMethod method, const GMLType* const rhs);
 
 		// GML internal functions
+		bool cos(unsigned int argc, GMLType* argv, GMLType* out);
 		bool execute_string(unsigned int argc, GMLType* argv, GMLType* out);
 		bool instance_create(unsigned int argc, GMLType* argv, GMLType* out);
 		bool instance_destroy(unsigned int argc, GMLType* argv, GMLType* out);
+		bool instance_exists(unsigned int argc, GMLType* argv, GMLType* out);
 		bool irandom(unsigned int argc, GMLType* argv, GMLType* out);
 		bool irandom_range(unsigned int argc, GMLType* argv, GMLType* out);
+		bool file_bin_open(unsigned int argc, GMLType* argv, GMLType* out);
+		bool file_bin_close(unsigned int argc, GMLType* argv, GMLType* out);
+		bool file_bin_read_byte(unsigned int argc, GMLType* argv, GMLType* out);
+		bool file_bin_write_byte(unsigned int argc, GMLType* argv, GMLType* out);
+		bool floor(unsigned int argc, GMLType* argv, GMLType* out);
 		bool keyboard_check(unsigned int argc, GMLType* argv, GMLType* out);
 		bool keyboard_check_direct(unsigned int argc, GMLType* argv, GMLType* out);
 		bool keyboard_check_pressed(unsigned int argc, GMLType* argv, GMLType* out);
@@ -346,6 +356,7 @@ class CodeRunner {
 		bool room_goto(unsigned int argc, GMLType* argv, GMLType* out);
 		bool room_goto_next(unsigned int argc, GMLType* argv, GMLType* out);
 		bool room_goto_previous(unsigned int argc, GMLType* argv, GMLType* out);
+		bool sin(unsigned int argc, GMLType* argv, GMLType* out);
 
 	public:
 		CodeRunner(AssetManager* assets, InstanceList* instances, GlobalValues* globals, CodeActionManager* codeActions, GameRenderer* renderer);

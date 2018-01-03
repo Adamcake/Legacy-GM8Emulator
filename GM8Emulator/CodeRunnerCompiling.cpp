@@ -878,57 +878,75 @@ bool CodeRunner::_isAsset(const char* name, unsigned int* index) {
 	// These are in order of precedence in the GM8 engine, since two assets can have the same name.
 	unsigned int i;
 	for (i = 0; i < _assetManager->GetObjectCount(); i++) {
-		if (!strcmp(_assetManager->GetObject(i)->name, name)) {
-			(*index) = i;
-			return true;
+		if (_assetManager->GetObject(i)->exists) {
+			if (!strcmp(_assetManager->GetObject(i)->name, name)) {
+				(*index) = i;
+				return true;
+			}
 		}
 	}
 	for (i = 0; i < _assetManager->GetSpriteCount(); i++) {
-		if (!strcmp(_assetManager->GetSprite(i)->name, name)) {
-			(*index) = i;
-			return true;
+		if (_assetManager->GetSprite(i)->exists) {
+			if (!strcmp(_assetManager->GetSprite(i)->name, name)) {
+				(*index) = i;
+				return true;
+			}
 		}
 	}
 	for (i = 0; i < _assetManager->GetSoundCount(); i++) {
-		if (!strcmp(_assetManager->GetSound(i)->name, name)) {
-			(*index) = i;
-			return true;
+		if (_assetManager->GetSound(i)->exists) {
+			if (!strcmp(_assetManager->GetSound(i)->name, name)) {
+				(*index) = i;
+				return true;
+			}
 		}
 	}
 	for (i = 0; i < _assetManager->GetBackgroundCount(); i++) {
-		if (!strcmp(_assetManager->GetBackground(i)->name, name)) {
-			(*index) = i;
-			return true;
+		if (_assetManager->GetBackground(i)->exists) {
+			if (!strcmp(_assetManager->GetBackground(i)->name, name)) {
+				(*index) = i;
+				return true;
+			}
 		}
 	}
 	for (i = 0; i < _assetManager->GetPathCount(); i++) {
-		if (!strcmp(_assetManager->GetPath(i)->name, name)) {
-			(*index) = i;
-			return true;
+		if (_assetManager->GetPath(i)->exists) {
+			if (!strcmp(_assetManager->GetPath(i)->name, name)) {
+				(*index) = i;
+				return true;
+			}
 		}
 	}
 	for (i = 0; i < _assetManager->GetFontCount(); i++) {
-		if (!strcmp(_assetManager->GetFont(i)->name, name)) {
-			(*index) = i;
-			return true;
+		if (_assetManager->GetFont(i)->exists) {
+			if (!strcmp(_assetManager->GetFont(i)->name, name)) {
+				(*index) = i;
+				return true;
+			}
 		}
 	}
 	for (i = 0; i < _assetManager->GetTimelineCount(); i++) {
-		if (!strcmp(_assetManager->GetTimeline(i)->name, name)) {
-			(*index) = i;
-			return true;
+		if (_assetManager->GetTimeline(i)->exists) {
+			if (!strcmp(_assetManager->GetTimeline(i)->name, name)) {
+				(*index) = i;
+				return true;
+			}
 		}
 	}
 	for (i = 0; i < _assetManager->GetScriptCount(); i++) {
-		if (!strcmp(_assetManager->GetScript(i)->name, name)) {
-			(*index) = i;
-			return true;
+		if (_assetManager->GetScript(i)->exists) {
+			if (!strcmp(_assetManager->GetScript(i)->name, name)) {
+				(*index) = i;
+				return true;
+			}
 		}
 	}
 	for (i = 0; i < _assetManager->GetRoomCount(); i++) {
-		if (!strcmp(_assetManager->GetRoom(i)->name, name)) {
-			(*index) = i;
-			return true;
+		if (_assetManager->GetRoom(i)->exists) {
+			if (!strcmp(_assetManager->GetRoom(i)->name, name)) {
+				(*index) = i;
+				return true;
+			}
 		}
 	}
 

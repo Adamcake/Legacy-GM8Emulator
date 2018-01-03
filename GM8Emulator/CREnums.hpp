@@ -87,9 +87,16 @@ enum CRExpVType {
 };
 
 enum CRInternalFunction {
+	COS,
 	EXECUTE_STRING,
+	FILE_BIN_OPEN,
+	FILE_BIN_CLOSE,
+	FILE_BIN_READ_BYTE,
+	FILE_BIN_WRITE_BYTE,
+	FLOOR,
 	INSTANCE_CREATE,
 	INSTANCE_DESTROY,
+	INSTANCE_EXISTS,
 	IRANDOM,
 	IRANDOM_RANGE,
 	KEYBOARD_CHECK,
@@ -105,6 +112,7 @@ enum CRInternalFunction {
 	ROOM_GOTO,
 	ROOM_GOTO_NEXT,
 	ROOM_GOTO_PREVIOUS,
+	SIN,
 	_INTERNAL_FUNC_COUNT // As long as this one is last, it'll tell us how many internal functions are in this enum. So don't move it.
 };
 
