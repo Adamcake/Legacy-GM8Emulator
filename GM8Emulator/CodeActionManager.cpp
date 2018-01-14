@@ -120,10 +120,10 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
 			break;
 		}
 		case 112: {
-			// Wrap around screen // This GML is close but not perfect - it maintains the correct path but wraps at the wrong frame.
+			// Wrap around screen - Note: I think this is right. It's been accurate in every case I've tested so far.
 			const char* baseGml = "%s%s";
-			const char* baseHorGml = "move_wrap(1,0,sprite_width/2);";
-			const char* baseVertGml = "move_wrap(0,1,sprite_height/2);";
+			const char* baseHorGml = "if((hspeed>0)&&(x>=room_width))x-=(room_width+sprite_width)if((hspeed<0)&&(x<0))x+=(room_width+sprite_width)";
+			const char* baseVertGml = "if((vspeed>0)&&(y>=room_height))y-=(room_height+sprite_height)if((vspeed<0)&&(y<0))y+=(room_height+sprite_height)";
 			bool hor = true;
 			bool vert = true;
 			if (args[0][0] == '1') hor = false;

@@ -522,6 +522,30 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 			out->dVal = (var.dVal != rest.dVal ? 1.0 : 0.0);
 			return true;
 		}
+		case OPERATOR_BOOLEAN_AND: {
+			pos++;
+			GMLType rest;
+			if (!_evalExpression(code + pos, &rest)) return false;
+			out->state = GML_TYPE_DOUBLE;
+			out->dVal = (var.dVal && rest.dVal ? 1.0 : 0.0);
+			return true;
+		}
+		case OPERATOR_BOOLEAN_OR: {
+			pos++;
+			GMLType rest;
+			if (!_evalExpression(code + pos, &rest)) return false;
+			out->state = GML_TYPE_DOUBLE;
+			out->dVal = (var.dVal || rest.dVal ? 1.0 : 0.0);
+			return true;
+		}
+		case OPERATOR_BOOLEAN_XOR: {
+			pos++;
+			GMLType rest;
+			if (!_evalExpression(code + pos, &rest)) return false;
+			out->state = GML_TYPE_DOUBLE;
+			out->dVal = (((!!var.dVal) != (!!rest.dVal)) ? 1.0 : 0.0);
+			return true;
+		}
 		// more tbd
 		default: {
 			return false;

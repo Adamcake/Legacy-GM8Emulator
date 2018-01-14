@@ -59,7 +59,9 @@ bool CodeRunner::instance_exists(unsigned int argc, GMLType* argv, GMLType* out)
 	if (argv[0].state == GML_TYPE_DOUBLE) return false;
 	int objId = _round(argv[0].dVal);
 	InstanceList::Iterator it(_instances, (unsigned int)objId);
-	return it.Next();
+	out->state = GML_TYPE_DOUBLE;
+	out->dVal = (it.Next() ? 1.0 : 0.0);
+	return true;
 }
 
 bool CodeRunner::irandom(unsigned int argc, GMLType* argv, GMLType* out) {
