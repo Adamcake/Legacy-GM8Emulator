@@ -388,18 +388,19 @@ bool CodeRunner::random_set_seed(unsigned int argc, GMLType* argv, GMLType* out)
 }
 
 bool CodeRunner::room_goto(unsigned int argc, GMLType* argv, GMLType* out) {
-	// tbd
-	return false;
+	if (argv[0].state == GML_TYPE_STRING) return false;
+	_globalValues->room_to = (int)_round(argv[0].dVal);
+	return true;
 }
 
 bool CodeRunner::room_goto_next(unsigned int argc, GMLType* argv, GMLType* out) {
-	// tbd
-	return false;
+	_globalValues->room_to = ROOM_TO_NEXT;
+	return true;
 }
 
 bool CodeRunner::room_goto_previous(unsigned int argc, GMLType* argv, GMLType* out) {
-	// tbd
-	return false;
+	_globalValues->room_to = ROOM_TO_PREV;
+	return true;
 }
 
 bool CodeRunner::sin(unsigned int argc, GMLType* argv, GMLType* out) {

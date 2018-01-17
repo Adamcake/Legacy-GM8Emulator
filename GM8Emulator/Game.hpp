@@ -49,6 +49,7 @@ class Game {
 
 		// Order in which rooms should be played (this is different than the resource tree order)
 		unsigned int* _roomOrder;
+		unsigned int _roomOrderCount;
 
 		// Renderer object for the game window.
 		GameRenderer* _renderer;
@@ -72,8 +73,9 @@ class Game {
 		bool StartGame();
 
 		// Discards the current room and loads a new one with the given index. Does nothing if we're already in this room.
+		// Can also be passed ROOM_TO_NEXT or ROOM_TO_PREV to load the next or previous room in the room order.
 		// Returns true on success, false if the id is invalid. If this returns false, the application should exit.
-		bool LoadRoom(unsigned int id);
+		bool LoadRoom(int id);
 
 		// Call this every time you want a frame advance.
 		// Returns false if the game should exit, otherwise true.

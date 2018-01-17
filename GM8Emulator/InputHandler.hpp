@@ -5,6 +5,7 @@ struct GLFWwindow;
 
 void InputInit(GLFWwindow* window);
 void InputUpdate();
+void InputClearKeys();
 
 bool InputCheckKey(int code);
 bool InputCheckKeyDirect(int code);

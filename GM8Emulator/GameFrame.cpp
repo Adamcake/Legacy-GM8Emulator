@@ -7,9 +7,31 @@
 #include "Collision.hpp"
 
 
-bool Game::LoadRoom(unsigned int id) {
-	// Exit if we're already in this room
-	if (id == _globals.room) return true;
+bool Game::LoadRoom(int pId) {
+	// Figure out the correct room id
+	unsigned int id;
+	if (pId >= 0) {
+		id = (unsigned int)pId;
+	}
+	else if(pId == ROOM_TO_NEXT) {
+		if (_roomOrder[_roomOrderCount - 1] == _globals.room) return false; // Trying to go to next room from last room
+		for (unsigned int i = 0; i < _roomOrderCount; i++) {
+			if (_roomOrder[i] == _globals.room) {
+				id = _roomOrder[i + 1];
+				break;
+			}
+		}
+	}
+	else if (pId == ROOM_TO_PREV) {
+		if (_roomOrder[0] == _globals.room) return false; // Trying to go to previous room from first room
+		for (unsigned int i = 1; i < _roomOrderCount; i++) {
+			if (_roomOrder[i] == _globals.room) {
+				id = _roomOrder[i - 1];
+				break;
+			}
+		}
+	}
+	else return false;
 
 	// Get the Room object for the room we're going to
 	Room* room = _assetManager.GetRoom(id);
@@ -29,6 +51,9 @@ bool Game::LoadRoom(unsigned int id) {
 	// Delete non-persistent instances
 	_instances.ClearNonPersistent();
 
+	// Clear inputs, because gm8 does this for some reason
+	InputClearKeys();
+
 	// Update renderer
 	_renderer->ResizeGameWindow(room->width, room->height);
 	_renderer->SetGameWindowTitle(room->caption);
@@ -36,6 +61,7 @@ bool Game::LoadRoom(unsigned int id) {
 
 	// Update room
 	_globals.room = id;
+	_globals.room_to = ROOM_TO_NONE;
 	if (room->speed != _lastUsedRoomSpeed) {
 		_globals.room_speed = room->speed;
 		_lastUsedRoomSpeed = _globals.room_speed;
@@ -92,6 +118,7 @@ bool Game::Frame() {
 			if (obj->evDraw) {
 				// This object has a custom draw event.
 				if (!_codeActions->Run(obj->evDraw, obj->evDrawActionCount, instance, NULL)) return false;
+				if (_globals.room_to != ROOM_TO_NONE) return LoadRoom(_globals.room_to);
 			}
 			else {
 				// This is the default draw action if no draw event is present for this object.
@@ -137,6 +164,7 @@ bool Game::Frame() {
 	while (instance = iter.Next()) {
 		Object* o = _assetManager.GetObject(instance->object_index);
 		if (!_codeActions->Run(o->evStepBegin, o->evStepBeginActionCount, instance, NULL)) return false;
+		if (_globals.room_to != ROOM_TO_NONE) return LoadRoom(_globals.room_to);
 	}
 
 	// TODO: if timeline_running, add timeline_speed to timeline_position and then run any events in that timeline indexed BELOW (not equal to) the current timeline_position
@@ -150,6 +178,7 @@ bool Game::Frame() {
 				instance->alarm[j.first]--;
 				if (instance->alarm[j.first] == 0) {
 					if (!_codeActions->Run(obj->evAlarm[j.first].actions, obj->evAlarm[j.first].actionCount, instance, NULL)) return false;
+					if (_globals.room_to != ROOM_TO_NONE) return LoadRoom(_globals.room_to);
 				}
 			}
 		}
@@ -170,6 +199,7 @@ bool Game::Frame() {
 	while (instance = iter.Next()) {
 		Object* o = _assetManager.GetObject(instance->object_index);
 		if (!_codeActions->Run(o->evStep, o->evStepActionCount, instance, NULL)) return false;
+		if (_globals.room_to != ROOM_TO_NONE) return LoadRoom(_globals.room_to);
 	}
 
 	// Movement
@@ -221,6 +251,7 @@ bool Game::Frame() {
 			while (target) {
 				if (CollisionCheck(instance, target, &_assetManager)) {
 					if (!_codeActions->Run(e.second.actions, e.second.actionCount, instance, target)) return false;
+					if (_globals.room_to != ROOM_TO_NONE) return LoadRoom(_globals.room_to);
 				}
 				target = iter.Next();
 			}
@@ -234,6 +265,7 @@ bool Game::Frame() {
 	while (instance = iter.Next()) {
 		Object* o = _assetManager.GetObject(instance->object_index);
 		if (!_codeActions->Run(o->evStepEnd, o->evStepEndActionCount, instance, NULL)) return false;
+		if (_globals.room_to != ROOM_TO_NONE) return LoadRoom(_globals.room_to);
 	}
 
 	_instances.ClearDeleted();

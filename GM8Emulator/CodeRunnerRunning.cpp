@@ -46,9 +46,13 @@ bool CodeRunner::_parseVal(const unsigned char* val, CodeRunner::GMLType* out) {
 }
 
 bool CodeRunner::_setGameValue(CRGameVar index, const unsigned char* arrayIndexVal, CRSetMethod method, GMLType value) {
-	//switch (index) {
-		// tbd
-	//}
+	switch (index) {
+		case ROOM:
+			_globalValues->room_to = (int)_round(value.dVal);
+			break;
+		default:
+			return false;
+	}
 	return true;
 }
 
@@ -64,6 +68,9 @@ bool CodeRunner::_getGameValue(CRGameVar index, const unsigned char* arrayIndexV
 			int my;
 			_renderer->GetCursorPos(NULL, &my);
 			out->dVal = (double)my;
+			break;
+		case ROOM:
+			out->dVal = (double)_globalValues->room;
 			break;
 		case ROOM_SPEED:
 			out->dVal = (double)_globalValues->room_speed;

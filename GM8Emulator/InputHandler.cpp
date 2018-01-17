@@ -60,6 +60,12 @@ unsigned int InputCountKeys() {
 	return count;
 }
 
+void InputClearKeys() {
+	memset(_current, 0, sizeof(bool) * GLFW_KEY_LAST);
+	memset(_pressed, 0, sizeof(bool) * GLFW_KEY_LAST);
+	memset(_released, 0, sizeof(bool) * GLFW_KEY_LAST);
+}
+
 unsigned int InputCountKeysPressed() {
 	unsigned int count = 0;
 	for (unsigned int i = 0; i <= GLFW_KEY_LAST; i++) {

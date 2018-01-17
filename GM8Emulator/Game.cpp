@@ -1499,9 +1499,9 @@ bool Game::Load(const char * pFilename) {
 
 	// Room order
 	pos += 4;
-	count = ReadDword(buffer, &pos);
-	_roomOrder = new unsigned int[count];
-	for (unsigned int i = 0; i < count; i++) {
+	_roomOrderCount = ReadDword(buffer, &pos);
+	_roomOrder = new unsigned int[_roomOrderCount];
+	for (unsigned int i = 0; i < _roomOrderCount; i++) {
 		_roomOrder[i] = ReadDword(buffer, &pos);
 	}
 

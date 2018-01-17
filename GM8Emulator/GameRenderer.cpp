@@ -283,7 +283,7 @@ void GameRenderer::RenderFrame() {
 	glfwGetWindowSize(window, &actualWinW, &actualWinH);
 	glViewport(0, 0, actualWinW, actualWinH);
 	glfwSwapBuffers(window);
-	glFlush();
+
 	glUseProgram(_glProgram);
 	glClear(GL_COLOR_BUFFER_BIT);
 	GLfloat proj[16] = {

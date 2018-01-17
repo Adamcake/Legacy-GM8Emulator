@@ -170,7 +170,7 @@ bool CodeRunner::Init() {
 				break;
 			case ROOM_GOTO_NEXT:
 				_internalFuncNames.push_back("room_goto_next");
-				_gmlFuncs.push_back(&CodeRunner::room_goto);
+				_gmlFuncs.push_back(&CodeRunner::room_goto_next);
 				break;
 			case ROOM_GOTO_PREVIOUS:
 				_internalFuncNames.push_back("room_goto_previous");
