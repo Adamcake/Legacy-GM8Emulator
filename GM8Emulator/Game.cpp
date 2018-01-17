@@ -1504,6 +1504,7 @@ bool Game::Load(const char * pFilename) {
 	for (unsigned int i = 0; i < _roomOrderCount; i++) {
 		_roomOrder[i] = ReadDword(buffer, &pos);
 	}
+	_runner->SetRoomOrder(&_roomOrder, _roomOrderCount);
 
 	// Update runner with end of static instance id range
 	_runner->SetNextInstanceID(nextInstanceId);

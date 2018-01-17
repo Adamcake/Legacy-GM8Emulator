@@ -48,7 +48,7 @@ bool CodeRunner::_parseVal(const unsigned char* val, CodeRunner::GMLType* out) {
 bool CodeRunner::_setGameValue(CRGameVar index, const unsigned char* arrayIndexVal, CRSetMethod method, GMLType value) {
 	switch (index) {
 		case ROOM:
-			_globalValues->room_to = (int)_round(value.dVal);
+			_globalValues->roomTarget = (unsigned int)_round(value.dVal);
 			break;
 		default:
 			return false;

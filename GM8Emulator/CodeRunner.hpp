@@ -297,6 +297,10 @@ class CodeRunner {
 		// The next instance ID to assign when instance_create is called
 		unsigned int _nextInstanceID;
 
+		// Room order
+		unsigned int** _roomOrder;
+		unsigned int _roomOrderCount;
+
 		// Compile some code and return the position of the compiled code in outHandle.
 		// Returns true on success, false on failure to compile (ie. program should exit.)
 		bool _CompileCode(const char* str, unsigned char** outHandle, unsigned int* outCount = NULL, bool session = false);
@@ -333,16 +337,17 @@ class CodeRunner {
 		// GML internal functions
 		bool cos(unsigned int argc, GMLType* argv, GMLType* out);
 		bool execute_string(unsigned int argc, GMLType* argv, GMLType* out);
-		bool instance_create(unsigned int argc, GMLType* argv, GMLType* out);
-		bool instance_destroy(unsigned int argc, GMLType* argv, GMLType* out);
-		bool instance_exists(unsigned int argc, GMLType* argv, GMLType* out);
-		bool irandom(unsigned int argc, GMLType* argv, GMLType* out);
-		bool irandom_range(unsigned int argc, GMLType* argv, GMLType* out);
 		bool file_bin_open(unsigned int argc, GMLType* argv, GMLType* out);
 		bool file_bin_close(unsigned int argc, GMLType* argv, GMLType* out);
 		bool file_bin_read_byte(unsigned int argc, GMLType* argv, GMLType* out);
 		bool file_bin_write_byte(unsigned int argc, GMLType* argv, GMLType* out);
 		bool floor(unsigned int argc, GMLType* argv, GMLType* out);
+		bool game_restart(unsigned int argc, GMLType* argv, GMLType* out);
+		bool instance_create(unsigned int argc, GMLType* argv, GMLType* out);
+		bool instance_destroy(unsigned int argc, GMLType* argv, GMLType* out);
+		bool instance_exists(unsigned int argc, GMLType* argv, GMLType* out);
+		bool irandom(unsigned int argc, GMLType* argv, GMLType* out);
+		bool irandom_range(unsigned int argc, GMLType* argv, GMLType* out);
 		bool keyboard_check(unsigned int argc, GMLType* argv, GMLType* out);
 		bool keyboard_check_direct(unsigned int argc, GMLType* argv, GMLType* out);
 		bool keyboard_check_pressed(unsigned int argc, GMLType* argv, GMLType* out);
@@ -362,8 +367,11 @@ class CodeRunner {
 		CodeRunner(AssetManager* assets, InstanceList* instances, GlobalValues* globals, CodeActionManager* codeActions, GameRenderer* renderer);
 		~CodeRunner();
 
-		// For populating the constant vectors. This should be called before anything else.
+		// For populating the constant lists. This should be called before anything else.
 		bool Init();
+
+		// Set a specific room order. Usually done after loading the room order from the exe.
+		void SetRoomOrder(unsigned int** order, unsigned int count);
 
 		// Set the next instance ID to assign after all the static instances are loaded
 		inline void SetNextInstanceID(unsigned int i) { _nextInstanceID = i; }

@@ -166,6 +166,17 @@ bool CodeRunner::file_bin_write_byte(unsigned int argc, GMLType* argv, GMLType* 
 	return true;
 }
 
+bool CodeRunner::game_restart(unsigned int argc, GMLType* argv, GMLType* out) {
+	_globalValues->changeRoom = true;
+	_globalValues->roomTarget = (*_roomOrder)[0];
+	InstanceList::Iterator iter(_instances);
+	Instance* i;
+	while (i = iter.Next()) {
+		i->exists = false;
+	}
+	return true;
+}
+
 bool CodeRunner::keyboard_check(unsigned int argc, GMLType* argv, GMLType* out) {
 	out->state = GML_TYPE_DOUBLE;
 	int gmlKeycode = (argv[0].state == GML_TYPE_DOUBLE ? _round(argv[0].dVal) : 0);
@@ -389,18 +400,34 @@ bool CodeRunner::random_set_seed(unsigned int argc, GMLType* argv, GMLType* out)
 
 bool CodeRunner::room_goto(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[0].state == GML_TYPE_STRING) return false;
-	_globalValues->room_to = (int)_round(argv[0].dVal);
+	_globalValues->changeRoom = true;
+	_globalValues->roomTarget = _round(argv[0].dVal);
+
 	return true;
 }
 
 bool CodeRunner::room_goto_next(unsigned int argc, GMLType* argv, GMLType* out) {
-	_globalValues->room_to = ROOM_TO_NEXT;
-	return true;
+	_globalValues->changeRoom = true;
+	if ((*_roomOrder)[_roomOrderCount - 1] == _globalValues->room) return false; // Trying to go to next room from last room
+	for (unsigned int i = 0; i < _roomOrderCount; i++) {
+		if ((*_roomOrder)[i] == _globalValues->room) {
+			_globalValues->roomTarget = (*_roomOrder)[i + 1];
+			return true;
+		}
+	}
+	return false;
 }
 
 bool CodeRunner::room_goto_previous(unsigned int argc, GMLType* argv, GMLType* out) {
-	_globalValues->room_to = ROOM_TO_PREV;
-	return true;
+	_globalValues->changeRoom = true;
+	if ((*_roomOrder)[0] == _globalValues->room) return false; // Trying to go to next room from last room
+	for (unsigned int i = 0; i < _roomOrderCount; i++) {
+		if ((*_roomOrder)[i] == _globalValues->room) {
+			_globalValues->roomTarget = (*_roomOrder)[i - 1];
+			return true;
+		}
+	}
+	return false;
 }
 
 bool CodeRunner::sin(unsigned int argc, GMLType* argv, GMLType* out) {

@@ -72,6 +72,11 @@ bool CodeRunner::Compile(CodeObject object) {
 
 
 
+void CodeRunner::SetRoomOrder(unsigned int** order, unsigned int count) {
+	_roomOrder = order;
+	_roomOrderCount = count;
+}
+
 bool CodeRunner::Init() {
 	_internalFuncNames.reserve(_INTERNAL_FUNC_COUNT);
 	for (unsigned int func = 0; func < _INTERNAL_FUNC_COUNT; func++) {
@@ -123,6 +128,10 @@ bool CodeRunner::Init() {
 			case FLOOR:
 				_internalFuncNames.push_back("floor");
 				_gmlFuncs.push_back(&CodeRunner::floor);
+				break;
+			case GAME_RESTART:
+				_internalFuncNames.push_back("game_restart");
+				_gmlFuncs.push_back(&CodeRunner::game_restart);
 				break;
 			case KEYBOARD_CHECK:
 				_internalFuncNames.push_back("keyboard_check");
