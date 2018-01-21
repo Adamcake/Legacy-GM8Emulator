@@ -228,9 +228,11 @@ bool Game::Frame() {
 
 			Instance* target = iter.Next();
 			while (target) {
-				if (CollisionCheck(instance, target, &_assetManager)) {
-					if (!_codeActions->Run(e.second.actions, e.second.actionCount, instance, target)) return false;
-					if (_globals.changeRoom) return LoadRoom(_globals.roomTarget);
+				if (target != instance) {
+					if (CollisionCheck(instance, target, &_assetManager)) {
+						if (!_codeActions->Run(e.second.actions, e.second.actionCount, instance, target)) return false;
+						if (_globals.changeRoom) return LoadRoom(_globals.roomTarget);
+					}
 				}
 				target = iter.Next();
 			}

@@ -341,11 +341,13 @@ class CodeRunner {
 		bool file_bin_close(unsigned int argc, GMLType* argv, GMLType* out);
 		bool file_bin_read_byte(unsigned int argc, GMLType* argv, GMLType* out);
 		bool file_bin_write_byte(unsigned int argc, GMLType* argv, GMLType* out);
+		bool file_exists(unsigned int argc, GMLType* argv, GMLType* out);
 		bool floor(unsigned int argc, GMLType* argv, GMLType* out);
 		bool game_restart(unsigned int argc, GMLType* argv, GMLType* out);
 		bool instance_create(unsigned int argc, GMLType* argv, GMLType* out);
 		bool instance_destroy(unsigned int argc, GMLType* argv, GMLType* out);
 		bool instance_exists(unsigned int argc, GMLType* argv, GMLType* out);
+		bool instance_number(unsigned int argc, GMLType* argv, GMLType* out);
 		bool irandom(unsigned int argc, GMLType* argv, GMLType* out);
 		bool irandom_range(unsigned int argc, GMLType* argv, GMLType* out);
 		bool keyboard_check(unsigned int argc, GMLType* argv, GMLType* out);
@@ -354,6 +356,8 @@ class CodeRunner {
 		bool keyboard_check_released(unsigned int argc, GMLType* argv, GMLType* out);
 		bool make_color_hsv(unsigned int argc, GMLType* argv, GMLType* out);
 		bool move_wrap(unsigned int argc, GMLType* argv, GMLType* out);
+		bool ord(unsigned int argc, GMLType* argv, GMLType* out);
+		bool place_meeting(unsigned int argc, GMLType* argv, GMLType* out);
 		bool random(unsigned int argc, GMLType* argv, GMLType* out);
 		bool random_range(unsigned int argc, GMLType* argv, GMLType* out);
 		bool random_get_seed(unsigned int argc, GMLType* argv, GMLType* out);
@@ -362,6 +366,8 @@ class CodeRunner {
 		bool room_goto_next(unsigned int argc, GMLType* argv, GMLType* out);
 		bool room_goto_previous(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sin(unsigned int argc, GMLType* argv, GMLType* out);
+		bool sound_play(unsigned int argc, GMLType* argv, GMLType* out);
+		bool string(unsigned int argc, GMLType* argv, GMLType* out);
 
 	public:
 		CodeRunner(AssetManager* assets, InstanceList* instances, GlobalValues* globals, CodeActionManager* codeActions, GameRenderer* renderer);

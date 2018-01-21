@@ -340,8 +340,71 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 		// TBD
 	}
 	else if (firstWord == "for") {
-		// "for" generates a loop in a rather roundabout way. This involves some tests and jumps.
-		// TBD
+		// "for" generates a loop: for(a;b;c) where a is the initializer, c happens at the end of each iteration, and the loop then continues if b evaluates to true.
+		findFirstNonWhitespace(code, pos);
+		if (code[*pos] != '(') return false;
+		(*pos)++;
+
+		// Get and write initializer
+		unsigned char* forBlockCode;
+		unsigned int forBlockCount;
+		if (!_CompileLine(code, pos, &forBlockCode, &forBlockCount)) return false;
+		std::copy(forBlockCode, forBlockCode + forBlockCount, std::back_inserter(output));
+		free(forBlockCode);
+
+		// Get the test so we can write it later
+		findFirstNonWhitespace(code, pos);
+		unsigned char val[3];
+		if (!_getExpression(code, pos, val)) return false;
+		if (code[*pos] != ';') return false;
+		(*pos)++;
+
+		// Get the end statement to write later
+		findFirstNonWhitespace(code, pos);
+		if (!_CompileLine(code, pos, &forBlockCode, &forBlockCount)) return false;
+
+		// Get the content of the for loop
+		findFirstNonWhitespace(code, pos);
+		if (code[*pos] != ')') return false;
+		(*pos)++;
+		unsigned char* forInnerBlockCode;
+		unsigned int forInnerBlockCount;
+		if (!_CompileLine(code, pos, &forInnerBlockCode, &forInnerBlockCount)) return false;
+
+		// Write ops
+		output.push_back(OP_TEST_VAL_NOT);
+		output.push_back(val[0]);
+		output.push_back(val[1]);
+		output.push_back(val[2]);
+		unsigned int jmpBytes = forInnerBlockCount + forBlockCount + 2;
+		bool longJumps = jmpBytes >= 250;
+
+		if (longJumps) {
+			jmpBytes += 2;
+			output.push_back(OP_JUMP_LONG);
+			output.push_back(jmpBytes & 0xFF);
+			output.push_back((jmpBytes >> 8) & 0xFF);
+			output.push_back((jmpBytes >> 16) & 0xFF);
+		}
+		else {
+			output.push_back(OP_JUMP);
+			output.push_back(jmpBytes & 0xFF);
+		}
+		std::copy(forInnerBlockCode, forInnerBlockCode + forInnerBlockCount, std::back_inserter(output));
+		std::copy(forBlockCode, forBlockCode + forBlockCount, std::back_inserter(output));
+		if (longJumps) {
+			output.push_back(OP_JUMP_BACK_LONG);
+			output.push_back((jmpBytes + 8) & 0xFF);
+			output.push_back(((jmpBytes + 8) >> 8) & 0xFF);
+			output.push_back(((jmpBytes + 8) >> 16) & 0xFF);
+		}
+		else {
+			output.push_back(OP_JUMP_BACK);
+			output.push_back((jmpBytes + 6) & 0xFF);
+		}
+
+		free(forInnerBlockCode);
+		free(forBlockCode);
 	}
 	else if (firstWord == "if") {
 		// "if" incurs a simple test to see whether the following expression evaluates to true.
@@ -444,7 +507,16 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 	}
 	else if (firstWord == "return") {
 		// "return" means we write a value to the return buffer, then exit.
-		// TBD
+		findFirstNonWhitespace(code, pos);
+		unsigned char val[3];
+		if (!_getExpression(code, pos, val)) {
+			return false;
+		}
+		if (code[*pos] == ';') (*pos)++;
+		output.push_back(OP_RETURN);
+		output.push_back(val[0]);
+		output.push_back(val[1]);
+		output.push_back(val[2]);
 	}
 	else {
 		// If this doesn't start with any keywords, then it's either an assignment or a script call.
@@ -503,15 +575,7 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 			if (code[*pos] != ')') {
 				while (true) {
 					findFirstNonWhitespace(code, pos);
-					std::string arg;
-					arg.reserve(16);
-					while (code[*pos] != ',' && code[*pos] != ')') {
-						arg += code[*pos];
-						if (code[*pos] == '(') arg += getBracketContents(code, pos, '(', ')') + ')';
-						else if (code[*pos] == '[') arg += getBracketContents(code, pos, '[', ']') + ']';
-						else (*pos)++;
-					}
-					if (!_makeVal(arg.c_str(), (unsigned int)arg.size(), valBuffer)) return false;
+					if (!_getExpression(code, pos, valBuffer)) return false;
 					output.push_back(valBuffer[0]);
 					output.push_back(valBuffer[1]);
 					output.push_back(valBuffer[2]);
@@ -520,9 +584,10 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 					if (code[*pos] == ')') {
 						break;
 					}
-					else {
+					else if (code[*pos] == ',') {
 						(*pos)++;
 					}
+					else return false;
 				}
 			}
 			output[argCPos] = argCount;
@@ -538,16 +603,17 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 				// A line of code that starts with a bracket is a special case. It's always an assignment.
 				// It means we need to deref the expression inside the brackets.
 				if (code[*pos] != '(') return false;
+				(*pos)++;
 
-				std::string exp = getBracketContents(code, pos);
+				unsigned char val[3];
+				if (!_getExpression(code, pos, val)) return false;
+				findFirstNonWhitespace(code, pos);
+				if (code[*pos] != ')') return false;
+				(*pos)++;
 				findFirstNonWhitespace(code, pos);
 				if (code[*pos] != '.') return false;
 				(*pos)++;
 
-				unsigned char val[3];
-				if (!_makeVal(exp.c_str(), (unsigned int)exp.size(), val)) {
-
-				}
 				output.push_back(OPERATOR_DEREF);
 				output.push_back(val[0]);
 				output.push_back(val[1]);
@@ -651,6 +717,7 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 			output.push_back(method);
 
 			// Now we just have to get the VAL to assign.
+			findFirstNonWhitespace(code, pos);
 			unsigned char val[3];
 			if (!_getExpression(code, pos, val)) return false;
 			output.push_back(val[0]);
@@ -1038,11 +1105,15 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 	if (word.size() == 0 && code[pos] != '.' && code[pos] != '%') {
 		// Expression doesn't start alphanumerically, so it must be brackets
 		if (code[pos] != '(') return false;
+		pos++;
 
 		// Get bracket contents, turn it into a VAL, make this VAR point to that VAL, and move on
-		std::string content = getBracketContents(code, &pos);
 		unsigned char val[3];
-		if (!_makeVal(content.c_str(), (unsigned int)content.size(), val)) return false;
+		if (!_getExpression(code, &pos, val)) return false;
+		findFirstNonWhitespace(code, &pos);
+		if (code[pos] != ')') return false;
+		pos++;
+
 		output.push_back(EVTYPE_VAL);
 		output.push_back(val[0]);
 		output.push_back(val[1]);
@@ -1158,28 +1229,20 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 					if (code[pos] != ')') {
 						while (true) {
 							findFirstNonWhitespace(code, &pos);
-							std::string arg;
-							arg.reserve(16);
-							while (code[pos] != ',' && code[pos] != ')') {
-								arg += code[pos];
-								if (code[pos] == '(') arg += getBracketContents(code, &pos, '(', ')') + ")";
-								else if (code[pos] == '[') arg += getBracketContents(code, &pos, '[', ']') + "]";
-								else pos++;
-							}
-							if (!_makeVal(arg.c_str(), (unsigned int)arg.size(), valBuffer)) {
-								return false;
-							}
+							if (!_getExpression(code, &pos, valBuffer)) return false;
 							output.push_back(valBuffer[0]);
 							output.push_back(valBuffer[1]);
 							output.push_back(valBuffer[2]);
 							argCount++;
 
+							findFirstNonWhitespace(code, &pos);
 							if (code[pos] == ')') {
 								break;
 							}
-							else {
+							else if (code[pos] == ',') {
 								pos++;
 							}
+							else return false;
 						}
 					}
 					output[argCPos] = argCount;
@@ -1237,8 +1300,11 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 								findFirstNonWhitespace(code, &pos);
 								if (code[pos] == '[') {
 									array = true;
-									std::string arrayIndex = getBracketContents(code, &pos, '[', ']');
-									if (!_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val)) return false;
+									pos++;
+									if (!_getExpression(code, &pos, val)) return false;
+									findFirstNonWhitespace(code, &pos);
+									if (code[pos] != ']') return false;
+									pos++;
 								}
 
 								// Get what type of variable we've been given
@@ -1322,10 +1388,7 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 		free(extraOutput);
 	}
 	else {
-		// Move the position back before the word AFTER the expression. But only if that word isn't "then", which can be used to end an expression.
-		if (opWord != "then") {
-			pos = posBeforeOp;
-		}
+		pos = posBeforeOp;
 	}
 
 	// Write VAR modifiers

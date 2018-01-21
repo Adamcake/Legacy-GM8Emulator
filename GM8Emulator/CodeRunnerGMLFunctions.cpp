@@ -6,6 +6,10 @@
 #include "RNG.hpp"
 #include "CodeActionManager.hpp"
 #include "InputHandler.hpp"
+#include "Collision.hpp"
+
+#include <iomanip> // for string()
+#include <sstream> // for string()
 
 /*
 All GML functions have this format:
@@ -61,6 +65,17 @@ bool CodeRunner::instance_exists(unsigned int argc, GMLType* argv, GMLType* out)
 	InstanceList::Iterator it(_instances, (unsigned int)objId);
 	out->state = GML_TYPE_DOUBLE;
 	out->dVal = (it.Next() ? 1.0 : 0.0);
+	return true;
+}
+
+bool CodeRunner::instance_number(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (argv[0].state == GML_TYPE_DOUBLE) return false;
+	int objId = _round(argv[0].dVal);
+	InstanceList::Iterator it(_instances, (unsigned int)objId);
+	out->state = GML_TYPE_DOUBLE;
+	unsigned int count = 0;
+	while (it.Next()) count++;
+	out->dVal = (double)count;
 	return true;
 }
 
@@ -147,14 +162,6 @@ bool CodeRunner::file_bin_read_byte(unsigned int argc, GMLType* argv, GMLType* o
 	return true;
 }
 
-bool CodeRunner::floor(unsigned int argc, GMLType* argv, GMLType* out) {
-	if (out) {
-		out->state = GML_TYPE_DOUBLE;
-		out->dVal = ::floor(argv[0].dVal);
-	}
-	return true;
-}
-
 bool CodeRunner::file_bin_write_byte(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[0].state != GML_TYPE_DOUBLE || argv[1].state != GML_TYPE_DOUBLE) return false;
 	int index = _round(argv[0].dVal) - 1;
@@ -163,6 +170,23 @@ bool CodeRunner::file_bin_write_byte(unsigned int argc, GMLType* argv, GMLType* 
 
 	unsigned char c = _round(argv[1].dVal);
 	fwrite(&c, 1, 1, _userFiles[index]);
+	return true;
+}
+
+bool CodeRunner::file_exists(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (argv[0].state != GML_TYPE_STRING) return false;
+	if (out) {
+		out->state = GML_TYPE_DOUBLE;
+		out->dVal = (stat(argv[0].sVal, NULL) == 0 ? 1.0 : 0.0);
+	}
+	return true;
+}
+
+bool CodeRunner::floor(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (out) {
+		out->state = GML_TYPE_DOUBLE;
+		out->dVal = ::floor(argv[0].dVal);
+	}
 	return true;
 }
 
@@ -365,6 +389,45 @@ bool CodeRunner::move_wrap(unsigned int argc, GMLType* argv, GMLType* out) {
 	return true;
 }
 
+bool CodeRunner::ord(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (argv[0].state != GML_TYPE_STRING) return false;
+	if (out) {
+		out->state = GML_TYPE_DOUBLE;
+		out->dVal = (double)argv[0].sVal[0];
+	}
+	return true;
+}
+
+bool CodeRunner::place_meeting(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (out) {
+		out->state = GML_TYPE_DOUBLE;
+		out->dVal = 0.0;
+		int obj = _round(argv[2].dVal);
+		InstanceList::Iterator iter(_instances, (unsigned int)obj);
+		if (obj == -3) iter = InstanceList::Iterator(_instances);
+
+		Instance* self = _contexts.top().self;
+		double oldX = self->x;
+		double oldY = self->y;
+		self->x = argv[0].dVal;
+		self->y = argv[1].dVal;
+
+		Instance* target;
+		while (target = iter.Next()) {
+			if (target != self) {
+				if (CollisionCheck(self, target, _assetManager)) {
+					out->dVal = 1.0;
+					break;
+				}
+			}
+		}
+
+		self->x = oldX;
+		self->y = oldY;
+	}
+	return true;
+}
+
 bool CodeRunner::random(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[0].state == GML_TYPE_STRING) return false;
 	double rand = RNGRandom(argv[0].dVal);
@@ -434,6 +497,31 @@ bool CodeRunner::sin(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (out) {
 		out->state = GML_TYPE_DOUBLE;
 		out->dVal = ::sin(argv[0].dVal);
+	}
+	return true;
+}
+
+bool CodeRunner::sound_play(unsigned int argc, GMLType* argv, GMLType* out) {
+	// tbd
+	return true;
+}
+
+bool CodeRunner::string(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (out) {
+		out->state = GML_TYPE_STRING;
+		if (argv[0].state == GML_TYPE_STRING) {
+			size_t len = strlen(argv[0].sVal);
+			out->sVal = (char*)malloc(len + 1);
+			memcpy(out->sVal, argv[0].sVal, len + 1);
+		}
+		else {
+			std::stringstream s;
+			s << std::fixed << std::setprecision(2) << argv[0].dVal;
+			const char* c = s.str().c_str();
+			size_t len = s.str().size();
+			out->sVal = (char*)malloc(len + 1);
+			memcpy(out->sVal, c, len + 1);
+		}
 	}
 	return true;
 }

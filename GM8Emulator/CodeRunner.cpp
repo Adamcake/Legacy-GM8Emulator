@@ -89,26 +89,6 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("execute_string");
 				_gmlFuncs.push_back(&CodeRunner::execute_string);
 				break;
-			case INSTANCE_CREATE:
-				_internalFuncNames.push_back("instance_create");
-				_gmlFuncs.push_back(&CodeRunner::instance_create);
-				break;
-			case INSTANCE_DESTROY:
-				_internalFuncNames.push_back("instance_destroy");
-				_gmlFuncs.push_back(&CodeRunner::instance_destroy);
-				break;
-			case INSTANCE_EXISTS:
-				_internalFuncNames.push_back("instance_exists");
-				_gmlFuncs.push_back(&CodeRunner::instance_exists);
-				break;
-			case IRANDOM:
-				_internalFuncNames.push_back("irandom");
-				_gmlFuncs.push_back(&CodeRunner::irandom);
-				break;
-			case IRANDOM_RANGE:
-				_internalFuncNames.push_back("irandom_range");
-				_gmlFuncs.push_back(&CodeRunner::irandom_range);
-				break;
 			case FILE_BIN_OPEN:
 				_internalFuncNames.push_back("file_bin_open");
 				_gmlFuncs.push_back(&CodeRunner::file_bin_open);
@@ -125,6 +105,10 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("file_bin_write_byte");
 				_gmlFuncs.push_back(&CodeRunner::file_bin_write_byte);
 				break;
+			case FILE_EXISTS:
+				_internalFuncNames.push_back("file_exists");
+				_gmlFuncs.push_back(&CodeRunner::file_exists);
+				break;
 			case FLOOR:
 				_internalFuncNames.push_back("floor");
 				_gmlFuncs.push_back(&CodeRunner::floor);
@@ -132,6 +116,30 @@ bool CodeRunner::Init() {
 			case GAME_RESTART:
 				_internalFuncNames.push_back("game_restart");
 				_gmlFuncs.push_back(&CodeRunner::game_restart);
+				break;
+			case INSTANCE_CREATE:
+				_internalFuncNames.push_back("instance_create");
+				_gmlFuncs.push_back(&CodeRunner::instance_create);
+				break;
+			case INSTANCE_DESTROY:
+				_internalFuncNames.push_back("instance_destroy");
+				_gmlFuncs.push_back(&CodeRunner::instance_destroy);
+				break;
+			case INSTANCE_EXISTS:
+				_internalFuncNames.push_back("instance_exists");
+				_gmlFuncs.push_back(&CodeRunner::instance_exists);
+				break;
+			case INSTANCE_NUMBER:
+				_internalFuncNames.push_back("instance_number");
+				_gmlFuncs.push_back(&CodeRunner::instance_number);
+				break;
+			case IRANDOM:
+				_internalFuncNames.push_back("irandom");
+				_gmlFuncs.push_back(&CodeRunner::irandom);
+				break;
+			case IRANDOM_RANGE:
+				_internalFuncNames.push_back("irandom_range");
+				_gmlFuncs.push_back(&CodeRunner::irandom_range);
 				break;
 			case KEYBOARD_CHECK:
 				_internalFuncNames.push_back("keyboard_check");
@@ -156,6 +164,14 @@ bool CodeRunner::Init() {
 			case MOVE_WRAP:
 				_internalFuncNames.push_back("move_wrap");
 				_gmlFuncs.push_back(&CodeRunner::move_wrap);
+				break;
+			case ORD:
+				_internalFuncNames.push_back("ord");
+				_gmlFuncs.push_back(&CodeRunner::ord);
+				break;
+			case PLACE_MEETING:
+				_internalFuncNames.push_back("place_meeting");
+				_gmlFuncs.push_back(&CodeRunner::place_meeting);
 				break;
 			case RANDOM:
 				_internalFuncNames.push_back("random");
@@ -188,6 +204,14 @@ bool CodeRunner::Init() {
 			case SIN:
 				_internalFuncNames.push_back("sin");
 				_gmlFuncs.push_back(&CodeRunner::sin);
+				break;
+			case SOUND_PLAY:
+				_internalFuncNames.push_back("sound_play");
+				_gmlFuncs.push_back(&CodeRunner::sound_play);
+				break;
+			case STRING:
+				_internalFuncNames.push_back("string");
+				_gmlFuncs.push_back(&CodeRunner::string);
 				break;
 			default:
 				// There's something in the enum that isn't listed here. Abort

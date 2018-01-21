@@ -93,11 +93,13 @@ enum CRInternalFunction {
 	FILE_BIN_CLOSE,
 	FILE_BIN_READ_BYTE,
 	FILE_BIN_WRITE_BYTE,
+	FILE_EXISTS,
 	FLOOR,
 	GAME_RESTART,
 	INSTANCE_CREATE,
 	INSTANCE_DESTROY,
 	INSTANCE_EXISTS,
+	INSTANCE_NUMBER,
 	IRANDOM,
 	IRANDOM_RANGE,
 	KEYBOARD_CHECK,
@@ -106,6 +108,8 @@ enum CRInternalFunction {
 	KEYBOARD_CHECK_RELEASED,
 	MAKE_COLOR_HSV,
 	MOVE_WRAP,
+	ORD,
+	PLACE_MEETING,
 	RANDOM,
 	RANDOM_RANGE,
 	RANDOM_GET_SEED,
@@ -114,6 +118,8 @@ enum CRInternalFunction {
 	ROOM_GOTO_NEXT,
 	ROOM_GOTO_PREVIOUS,
 	SIN,
+	SOUND_PLAY,
+	STRING,
 	_INTERNAL_FUNC_COUNT // As long as this one is last, it'll tell us how many internal functions are in this enum. So don't move it.
 };
 
