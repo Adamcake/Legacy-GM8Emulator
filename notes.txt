@@ -151,6 +151,31 @@ ev_keyrelease:  id = same as ev_keyboard
 ev_trigger:     id = trigger index
 
 
+===================
+OPERATOR PRECEDENCE
+===================
+
+In a mathematical expression, there are 15 valid operators. Some of these operators will always be run before others - for example, multiplication (*) will be run before addition (+). So for example the expression "2 + 3 * 4" would evaluate to 14 and not 20. But how does Gamemaker know which operators to run before others?
+Gamemaker's operators are sorted into six different "precedence groups". Operators of a higher precedence will always be run before those of a lower precedence. The groups are as follows:
+Precedence 5: /, *, mod, div
+Precedence 4: +, -
+Precedence 3: <<, >>
+Precedence 2: &, |, ^
+Precedence 1: ==, !=, >, <, >=, <=
+Precedence 0: &&, ||, ^^
+
+Operators of the same precedence in one expression will always be run left-to-right.
+For example, the line "4 * 3 / 2 mod 4 * 2" would evaluate to 4, as all those operators are in group 5.
+
+Separately from this, there are also the three "unary operators" which are !, - and ~ ("not", "negative" and "tilde" respectively.) These can be seen as having a higher precedence than all other operators as they're always applied to the variable they're in front of before anything else happens.
+
+Multiple unary operators are evaluated right-to-left, due to them being dependent on what is to the right of them. For example, in the expression "-~!0", the value of "0" would first be checked for GML-trueness by the NOT operator. It's a false value so the NOT operator gives 1.0. Next, the tilde operator would change this value to -2.0. Finally, the "-" operator negates the value to 2.0.
+
+Precedence notes:
+Some operators have aliases, eg. "&&" may be written as "and", however this does not affect their precedence.
+The engine will always show an error message if a unary operator is used on a string type.
+The only regular operators which may be used on two string types are "+" and the comparison operators (all those in group 1.) There are no regular operators which may be used on a string and a double (nor vice versa.)
+The tilde operator will round its provided value with FISTP before evaluating. The <<, >>, &, | and ^ operators will round the values on both sides with FISTP before evaluating.
 
 
 =============
