@@ -177,6 +177,7 @@
     <ClInclude Include="CodeRunner.hpp" />
     <ClInclude Include="Collision.hpp" />
     <ClInclude Include="CREnums.hpp" />
+    <ClInclude Include="CRExpression.hpp" />
     <ClInclude Include="Game.hpp" />
     <ClInclude Include="GameRenderer.hpp" />
     <ClInclude Include="GameSettings.hpp" />

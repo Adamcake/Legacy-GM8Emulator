@@ -125,5 +125,8 @@
     <ClInclude Include="Collision.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CRExpression.hpp">
+      <Filter>Code Runner\Headers</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

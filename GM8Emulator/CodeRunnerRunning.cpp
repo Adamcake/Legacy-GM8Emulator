@@ -354,208 +354,224 @@ bool CodeRunner::_applySetMethod(CodeRunner::GMLType* lhs, CRSetMethod method, c
 
 
 
+// Helper function that reads a var and its unary operators from a compiled expression
+bool CodeRunner::_readExpVal(unsigned char* code, unsigned int* pos, Instance* derefBuffer, GMLType* argStack, GMLType* out) {
+	GMLType var;
+	switch (code[*pos]) {
+		case EVTYPE_VAL: {
+			if (!_parseVal(code + (*pos) + 1, &var)) return false;
+			(*pos) += 4;
+			break;
+		}
+		case EVTYPE_INTERNAL_FUNC: {
+			unsigned int func = code[(*pos) + 1] | (code[(*pos) + 2] << 8);
+			unsigned int argc = code[(*pos) + 3];
+			GMLType* argv = (argc > ARG_STACK_SIZE ? new GMLType[argc] : argStack);
+
+			(*pos) += 4;
+			for (unsigned int i = 0; i < argc; i++) {
+				if (!_parseVal(code + (*pos), argv + i)) {
+					if (argc > ARG_STACK_SIZE) delete argv;
+					return false;
+				}
+				(*pos) += 3;
+			}
+			if (!(this->*_gmlFuncs[func])(argc, argv, &var)) return false;
+
+			if (argc > ARG_STACK_SIZE) delete argv;
+			break;
+		}
+		case EVTYPE_GAME_VALUE: {
+			if (!_getGameValue((CRGameVar)code[(*pos) + 1], code + (*pos) + 2, &var)) return false;
+			(*pos) += 5;
+			break;
+		}
+		case EVTYPE_INSTANCEVAR: {
+			if (!_getInstanceVar(derefBuffer, (CRInstanceVar)code[(*pos) + 1], code + (*pos) + 2, &var)) return false;
+			(*pos) += 5;
+			break;
+		}
+		case EVTYPE_FIELD: {
+			unsigned int fieldNum = code[(*pos) + 1] | (code[(*pos) + 2] << 8);
+			if (_contexts.top().locals.count(fieldNum)) {
+				// This is a local var
+				var = _contexts.top().locals[fieldNum];
+			}
+			else {
+				// This is a normal field
+				var = _fields[derefBuffer->id][fieldNum];
+			}
+			(*pos) += 3;
+			break;
+		}
+		default: {
+			return false;
+		}
+	}
+
+	// Get and apply any unary operators
+	while (code[*pos] == EVMOD_NOT || code[*pos] == EVMOD_NEGATIVE || code[*pos] == EVMOD_TILDE) {
+		if (var.state == GML_TYPE_STRING) return false;
+		if (code[*pos] == EVMOD_NOT) var.dVal = (_isTrue(&var) ? 1.0 : 0.0);
+		else if (code[*pos] == EVMOD_NEGATIVE) var.dVal = -var.dVal;
+		else var.dVal = ~_round(var.dVal);
+		(*pos)++;
+	}
+
+	(*out) = var;
+	return true;
+}
+
 bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) {
 	Instance* derefBuffer = _contexts.top().self;
 	unsigned int pos = 0;
 	GMLType stack[ARG_STACK_SIZE];
 	
-	// read a VAR
-	bool negative = code[0] & 0b00010000;
-	bool not = code[0] & 0b00100000;
-	bool tilde = code[0] & 0b01000000;
-
+	// read our first VAR
 	GMLType var;
-	bool loop = true;
-	while (loop) {
-		loop = false;
-		switch (code[pos] & 0b00001111) {
-			case EVTYPE_VAL: {
-				if (!_parseVal(code + pos + 1, &var)) return false;
-				pos += 4;
-				break;
-			}
-			case EVTYPE_INTERNAL_FUNC: {
-				unsigned int func = code[pos + 1] | (code[pos + 2] << 8);
-				unsigned int argc = code[pos + 3];
-				GMLType* argv = (argc > ARG_STACK_SIZE ? new GMLType[argc] : stack);
+	if (!_readExpVal(code, &pos, derefBuffer, stack, &var)) return false;
 
-				pos += 4;
-				for (unsigned int i = 0; i < argc; i++) {
-					if (!_parseVal(code + pos, argv + i)) {
-						if (argc > ARG_STACK_SIZE) delete argv;
-						return false;
-					}
-					pos += 3;
-				}
-				if (!(this->*_gmlFuncs[func])(argc, argv, &var)) return false;
+	while(true) {
+		CROperator op = (CROperator)code[pos];
+		if (op == OPERATOR_STOP) {
+			(*out) = var;
+			return true;
+		}
+		pos++;
 
-				if (argc > ARG_STACK_SIZE) delete argv;
+		GMLType rhs;
+		if (!_readExpVal(code, &pos, derefBuffer, stack, &rhs)) return false;
+		if (var.state != rhs.state) return false;
+
+		switch (op) {
+			case OPERATOR_ADD: {
+				if (!_applySetMethod(&var, SM_ADD, &rhs)) return false;
 				break;
 			}
-			case EVTYPE_GAME_VALUE: {
-				if (!_getGameValue((CRGameVar)code[pos + 1], code + pos + 2, &var)) return false;
-				pos += 5;
+			case OPERATOR_SUBTRACT: {
+				if (var.state == GML_TYPE_STRING) return false;
+				var.dVal -= rhs.dVal;
 				break;
 			}
-			case EVTYPE_INSTANCEVAR: {
-				if (!_getInstanceVar(derefBuffer, (CRInstanceVar)code[pos + 1], code + pos + 2, &var)) return false;
-				pos += 5;
+			case OPERATOR_MULTIPLY: {
+				if (var.state == GML_TYPE_STRING) return false;
+				var.dVal *= rhs.dVal;
 				break;
 			}
-			case EVTYPE_FIELD: {
-				unsigned int fieldNum = code[pos + 1] | (code[pos + 2] << 8);
-				if (_contexts.top().locals.count(fieldNum)) {
-					// This is a local var
-					var = _contexts.top().locals[fieldNum];
+			case OPERATOR_DIVIDE: {
+				if (var.state == GML_TYPE_STRING) return false;
+				var.dVal /= rhs.dVal;
+				break;
+			}
+			case OPERATOR_MOD: {
+				if (var.state == GML_TYPE_STRING) return false;
+				var.dVal = std::fmod(var.dVal, rhs.dVal);
+				break;
+			}
+			case OPERATOR_DIV: {
+				if (var.state == GML_TYPE_STRING) return false;
+				var.dVal = ::floor(var.dVal / rhs.dVal);
+				break;
+			}
+			case OPERATOR_LTE: {
+				if (var.state == GML_TYPE_DOUBLE) {
+					var.dVal = (var.dVal <= rhs.dVal ? 1.0 : 0.0);
 				}
 				else {
-					// This is a normal field
-					var = _fields[derefBuffer->id][fieldNum];
+					var.dVal = (strlen(var.sVal) <= strlen(rhs.sVal) ? 1.0 : 0.0);
 				}
-				pos += 3;
+				var.state = GML_TYPE_DOUBLE;
+				break;
+			}
+			case OPERATOR_GTE: {
+				if (var.state == GML_TYPE_DOUBLE) {
+					var.dVal = (var.dVal >= rhs.dVal ? 1.0 : 0.0);
+				}
+				else {
+					var.dVal = (strlen(var.sVal) >= strlen(rhs.sVal) ? 1.0 : 0.0);
+				}
+				var.state = GML_TYPE_DOUBLE;
+				break;
+			}
+			case OPERATOR_LT: {
+				if (var.state == GML_TYPE_DOUBLE) {
+					var.dVal = (var.dVal < rhs.dVal ? 1.0 : 0.0);
+				}
+				else {
+					var.dVal = (strlen(var.sVal) < strlen(rhs.sVal) ? 1.0 : 0.0);
+				}
+				var.state = GML_TYPE_DOUBLE;
+				break;
+			}
+			case OPERATOR_GT: {
+				if (var.state == GML_TYPE_DOUBLE) {
+					var.dVal = (var.dVal > rhs.dVal ? 1.0 : 0.0);
+				}
+				else {
+					var.dVal = (strlen(var.sVal) > strlen(rhs.sVal) ? 1.0 : 0.0);
+				}
+				var.state = GML_TYPE_DOUBLE;
+				break;
+			}
+			case OPERATOR_EQUALS: {
+				if(var.state == GML_TYPE_DOUBLE) var.dVal = (var.dVal == rhs.dVal ? 1.0 : 0.0);
+				else var.dVal = (strcmp(var.sVal, rhs.sVal) ? 0.0 : 1.0);
+				var.state = GML_TYPE_DOUBLE;
+				break;
+			}
+			case OPERATOR_NOT_EQUAL: {
+				if (var.state == GML_TYPE_DOUBLE) var.dVal = (var.dVal != rhs.dVal ? 1.0 : 0.0);
+				else var.dVal = (strcmp(var.sVal, rhs.sVal) ? 1.0 : 0.0);
+				var.state = GML_TYPE_DOUBLE;
+				break;
+			}
+			case OPERATOR_BOOLEAN_AND: {
+				if (var.state == GML_TYPE_STRING) return false;
+				var.dVal = (_isTrue(&var) && _isTrue(&rhs) ? 1.0 : 0.0);
+				break;
+			}
+			case OPERATOR_BOOLEAN_OR: {
+				if (var.state == GML_TYPE_STRING) return false;
+				var.dVal = (_isTrue(&var) || _isTrue(&rhs) ? 1.0 : 0.0);
+				break;
+			}
+			case OPERATOR_BOOLEAN_XOR: {
+				if (var.state == GML_TYPE_STRING) return false;
+				var.dVal = (_isTrue(&var) != _isTrue(&rhs) ? 1.0 : 0.0);
+				break;
+			}
+			case OPERATOR_BITWISE_AND: {
+				if (var.state == GML_TYPE_STRING) return false;
+				var.dVal = (double)(_round(var.dVal) & _round(rhs.dVal));
+				break;
+			}
+			case OPERATOR_BITWISE_OR: {
+				if (var.state == GML_TYPE_STRING) return false;
+				var.dVal = (double)(_round(var.dVal) | _round(rhs.dVal));
+				break;
+			}
+			case OPERATOR_BITWISE_XOR: {
+				if (var.state == GML_TYPE_STRING) return false;
+				var.dVal = (double)(_round(var.dVal) ^ _round(rhs.dVal));
+				break;
+			}
+			case OPERATOR_LSHIFT: {
+				if (var.state == GML_TYPE_STRING) return false;
+				var.dVal = (double)(_round(var.dVal) << _round(rhs.dVal));
+				break;
+			}
+			case OPERATOR_RSHIFT: {
+				if (var.state == GML_TYPE_STRING) return false;
+				var.dVal = (double)(_round(var.dVal) >> _round(rhs.dVal));
+				break;
+			}
+			case OPERATOR_DEREF: {
+				derefBuffer = _instances->GetInstanceByNumber(_round(var.dVal));
 				break;
 			}
 			default: {
 				return false;
 			}
-		}
-
-		// If we're dereferencing this value, put it in the deref buffer and loop back around
-		if (code[pos] == OPERATOR_DEREF) {
-			pos++;
-			derefBuffer = _instances->GetInstanceByNumber(_round(var.dVal));
-			loop = true;
-		}
-	}
-
-	// Apply mods to var
-	if (negative && var.state == GML_TYPE_DOUBLE) var.dVal = -var.dVal;
-	if (not) {
-		var.state = GML_TYPE_DOUBLE;
-		var.dVal = (_isTrue(&var) ? 1.0 : 0.0);
-	}
-	if (tilde) {
-		if (var.state == GML_TYPE_DOUBLE) var.dVal = (double)(~_round(var.dVal));
-		else {
-			var.state = GML_TYPE_DOUBLE;
-			var.dVal = -1.0;
-		}
-	}
-
-	// read an operator, then read the rest of the expression, apply it and return
-
-	switch (code[pos]) {
-		case OPERATOR_STOP: {
-			(*out) = var;
-			return true;
-		}
-		case OPERATOR_ADD: {
-			pos++;
-			GMLType rest;
-			if (!_evalExpression(code + pos, &rest)) return false;
-			if (!_applySetMethod(&var, SM_ADD, &rest)) return false;
-			(*out) = var;
-			return true;
-		}
-		case OPERATOR_SUBTRACT: {
-			pos++;
-			GMLType rest;
-			if (!_evalExpression(code + pos, &rest)) return false;
-			if (!_applySetMethod(&var, SM_SUBTRACT, &rest)) return false;
-			(*out) = var;
-			return true;
-		}
-		case OPERATOR_MULTIPLY: {
-			pos++;
-			GMLType rest;
-			if (!_evalExpression(code + pos, &rest)) return false;
-			if (!_applySetMethod(&var, SM_MULTIPLY, &rest)) return false;
-			(*out) = var;
-			return true;
-		}
-		case OPERATOR_DIVIDE: {
-			pos++;
-			GMLType rest;
-			if (!_evalExpression(code + pos, &rest)) return false;
-			if (!_applySetMethod(&var, SM_DIVIDE, &rest)) return false;
-			(*out) = var;
-			return true;
-		}
-		case OPERATOR_LTE: {
-			pos++;
-			GMLType rest;
-			if (!_evalExpression(code + pos, &rest)) return false;
-			out->state = GML_TYPE_DOUBLE;
-			out->dVal = (var.dVal <= rest.dVal ? 1.0 : 0.0);
-			return true;
-		}
-		case OPERATOR_GTE: {
-			pos++;
-			GMLType rest;
-			if (!_evalExpression(code + pos, &rest)) return false;
-			out->state = GML_TYPE_DOUBLE;
-			out->dVal = (var.dVal >= rest.dVal ? 1.0 : 0.0);
-			return true;
-		}
-		case OPERATOR_LT: {
-			pos++;
-			GMLType rest;
-			if (!_evalExpression(code + pos, &rest)) return false;
-			out->state = GML_TYPE_DOUBLE;
-			out->dVal = (var.dVal < rest.dVal ? 1.0 : 0.0);
-			return true;
-		}
-		case OPERATOR_GT: {
-			pos++;
-			GMLType rest;
-			if (!_evalExpression(code + pos, &rest)) return false;
-			out->state = GML_TYPE_DOUBLE;
-			out->dVal = (var.dVal > rest.dVal ? 1.0 : 0.0);
-			return true;
-		}
-		case OPERATOR_EQUALS: {
-			pos++;
-			GMLType rest;
-			if (!_evalExpression(code + pos, &rest)) return false;
-			out->state = GML_TYPE_DOUBLE;
-			out->dVal = (var.dVal == rest.dVal ? 1.0 : 0.0);
-			return true;
-		}
-		case OPERATOR_NOT_EQUAL: {
-			pos++;
-			GMLType rest;
-			if (!_evalExpression(code + pos, &rest)) return false;
-			out->state = GML_TYPE_DOUBLE;
-			out->dVal = (var.dVal != rest.dVal ? 1.0 : 0.0);
-			return true;
-		}
-		case OPERATOR_BOOLEAN_AND: {
-			pos++;
-			GMLType rest;
-			if (!_evalExpression(code + pos, &rest)) return false;
-			out->state = GML_TYPE_DOUBLE;
-			out->dVal = (var.dVal && rest.dVal ? 1.0 : 0.0);
-			return true;
-		}
-		case OPERATOR_BOOLEAN_OR: {
-			pos++;
-			GMLType rest;
-			if (!_evalExpression(code + pos, &rest)) return false;
-			out->state = GML_TYPE_DOUBLE;
-			out->dVal = (var.dVal || rest.dVal ? 1.0 : 0.0);
-			return true;
-		}
-		case OPERATOR_BOOLEAN_XOR: {
-			pos++;
-			GMLType rest;
-			if (!_evalExpression(code + pos, &rest)) return false;
-			out->state = GML_TYPE_DOUBLE;
-			out->dVal = (((!!var.dVal) != (!!rest.dVal)) ? 1.0 : 0.0);
-			return true;
-		}
-		// more tbd
-		default: {
-			return false;
 		}
 	}
 }
@@ -576,7 +592,6 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				break;
 			}
 			case OP_EXIT: { // Exit
-				out->state = GML_TYPE_UNINIT;
 				return true;
 			}
 			case OP_SET_GAME_VALUE: { // Set game value
@@ -623,7 +638,6 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				for (unsigned char i = 0; i < count; i++) {
 					unsigned int fieldNum = bytes[pos] + (bytes[pos + 1] << 8);
 					_contexts.top().locals[fieldNum] = GMLType();
-					_contexts.top().locals[fieldNum].state = GML_TYPE_UNINIT;
 					pos += 2;
 				}
 				break;

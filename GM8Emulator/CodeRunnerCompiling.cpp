@@ -1,6 +1,7 @@
 #include "CodeRunner.hpp"
 #include "CREnums.hpp"
 #include "AssetManager.hpp"
+#include "CRExpression.hpp"
 #include <string>
 #include <sstream>
 
@@ -1061,8 +1062,405 @@ bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, unsign
 
 
 
+bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, bool session, unsigned int* outCharsUsed, unsigned int* outSize) {
+	// We only have to remove comments and substitute strings if we're not already in an existing session.
+	std::string code;
+	if (!session)code = substituteConstants(removeComments(str));
+	else code = std::string(str);
+	unsigned int pos = 0;
+
+	// Now we read expression elements one at a time until there are no more.
+	CRExpressionElement* expList;
+	CRExpressionElement** nextElem = &expList;
+	while (true) {
+		CRExpressionElement* element = new CRExpressionElement();
+		(*nextElem) = element;
+		nextElem = &(element->next);
+		
+		// Read modifiers first - these will be listed in reverse order of application
+		bool mods = true;
+		while (mods) {
+			switch (code[pos]) {
+			case '-':
+				element->mods.push_back(EVMOD_NEGATIVE);
+				pos++;
+				break;
+			case '!':
+				element->mods.push_back(EVMOD_NOT);
+				pos++;
+				break;
+			case '~':
+				element->mods.push_back(EVMOD_TILDE);
+				pos++;
+				break;
+			default:
+				mods = false;
+				break;
+			}
+		}
+
+		// Now read a VAR into the element
+		std::string word = getWord(code, &pos);
+		if (word.size() == 0 && code[pos] != '.' && code[pos] != '%') {
+			// Expression doesn't start alphanumerically, so it must be brackets
+			if (code[pos] != '(') return false;
+			pos++;
+
+			// Get bracket contents, turn it into a VAL, make this VAR point to that VAL, and move on
+			unsigned char val[3];
+			if (!_getExpression(code, &pos, val)) return false;
+			findFirstNonWhitespace(code, &pos);
+			if (code[pos] != ')') return false;
+			pos++;
+
+			element->var.push_back(EVTYPE_VAL);
+			element->var.push_back(val[0]);
+			element->var.push_back(val[1]);
+			element->var.push_back(val[2]);
+		}
+		else {
+			// First, check if this is a number
+			if ((word.size() == 0 && code[pos] == '.') || (word[0] >= '0' && word[0] <= '9')) {
+				std::string num;
+				bool canBeLiteralInt = true;
+
+				// Read number into string
+				if (word.size() == 0) num += '0';
+				else num += word;
+				if (code[pos] == '.') {
+					canBeLiteralInt = false;
+					num += code[pos];
+					pos++;
+					while (code[pos] >= '0' && code[pos] <= '9') {
+						num += code[pos];
+						pos++;
+					}
+				}
+
+				// Turn this number into a VAL
+				element->var.push_back(EVTYPE_VAL);
+				if (canBeLiteralInt && (num.size() < 7)) {
+					// Write as a literal int
+					int value = std::atoi(num.c_str());
+					element->var.push_back((1 << 6) | (value >> 16));
+					element->var.push_back((value >> 8) & 0xFF);
+					element->var.push_back(value & 0xFF);
+				}
+				else {
+					// Register as constant double and write that way
+					// If the only modifier is a negative, get rid of that and register the double as negative instead, it's faster.
+					if (element->mods.size() == 1) if (element->mods[0] == EVMOD_NEGATIVE) {
+						num = "-" + num;
+						element->mods.clear();
+					}
+					unsigned int cRef = _RegConstantDouble(std::atof(num.c_str()));
+					element->var.push_back((2 << 6) | (cRef >> 16));
+					element->var.push_back((cRef >> 8) & 0xFF);
+					element->var.push_back(cRef & 0xFF);
+				}
+			}
+			else {
+				// Next, check if this is a constant
+				if (word.size() == 0 && code[pos] == '%') {
+					// We can make a VAL with this int as a const db reference
+					element->var.push_back(EVTYPE_VAL);
+					std::string ref = code.substr(pos, (code.find_first_of('%', pos + 1) - pos) + 1);
+					unsigned char val[3];
+					if (!_makeVal(ref.c_str(), (unsigned int)ref.size(), val)) return false;
+					element->var.push_back(val[0]);
+					element->var.push_back(val[1]);
+					element->var.push_back(val[2]);
+					pos += (unsigned int)ref.size();
+				}
+				else {
+					// Find out if this is a script/function or variable
+					if (code[pos] == '(') {
+						// It'a a script/function
+						Script* scr = NULL;
+						unsigned int scriptId;
+						for (scriptId = 0; scriptId < _assetManager->GetScriptCount(); scriptId++) {
+							Script* s = _assetManager->GetScript(scriptId);
+							if (s->exists) {
+								if (strcmp(s->name, word.c_str()) == 0) {
+									scr = s;
+									break;
+								}
+							}
+						}
+
+						if (scr) {
+							// User script
+							element->var.push_back(EVTYPE_SCRIPT);
+							element->var.push_back((unsigned char)(scriptId & 0xFF)); // Script id, little endian
+							element->var.push_back((unsigned char)((scriptId & 0xFF00) >> 8));
+						}
+						else {
+							// Internal function
+							element->var.push_back(EVTYPE_INTERNAL_FUNC);
+
+							// First resolve the function name to an internal function id.
+							unsigned int funcId;
+							for (funcId = 0; funcId < _INTERNAL_FUNC_COUNT; funcId++) {
+								if (strcmp(_internalFuncNames[funcId], word.c_str()) == 0) {
+									break;
+								}
+							}
+							if (funcId == _INTERNAL_FUNC_COUNT) {
+								return false;
+							}
+							element->var.push_back((unsigned char)(funcId & 0xFF)); // Function id, little endian
+							element->var.push_back((unsigned char)((funcId & 0xFF00) >> 8));
+						}
+
+						// Push arg count and save its position for later
+
+						unsigned int argCPos = (unsigned int)element->var.size();
+						element->var.push_back(0);
+
+						// Now parse args
+						unsigned char argCount = 0;
+						unsigned char valBuffer[3];
+
+						pos++;
+						findFirstNonWhitespace(code, &pos);
+						if (code[pos] != ')') {
+							while (true) {
+								findFirstNonWhitespace(code, &pos);
+								if (!_getExpression(code, &pos, valBuffer)) return false;
+								element->var.push_back(valBuffer[0]);
+								element->var.push_back(valBuffer[1]);
+								element->var.push_back(valBuffer[2]);
+								argCount++;
+
+								findFirstNonWhitespace(code, &pos);
+								if (code[pos] == ')') {
+									break;
+								}
+								else if (code[pos] == ',') {
+									pos++;
+								}
+								else return false;
+							}
+						}
+						element->var[argCPos] = argCount;
+						pos++;
+					}
+					else {
+						unsigned int assetIx;
+						if (_isAsset(word.c_str(), &assetIx)) {
+							// This is an asset ID. Turn this into a literal integer VAL.
+							if (assetIx >= 0x400000) return false;
+							element->var.push_back(EVTYPE_VAL);
+							element->var.push_back((1 << 6) | (assetIx >> 16));
+							element->var.push_back((assetIx >> 8) & 0xFF);
+							element->var.push_back(assetIx & 0xFF);
+						}
+						else {
+							// Next, check if it's a GML const. If so, it's just an integer.
+							if (word == "pi") {
+								// Special case for pi because it's the only one that isn't an int.
+								unsigned int ix = _RegConstantDouble(PI);
+								element->var.push_back(EVTYPE_VAL);
+								element->var.push_back((2 << 6) | (ix >> 16));
+								element->var.push_back((ix >> 8) & 0xFF);
+								element->var.push_back(ix & 0xFF);
+							}
+							else {
+								// Check the entire list of GML consts
+								bool found = false;
+								for (const auto& pair : _gmlConsts) {
+									if (!strcmp(word.c_str(), pair.first)) {
+										int value = pair.second;
+										if (value < 0) {
+											value = -value;
+											element->mods.push_back(EVMOD_NEGATIVE);
+										}
+										if (value >= 0x400000) {
+											// Constant is too big of a number to store in a literal integer VAL.
+											value = (int)_RegConstantDouble((double)value);
+										}
+										if (value >= 0x400000 || value < 0) return false; // Too many constants
+										element->var.push_back(EVTYPE_VAL);
+										element->var.push_back((1 << 6) | (value >> 16));
+										element->var.push_back((value >> 8) & 0xFF);
+										element->var.push_back(value & 0xFF);
+										found = true;
+										break;
+									}
+								}
+
+								if (!found) {
+									// It's a "variable get". Now figure out if this word has an array index at the end of it.
+
+									bool array = false;
+									unsigned char val[3];
+									findFirstNonWhitespace(code, &pos);
+									if (code[pos] == '[') {
+										array = true;
+										pos++;
+										if (!_getExpression(code, &pos, val)) return false;
+										findFirstNonWhitespace(code, &pos);
+										if (code[pos] != ']') return false;
+										pos++;
+									}
+
+									// Get what type of variable we've been given
+									unsigned int index;
+									CRVarType type = _getVarType(word, &index);
+									switch (type) {
+									case VARTYPE_FIELD:
+										element->var.push_back(array ? EVTYPE_ARRAY : EVTYPE_FIELD);
+										element->var.push_back(index & 0xFF);
+										element->var.push_back((index >> 8) & 0xFF);
+										if (array) {
+											element->var.push_back(val[0]);
+											element->var.push_back(val[1]);
+											element->var.push_back(val[2]);
+										}
+										break;
+									case VARTYPE_GAME:
+										element->var.push_back(EVTYPE_GAME_VALUE);
+										element->var.push_back(index & 0xFF);
+										element->var.push_back(val[0]);
+										element->var.push_back(val[1]);
+										element->var.push_back(val[2]);
+										break;
+									case VARTYPE_INSTANCE:
+										element->var.push_back(EVTYPE_INSTANCEVAR);
+										element->var.push_back(index & 0xFF);
+										element->var.push_back(val[0]);
+										element->var.push_back(val[1]);
+										element->var.push_back(val[2]);
+										break;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		//Finally, read the operator after this.
+		unsigned int posBeforeOp = pos;
+		findFirstNonWhitespace(code, &pos);
+		CROperator op = OPERATOR_STOP;
+		std::string opWord;
+		unsigned int opLen = 0;
+
+		if (pos < code.size()) {
+			if (isAlphanumeric(code[pos])) {
+				opWord = getWord(code, &pos);
+				const char* cOpWord = opWord.c_str();
+				for (const auto& pair : _ANOperators) {
+					if (!strcmp(pair.first, cOpWord)) {
+						op = pair.second;
+						break;
+					}
+				}
+			}
+			else {
+				for (const auto& pair : _operators) {
+					if (!strcmp(code.substr(pos, strlen(pair.first)).c_str(), pair.first)) {
+						opLen = (unsigned int)strlen(pair.first);
+						op = pair.second;
+						if (strlen(pair.first) - 1) break; // Only break if the length of the matched operator is larger than 1, eg. to prevent matching "<" when it's actually "<=".
+					}
+				}
+			}
+		}
+
+		// We've built this entire element. Here's a little bit of operator optimization.
+		if (element->mods.size() >= 2) {
+			std::vector<CROperator> newMods;
+			for (unsigned int i = 0; i < element->mods.size() - 1; i++) {
+				if (element->mods[i] == EVMOD_NEGATIVE && element->mods[i + 1] == EVMOD_NEGATIVE) {
+					i++;
+					continue;
+				}
+				else if (element->mods[i] == EVMOD_TILDE && element->mods[i + 1] == EVMOD_TILDE) {
+					i++;
+					continue;
+				}
+				else newMods.push_back(element->mods[i]);
+			}
+			element->mods = newMods;
+			newMods.clear();
+			for (unsigned int i = 0; i < element->mods.size() - 2; i++) {
+				if (element->mods[i] == EVMOD_NOT && element->mods[i + 1] == EVMOD_NOT && element->mods[i + 2] == EVMOD_NOT) {
+					unsigned int notCount = 0;
+					for (; (i < element->mods.size() && element->mods[i] == EVMOD_NOT); i++) notCount++;
+					newMods.push_back(EVMOD_NOT);
+					if (!(notCount & 1)) newMods.push_back(EVMOD_NOT);
+				}
+				else newMods.push_back(element->mods[i]);
+			}
+			element->mods = newMods;
+		}
+
+		// Now move onto the next element unless we reached a STOP.
+		pos += opLen;
+		element->op = op;
+		if (op == OPERATOR_STOP) {
+			pos = posBeforeOp;
+			break;
+		}
+	}
 
 
+	// At this stage, we've built the entire linked list of elements and we can optimize it and order it correctly.
+	// todo
+
+	// Calculate number of output bytes
+	unsigned int outputsize = 0;
+	CRExpressionElement* element = expList;
+	while (true) {
+		outputsize += (unsigned int)(element->var.size() + element->mods.size() + 1);
+		if (element->op == OPERATOR_STOP) break;
+		else element = element->next;
+	}
+	
+	// Write the output variables
+	if (outCharsUsed) {
+		(*outCharsUsed) = pos;
+	}
+	if (outSize) {
+		(*outSize) = outputsize;
+	}
+
+	// Write output bytes
+	(*outHandle) = (unsigned char*)malloc(outputsize);
+	unsigned int outpos = 0;
+	element = expList;
+	while (true) {
+		memcpy((*outHandle) + outpos, element->var._Myfirst(), element->var.size());
+		outpos += (unsigned int)element->var.size();
+		for (int i = (int)element->mods.size() - 1; i >= 0; i--) {
+			(*outHandle)[outpos] = element->mods[i];
+			outpos++;
+		}
+		(*outHandle)[outpos] = element->op;
+		outpos++;
+		if (element->op == OPERATOR_STOP) break;
+		else element = element->next;
+	}
+
+	// Clean up
+	CRExpressionElement* n1 = expList;
+	CRExpressionElement* n2;
+	while (n1->op != OPERATOR_STOP) {
+		n2 = n1->next;
+		delete n1;
+		n1 = n2;
+	}
+	delete n1;
+
+	return true;
+}
+
+
+
+/*
 bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, bool session, unsigned int* outCharsUsed, unsigned int* outSize) {
 	// We only have to remove comments and substitute strings if we're not already in an existing session.
 	std::string code;
@@ -1411,3 +1809,4 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 
 	return true;
 }
+*/

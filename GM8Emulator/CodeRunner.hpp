@@ -147,39 +147,37 @@ Followed by 3 bytes indicating a VAL. (Writes to the return buffer and exits.)
 
 EXPRESSIONS:
 An expression is some GML that gets compiled and can later be evaluated, returning a GMLType. It's formatted as:
-VAR [OPERATOR VAR [OPERATOR VAR [OPERATOR VAR...]] OP
+VAR [MODS] [OPERATOR VAR [MODS] [OPERATOR VAR [MODS] [OPERATOR VAR [MODS]...]] OPERATOR
 For example, in the GML line "player.x = mouse_x - 1", there is an expression: "mouse_x - 1". mouse_x is a VAR, 1 is a VAR, and - is an OP. 
-The final OP must be a "STOP" to terminate the expression. OP and VAR are defined as:
+The final OPERATOR must be a "STOP" to terminate the expression. OPERATOR, VAR and MODS defined below:
 
 
 "OPERATOR" refers to an operator which acts on two VARs (the LHS and RHS). These can have the following values:
-00: STOP (end of expression)
-01: +
-02: -
-03: *
-04: /
-05: mod
-06: div
-07: == (can also be "=" in gml expression)
-08: !=
-09: <
-0A: <=
-0B: >
-0C: >=
-0D: |
-0E: || (can also be "or" in gml)
-0F: &
-10: && (can also be "and" in gml)
-11: ^
-12: ^^ (can also be "xor" in gml)
-13: <<
-14: >>
-15: .
-// TODO: Figure out precedence order and sort these as such.
+0x00: STOP (end of expression)
+0x01: +
+0x02: -
+0x03: *
+0x04: /
+0x05: mod
+0x06: div
+0x07: == (can also be "=" in gml expression)
+0x08: !=
+0x09: <
+0x0A: <=
+0x0B: >
+0x0C: >=
+0x0D: |
+0x0E: || (can also be "or" in gml)
+0x0F: &
+0x10: && (can also be "and" in gml)
+0x11: ^
+0x12: ^^ (can also be "xor" in gml)
+0x13: <<
+0x14: >>
+0x15: .
 
 
 "VAR" here refers to a variable in an expression. Like with instructions, the first byte indicates what follows it.
-The BOTTOM 4 BITS of the byte reference the value table below. The TOP 4 BITS are a modifier bitmask.
 
 VALUE TABLE:
 
@@ -215,11 +213,12 @@ each argument is indicated by 3 bytes, each of which is a VAL.
 Followed by 0 bytes. Gets the value from the internal stack.
 
 
-VAR MODIFIERS:
-
-Fifth bit: the following VAR is negative - eg. if it's a VAL containing the number 2, this should actually eval to -2
-Sixth bit: the following VAR is boolean-negated - ie. it should eval to "false" if the following value evals to "true" and vice versa
-Seventh bit: the following VAR should have the GML "~" operator applied
+MODS (AKA. Unary Operators):
+After the VAR may be some modifiers which should be applied to the calculated VAR left-to-right.
+The values listed below must not overlap with the available OPERATOR values, as this would create ambiguous bytes.
+0x16: NOT (!)
+0x17: NEGATIVE (-)
+0x18: TILDE (~)
 */
 
 
@@ -242,15 +241,14 @@ class CodeRunner {
 
 		// States a GMLType can be in
 		enum GMLTypeState {
-			GML_TYPE_UNINIT,
 			GML_TYPE_DOUBLE,
 			GML_TYPE_STRING
 		};
 
 		// The universal data type in GML
 		struct GMLType {
-			GMLTypeState state = GML_TYPE_UNINIT;
-			double dVal = 0;
+			GMLTypeState state = GML_TYPE_DOUBLE;
+			double dVal = 0.0;
 			char* sVal;
 		};
 
@@ -331,6 +329,7 @@ class CodeRunner {
 		bool _setInstanceVar(Instance* instance, CRInstanceVar index, const unsigned char* arrayIndexVal, CRSetMethod method, GMLType value);
 		bool _getInstanceVar(Instance* instance, CRInstanceVar index, const unsigned char* arrayIndexVal, GMLType* out);
 		bool _evalExpression(unsigned char* code, GMLType* out);
+		bool _readExpVal(unsigned char* code, unsigned int* pos, Instance* derefBuffer, GMLType* argStack, GMLType* out);
 		bool _isTrue(const GMLType* value);
 		bool _applySetMethod(GMLType* lhs, CRSetMethod method, const GMLType* const rhs);
 
