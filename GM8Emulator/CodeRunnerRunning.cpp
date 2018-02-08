@@ -299,7 +299,7 @@ bool CodeRunner::_isTrue(const CodeRunner::GMLType* value) {
 bool CodeRunner::_applySetMethod(CodeRunner::GMLType* lhs, CRSetMethod method, const CodeRunner::GMLType* const rhs) {
 	if (method == SM_ASSIGN) {
 		// Easiest method
-		memcpy(lhs, rhs, sizeof(GMLType));
+		(*lhs) = (*rhs);
 		return true;
 	}
 	else if (method == SM_ADD) {
@@ -311,12 +311,11 @@ bool CodeRunner::_applySetMethod(CodeRunner::GMLType* lhs, CRSetMethod method, c
 		if (lhs->state == GML_TYPE_STRING) {
 			size_t lLen = strlen(lhs->sVal);
 			size_t rLen = strlen(rhs->sVal);
-			char* c = (char*)malloc(lLen + rLen + 1);
+			char* c = (char*)malloc(lLen + rLen);
 			memcpy(c, lhs->sVal, lLen);
 			memcpy(c + lLen, rhs->sVal, rLen);
-			c[lLen + rLen] = 0;
-			free(lhs->sVal);
-			lhs->sVal = c;
+			(*lhs) = _constants[_RegConstantString(c, lLen + rLen)];
+			free(c);
 		}
 		else {
 			lhs->dVal += rhs->dVal;

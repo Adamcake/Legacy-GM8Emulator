@@ -167,9 +167,9 @@ Precedence 0: &&, ||, ^^
 Operators of the same precedence in one expression will always be run left-to-right.
 For example, the line "4 * 3 / 2 mod 4 * 2" would evaluate to 4, as all those operators are in group 5.
 
-Separately from this, there are also the three "unary operators" which are !, - and ~ ("not", "negative" and "tilde" respectively.) These can be seen as having a higher precedence than all other operators as they're always applied to the variable they're in front of before anything else happens.
+Separately from this, there are also the four "unary operators" which are !, ~, + and - ("not", "tilde", "positive" and "negative" respectively.) These can be seen as having a higher precedence than all other operators as they're always applied to the variable they're in front of before anything else happens.
 
-Multiple unary operators are evaluated right-to-left, due to them being dependent on what is to the right of them. For example, in the expression "-~!0", the value of "0" would first be checked for GML-trueness by the NOT operator. It's a false value so the NOT operator gives 1.0. Next, the tilde operator would change this value to -2.0. Finally, the "-" operator negates the value to 2.0.
+Multiple unary operators are evaluated right-to-left, due to them being dependent on what is to the right of them. For example, in the expression "-~!0", the value of "0" would first be checked for GML-trueness by the NOT operator. It's a false value so the NOT operator gives 1.0. Next, the tilde operator would change this value to -2.0. Finally, the "-" operator negates the value to 2.0. The "positive" unary operator actually does not do anything and is only useful for explicit signing.
 
 Precedence notes:
 Some operators have aliases, eg. "&&" may be written as "and", however this does not affect their precedence.

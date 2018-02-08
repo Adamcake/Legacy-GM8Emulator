@@ -1081,6 +1081,9 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 		bool mods = true;
 		while (mods) {
 			switch (code[pos]) {
+			case '+':
+				pos++; // doesn't do anything
+				break;
 			case '-':
 				element->mods.push_back(EVMOD_NEGATIVE);
 				pos++;

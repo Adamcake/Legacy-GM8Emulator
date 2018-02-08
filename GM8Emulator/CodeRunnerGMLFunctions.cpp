@@ -510,9 +510,7 @@ bool CodeRunner::string(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (out) {
 		out->state = GML_TYPE_STRING;
 		if (argv[0].state == GML_TYPE_STRING) {
-			size_t len = strlen(argv[0].sVal);
-			out->sVal = (char*)malloc(len + 1);
-			memcpy(out->sVal, argv[0].sVal, len + 1);
+			out->sVal = argv[0].sVal;
 		}
 		else {
 			std::stringstream s;
