@@ -5,6 +5,7 @@ class GameRenderer;
 class CodeActionManager;
 struct GlobalValues;
 struct Instance;
+struct CRExpressionElement;
 typedef unsigned int CodeObject;
 typedef unsigned int InstanceID;
 enum CRGameVar;
@@ -317,6 +318,7 @@ class CodeRunner {
 		bool _makeVal(const char* exp, unsigned int len, unsigned char* out);
 		CRVarType _getVarType(std::string name, unsigned int* index = NULL);
 		bool _getExpression(std::string input, unsigned int* pos, unsigned char* outVal);
+		bool _compileExpStruct(CRExpressionElement* exp, unsigned char** out, unsigned int* outSize);
 		bool _isAsset(const char* name, unsigned int* index);
 
 
@@ -357,6 +359,7 @@ class CodeRunner {
 		bool move_wrap(unsigned int argc, GMLType* argv, GMLType* out);
 		bool ord(unsigned int argc, GMLType* argv, GMLType* out);
 		bool place_meeting(unsigned int argc, GMLType* argv, GMLType* out);
+		bool point_direction(unsigned int argc, GMLType* argv, GMLType* out);
 		bool random(unsigned int argc, GMLType* argv, GMLType* out);
 		bool random_range(unsigned int argc, GMLType* argv, GMLType* out);
 		bool random_get_seed(unsigned int argc, GMLType* argv, GMLType* out);

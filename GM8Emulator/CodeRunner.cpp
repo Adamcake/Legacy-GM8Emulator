@@ -173,6 +173,10 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("place_meeting");
 				_gmlFuncs.push_back(&CodeRunner::place_meeting);
 				break;
+			case POINT_DIRECTION:
+				_internalFuncNames.push_back("point_direction");
+				_gmlFuncs.push_back(&CodeRunner::point_direction);
+				break;
 			case RANDOM:
 				_internalFuncNames.push_back("random");
 				_gmlFuncs.push_back(&CodeRunner::random);
