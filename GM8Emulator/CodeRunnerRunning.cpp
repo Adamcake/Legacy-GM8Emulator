@@ -10,6 +10,9 @@
 #define ARG_STACK_SIZE 4
 
 
+Instance global;
+
+
 int CodeRunner::_round(double d) {
 	// This mimics the x86_32 "FISTP" operator which is commonly used in the GM8 runner.
 	// We can't actually use that operator, because we're targeting other platforms than x86 Windows.
@@ -428,7 +431,33 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 	
 	// read our first VAR
 	GMLType var;
+	GMLType rhs;
 	if (!_readExpVal(code, &pos, derefBuffer, stack, &var)) return false;
+
+	while (code[pos] == OPERATOR_DEREF) {
+		pos++;
+		if (var.state == GML_TYPE_STRING) return false;
+		int i = _round(var.dVal);
+		switch (i) {
+			case -1:
+				break;
+			case -2:
+				derefBuffer = _contexts.top().other;
+				break;
+			case -3:
+				derefBuffer = NULL;
+				break;
+			case -4:
+				derefBuffer = InstanceList::Iterator(_instances).Next();
+				break;
+			case -5:
+				derefBuffer = &global;
+				break;
+			default:
+				derefBuffer = _instances->GetInstanceByNumber(i);
+		}
+		if (!_readExpVal(code, &pos, derefBuffer, stack, &var)) return false;
+	}
 
 	while(true) {
 		CROperator op = (CROperator)code[pos];
@@ -438,9 +467,33 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 		}
 		pos++;
 
-		GMLType rhs;
 		if (!_readExpVal(code, &pos, derefBuffer, stack, &rhs)) return false;
 		if (var.state != rhs.state) return false;
+
+		while (code[pos] == OPERATOR_DEREF) {
+			if (rhs.state == GML_TYPE_STRING) return false;
+			pos++;
+			int i = _round(rhs.dVal);
+			switch (i) {
+				case -1:
+					break;
+				case -2:
+					derefBuffer = _contexts.top().other;
+					break;
+				case -3:
+					derefBuffer = NULL;
+					break;
+				case -4:
+					derefBuffer = InstanceList::Iterator(_instances).Next();
+					break;
+				case -5:
+					derefBuffer = &global;
+					break;
+				default:
+					derefBuffer = _instances->GetInstanceByNumber(i);
+			}
+			if (!_readExpVal(code, &pos, derefBuffer, stack, &rhs)) return false;
+		}
 
 		switch (op) {
 			case OPERATOR_ADD: {
@@ -564,10 +617,6 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 				var.dVal = (double)(_round(var.dVal) >> _round(rhs.dVal));
 				break;
 			}
-			case OPERATOR_DEREF: {
-				derefBuffer = _instances->GetInstanceByNumber(_round(var.dVal));
-				break;
-			}
 			default: {
 				return false;
 			}
@@ -647,10 +696,38 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				if (val.state != GML_TYPE_DOUBLE) return false;
 				pos += 4;
 				_stack.push((int)pos);
-				_iterators.push(InstanceList::Iterator(_instances, _round(val.dVal)));
-				derefBuffer = _iterators.top().Next();
 				dereferenced = true;
-				break;
+				int ii = _round(val.dVal);
+
+				switch (ii) {
+					case -1:
+						_iterators.push(InstanceList::Iterator(_instances, -1));
+						derefBuffer = _contexts.top().self;
+						break;
+					case -2:
+						_iterators.push(InstanceList::Iterator(_instances, -1));
+						derefBuffer = _contexts.top().other;
+						break;
+					case -3:
+						_iterators.push(InstanceList::Iterator(_instances, -1));
+						derefBuffer = NULL;
+						break;
+					case -4:
+						_iterators.push(InstanceList::Iterator(_instances));
+						derefBuffer = _iterators.top().Next();
+						break;
+					case -5:
+						_iterators.push(InstanceList::Iterator(_instances, -1));
+						derefBuffer = &global;
+						break;
+					default:
+						_iterators.push(InstanceList::Iterator(_instances, ii));
+				}
+
+				if (derefBuffer) {
+					break;
+				}
+				// If there's nothing to iterate, fall through and reset the deref buffer.
 			}
 			case OP_RESET_DEREF: { // Put default buffer back to default "self" for this context
 				Instance* in = _iterators.top().Next();

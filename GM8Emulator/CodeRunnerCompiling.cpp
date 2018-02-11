@@ -335,10 +335,12 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 	else if (firstWord == "while") {
 		// "while" generates a loop, which translates to tests and jumps in bytecode.
 		// TBD
+		return false;
 	}
 	else if (firstWord == "do") {
 		// "do" generates a loop in which the first iteration is always run. It can only be terminated by an "until" statement.
 		// TBD
+		return false;
 	}
 	else if (firstWord == "for") {
 		// "for" generates a loop: for(a;b;c) where a is the initializer, c happens at the end of each iteration, and the loop then continues if b evaluates to true.
@@ -922,21 +924,33 @@ bool CodeRunner::_getExpression(std::string input, unsigned int* pos, unsigned c
 	findFirstNonWhitespace(input, pos);
 	if (!((*pos) < input.size())) return false;
 	
-	unsigned int codeObj = (unsigned int)_codeObjects.size();
 	unsigned int charsUsed;
-	_codeObjects.push_back(CRCodeObject());
-	_codeObjects[codeObj].question = true;
-	_codeObjects[codeObj].code = NULL;
 	unsigned char* comp;
 	if (!_CompileExpression(input.substr(*pos).c_str(), &comp, true, &charsUsed)) return false;
-	_codeObjects[codeObj].compiled = comp;
 	(*pos) += charsUsed;
 
-	if (codeObj >= 0x400000) return false;
+	if (comp[0] == EVTYPE_VAL && comp[4] == OPERATOR_STOP) {
+		outVal[0] = comp[1];
+		outVal[1] = comp[2];
+		outVal[2] = comp[3];
+		free(comp);
+	}
+	else {
+		unsigned int codeObj = (unsigned int)_codeObjects.size();
+		if (codeObj >= 0x400000) {
+			free(comp);
+			return false;
+		}
 
-	outVal[0] = ((3 << 6) | (codeObj >> 16));
-	outVal[1] = (codeObj >> 8) & 0xFF;
-	outVal[2] = codeObj & 0xFF;
+		_codeObjects.push_back(CRCodeObject());
+		_codeObjects[codeObj].question = true;
+		_codeObjects[codeObj].code = NULL;
+		_codeObjects[codeObj].compiled = comp;
+
+		outVal[0] = ((3 << 6) | (codeObj >> 16));
+		outVal[1] = (codeObj >> 8) & 0xFF;
+		outVal[2] = codeObj & 0xFF;
+	}
 
 	return true;
 }
@@ -1072,6 +1086,7 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 	// Now we read expression elements one at a time until there are no more.
 	CRExpressionElement* expList;
 	CRExpressionElement** nextElem = &expList;
+	std::vector<CROperator> storedMods;
 	while (true) {
 		CRExpressionElement* element = new CRExpressionElement();
 		(*nextElem) = element;
@@ -1176,6 +1191,14 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 					pos += (unsigned int)ref.size();
 				}
 				else {
+					// If we are going to deref this, store the unary operators.
+					findFirstNonWhitespace(code, &pos);
+					if (code[pos] == '.') {
+						if (storedMods.size() != 0) return false;
+						storedMods = element->mods;
+						element->mods.clear();
+					}
+
 					// Find out if this is a script/function or variable
 					if (code[pos] == '(') {
 						// It'a a script/function
@@ -1371,6 +1394,13 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 					}
 				}
 			}
+		}
+
+		// Check if we want to tack on some unary operators here
+		if (storedMods.size() != 0 && op != OPERATOR_DEREF) {
+			if (element->mods.size() != 0) return false;
+			element->mods = storedMods;
+			storedMods.clear();
 		}
 
 		// We've built this entire element. Here's a little bit of operator optimization.
