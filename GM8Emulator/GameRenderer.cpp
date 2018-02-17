@@ -75,7 +75,6 @@ bool GameRenderer::MakeGameWindow(GameSettings* settings, unsigned int w, unsign
 
 	// Init GLEW - must be done after context creation
 	glewExperimental = GL_TRUE;
-	glewInit();
 	if (glewInit()) {
 		// Failed to init GLEW
 		return false;
@@ -230,8 +229,8 @@ void GameRenderer::DrawImage(RImageIndex ix, double x, double y, double xscale, 
 		0, 0, 0, 1
 	};
 	GLfloat scale2[16] = {
-		2.0 / windowW, 0, 0, 0,
-		0, 2.0 / windowH, 0, 0,
+		2.0f / windowW, 0, 0, 0,
+		0, 2.0f / windowH, 0, 0,
 		0, 0, 1, 0,
 		0, 0, 0, 1
 	};
@@ -239,7 +238,7 @@ void GameRenderer::DrawImage(RImageIndex ix, double x, double y, double xscale, 
 		1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, 0,
-		(x * 2.0 / windowW) - 1, -((y * 2.0 / windowH) - 1), 0, 1
+		(GLfloat)(x * 2.0f / windowW) - 1, -(GLfloat)((y * 2.0f / windowH) - 1), 0, 1
 	};
 
 

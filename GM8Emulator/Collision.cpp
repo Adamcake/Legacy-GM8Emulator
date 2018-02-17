@@ -104,7 +104,7 @@ bool CollisionCheck(Instance * i1, Instance * i2, AssetManager * assets) {
 			curY = spr1->originY + ((curY - i1->y) / i1->image_yscale);
 			int nx = dRound(curX);
 			int ny = dRound(curY);
-			if (nx >= map1->left && nx <= map1->right && ny >= map1->top && ny <= map1->bottom) {
+			if (nx >= (int)map1->left && nx <= (int)map1->right && ny >= (int)map1->top && ny <= (int)map1->bottom) {
 				if (map1->collision[ny * w1 + nx]) {
 					double curX = (double)x;
 					double curY = (double)y;

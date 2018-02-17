@@ -12,8 +12,8 @@ bool InputCheckKeyDirect(int code);
 bool InputCheckKeyPressed(int code);
 bool InputCheckKeyReleased(int code);
 
-unsigned int InputCountKeys();
-unsigned int InputCountKeysPressed();
-unsigned int InputCountKeysReleased();
+//unsigned int InputCountKeys();
+//unsigned int InputCountKeysPressed();
+//unsigned int InputCountKeysReleased();
 
 #endif

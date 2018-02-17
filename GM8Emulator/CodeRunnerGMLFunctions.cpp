@@ -204,45 +204,7 @@ bool CodeRunner::game_restart(unsigned int argc, GMLType* argv, GMLType* out) {
 bool CodeRunner::keyboard_check(unsigned int argc, GMLType* argv, GMLType* out) {
 	out->state = GML_TYPE_DOUBLE;
 	int gmlKeycode = (argv[0].state == GML_TYPE_DOUBLE ? _round(argv[0].dVal) : 0);
-
-	if (gmlKeycode == 0) {
-		// vk_nokey
-		out->dVal = (InputCountKeys() == 0 ? 1.0 : 0.0);
-	}
-	else if (gmlKeycode == 1) {
-		// vk_anykey
-		out->dVal = (InputCountKeys() == 0 ? 0.0 : 1.0);
-	}
-	else if (gmlKeycode == 39) {
-		out->dVal = (InputCheckKey(262) ? 1.0 : 0.0);
-	}
-	else if (gmlKeycode == 37) {
-		out->dVal = (InputCheckKey(263) ? 1.0 : 0.0);
-	}
-	else if (gmlKeycode == 40) {
-		out->dVal = (InputCheckKey(264) ? 1.0 : 0.0);
-	}
-	else if (gmlKeycode == 38) {
-		out->dVal = (InputCheckKey(265) ? 1.0 : 0.0);
-	}
-	else if (gmlKeycode == 13) {
-		out->dVal = (InputCheckKey(257) ? 1.0 : 0.0);
-	}
-	else if (gmlKeycode == 27) {
-		out->dVal = (InputCheckKey(256) ? 1.0 : 0.0);
-	}
-	else if (gmlKeycode == 32) {
-		out->dVal = (InputCheckKey(32) ? 1.0 : 0.0);
-	}
-	else if (gmlKeycode == 16) {
-		out->dVal = ((InputCheckKey(340) || InputCheckKey(344)) ? 1.0 : 0.0);
-	}
-	else if (gmlKeycode == 17) {
-		out->dVal = ((InputCheckKey(341) && InputCheckKey(345)) ? 1.0 : 0.0);
-	}
-	else {
-		out->dVal = (InputCheckKey(gmlKeycode) ? 1.0 : 0.0);
-	}
+	out->dVal = (InputCheckKey(gmlKeycode) ? 1.0 : 0.0);
 	return true;
 }
 
@@ -256,48 +218,14 @@ bool CodeRunner::keyboard_check_direct(unsigned int argc, GMLType* argv, GMLType
 bool CodeRunner::keyboard_check_pressed(unsigned int argc, GMLType* argv, GMLType* out) {
 	out->state = GML_TYPE_DOUBLE;
 	int gmlKeycode = (argv[0].state == GML_TYPE_DOUBLE ? _round(argv[0].dVal) : 0);
-
-	if (gmlKeycode == 0) {
-		// vk_nokey
-		out->dVal = (InputCountKeysPressed() == 0 ? 1.0 : 0.0);
-	}
-	else if (gmlKeycode == 1) {
-		// vk_anykey
-		out->dVal = (InputCountKeysPressed() == 0 ? 0.0 : 1.0);
-	}
-	else if (gmlKeycode == 16) {
-		out->dVal = ((InputCheckKeyPressed(340) || InputCheckKeyPressed(344)) ? 1.0 : 0.0);
-	}
-	else if (gmlKeycode == 17) {
-		out->dVal = ((InputCheckKeyPressed(341) && InputCheckKeyPressed(345)) ? 1.0 : 0.0);
-	}
-	else {
-		out->dVal = (InputCheckKeyPressed(gmlKeycode) ? 1.0 : 0.0);
-	}
+	out->dVal = (InputCheckKeyPressed(gmlKeycode) ? 1.0 : 0.0);
 	return true;
 }
 
 bool CodeRunner::keyboard_check_released(unsigned int argc, GMLType* argv, GMLType* out) {
-	(*out).state = GML_TYPE_DOUBLE;
+	out->state = GML_TYPE_DOUBLE;
 	int gmlKeycode = (argv[0].state == GML_TYPE_DOUBLE ? _round(argv[0].dVal) : 0);
-
-	if (gmlKeycode == 0) {
-		// vk_nokey
-		out->dVal = (InputCountKeysReleased() == 0 ? 1.0 : 0.0);
-	}
-	else if (gmlKeycode == 1) {
-		// vk_anykey
-		out->dVal = (InputCountKeysReleased() == 0 ? 0.0 : 1.0);
-	}
-	else if (gmlKeycode == 16) {
-		out->dVal = ((InputCheckKeyReleased(340) || InputCheckKeyReleased(344)) ? 1.0 : 0.0);
-	}
-	else if (gmlKeycode == 17) {
-		out->dVal = ((InputCheckKeyReleased(341) && InputCheckKeyReleased(345)) ? 1.0 : 0.0);
-	}
-	else {
-		out->dVal = (InputCheckKeyReleased(gmlKeycode) ? 1.0 : 0.0);
-	}
+	out->dVal = (InputCheckKeyReleased(gmlKeycode) ? 1.0 : 0.0);
 	return true;
 }
 
