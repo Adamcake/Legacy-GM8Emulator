@@ -1056,14 +1056,9 @@ bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, unsign
 		free(lineBytes);
 	}
 
-	// Our bytecode must be terminated by an 01. So if the last instruction doesn't happen to be an 01, we'll put one there.
+	// Our bytecode must be terminated by an 01.
 	if (!session) {
-		if (output.size() == 0) {
-			output.push_back(OP_EXIT);
-		}
-		else if (output[output.size() - 1] != OP_EXIT) {
-			output.push_back(OP_EXIT);
-		}
+		output.push_back(OP_EXIT);
 	}
 
 	// Write the finished operator list to the output pointer

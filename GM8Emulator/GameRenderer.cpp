@@ -62,7 +62,6 @@ bool GameRenderer::MakeGameWindow(GameSettings* settings, unsigned int w, unsign
 
 	// Create window
 	window = glfwCreateWindow(w, h, "", NULL, NULL);
-	InputInit(window);
 	if (!window) {
 		return false;
 	}
@@ -80,6 +79,9 @@ bool GameRenderer::MakeGameWindow(GameSettings* settings, unsigned int w, unsign
 		return false;
 	}
 
+	// Breakpoint this to see your gl version I guess? Mine is "4.5.0 NVIDIA 378.66"
+	const GLubyte* a = glGetString(GL_VERSION);
+
 	// Required GL features
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_BLEND);
@@ -88,6 +90,7 @@ bool GameRenderer::MakeGameWindow(GameSettings* settings, unsigned int w, unsign
 	glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, (GLint*)(&_maxGpuTextures));
 	glClearColor((GLclampf)(settings->colourOutsideRoom&0xFF000000)/0xFF000000, (GLclampf)(settings->colourOutsideRoom&0xFF0000)/0xFF0000, (GLclampf)(settings->colourOutsideRoom&0xFF00)/0xFF00, (GLclampf)(settings->colourOutsideRoom&0xFF)/0xFF);
 	glClear(GL_COLOR_BUFFER_BIT);
+	InputInit(window);
 
 	// Make shaders
 	GLint vertexCompiled, fragmentCompiled, linked;
@@ -122,7 +125,7 @@ bool GameRenderer::MakeGameWindow(GameSettings* settings, unsigned int w, unsign
 	for (unsigned int i = 0; i < _images.size(); i++) {
 		_images[i].glTexObject = ix[i];
 	}
-	delete ix;
+	delete[] ix;
 
 	// Make VAO
 	glGenVertexArrays(1, &_vao);
@@ -139,9 +142,13 @@ bool GameRenderer::MakeGameWindow(GameSettings* settings, unsigned int w, unsign
 		1.0f, 0.0f, 0.0f
 	};
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 12, vertexData, GL_STATIC_DRAW);
+
+	// test line - this func should be loaded in glewInit() but loads as 0 on my pc for some reason...
+	PFNGLENABLEVERTEXATTRIBARRAYPROC aa = glEnableVertexAttribArray;
+
 	glEnableVertexAttribArray(0);
 
-	return true;
+	return !glGetError();
 }
 
 void GameRenderer::ResizeGameWindow(unsigned int w, unsigned int h) {
