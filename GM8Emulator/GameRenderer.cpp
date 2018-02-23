@@ -46,6 +46,7 @@ void mat4Mult(const GLfloat* lhs, const GLfloat* rhs, GLfloat* out) {
 GameRenderer::GameRenderer() {
 	window = NULL;
 	_gpuTextures = 0;
+	contextSet = false;
 }
 
 GameRenderer::~GameRenderer() {
@@ -54,11 +55,19 @@ GameRenderer::~GameRenderer() {
 	}
 	_images.clear();
 	glfwDestroyWindow(window); // This function is allowed be called on NULL
+	glfwTerminate();
 }
 
 bool GameRenderer::MakeGameWindow(GameSettings* settings, unsigned int w, unsigned int h) {
-	// Shouldn't really be necessary, but prevents a memory leak in the event this is called more than once.
-	glfwDestroyWindow(window);
+	// Fail if we already did this
+	if (contextSet) return false;
+
+	// Init glfw
+	if (!glfwInit()) {
+		// Failed to initialize GLFW
+		return false;
+	}
+
 
 	// Create window
 	window = glfwCreateWindow(w, h, "", NULL, NULL);
@@ -78,9 +87,6 @@ bool GameRenderer::MakeGameWindow(GameSettings* settings, unsigned int w, unsign
 		// Failed to init GLEW
 		return false;
 	}
-
-	// Breakpoint this to see your gl version I guess? Mine is "4.5.0 NVIDIA 378.66"
-	const GLubyte* a = glGetString(GL_VERSION);
 
 	// Required GL features
 	glEnable(GL_TEXTURE_2D);
@@ -142,9 +148,6 @@ bool GameRenderer::MakeGameWindow(GameSettings* settings, unsigned int w, unsign
 		1.0f, 0.0f, 0.0f
 	};
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 12, vertexData, GL_STATIC_DRAW);
-
-	// test line - this func should be loaded in glewInit() but loads as 0 on my pc for some reason...
-	PFNGLENABLEVERTEXATTRIBARRAYPROC aa = glEnableVertexAttribArray;
 
 	glEnableVertexAttribArray(0);
 

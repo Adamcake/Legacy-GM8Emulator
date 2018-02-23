@@ -722,12 +722,15 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 						break;
 					default:
 						_iterators.push(InstanceList::Iterator(_instances, ii));
+						derefBuffer = _iterators.top().Next();
 				}
 
 				if (derefBuffer) {
 					break;
 				}
-				// If there's nothing to iterate, fall through and reset the deref buffer.
+
+				// Nothing to iterate - this is a crash scenario in GM8
+				return false;
 			}
 			case OP_RESET_DEREF: { // Put default buffer back to default "self" for this context
 				Instance* in = _iterators.top().Next();

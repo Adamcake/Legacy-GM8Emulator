@@ -2,9 +2,10 @@
 #include <GLFW/glfw3.h>
 
 // As far as I know, the GM8 keycodes go up to 124 (vk_f12)
-bool _current[124];
-bool _pressed[124];
-bool _released[124];
+#define NUM_KEYS 124
+bool _current[NUM_KEYS];
+bool _pressed[NUM_KEYS];
+bool _released[NUM_KEYS];
 
 GLFWwindow* win;
 
@@ -122,7 +123,7 @@ void key_callback(GLFWwindow* window, int k, int scancode, int action, int mods)
 			default:
 				key = (unsigned int)k;
 		}
-		if (k < 0 || k >= 124) return;
+		if (key < 0 || key >= 124) return;
 
 		if (action == GLFW_RELEASE) _released[key] = true;
 		else if (!_current[key]) _pressed[key] = true;
@@ -131,69 +132,42 @@ void key_callback(GLFWwindow* window, int k, int scancode, int action, int mods)
 }
 
 void InputInit(GLFWwindow* window) {
-	memset(_current, 0, sizeof(bool) * GLFW_KEY_LAST);
-	memset(_pressed, 0, sizeof(bool) * GLFW_KEY_LAST);
-	memset(_released, 0, sizeof(bool) * GLFW_KEY_LAST);
+	memset(_current, 0, sizeof(bool) * NUM_KEYS);
+	memset(_pressed, 0, sizeof(bool) * NUM_KEYS);
+	memset(_released, 0, sizeof(bool) * NUM_KEYS);
 	glfwSetKeyCallback(window, key_callback);
 	win = window;
 }
 
 void InputUpdate() {
-	memset(_pressed, 0, sizeof(bool) * GLFW_KEY_LAST);
-	memset(_released, 0, sizeof(bool) * GLFW_KEY_LAST);
+	memset(_pressed, 0, sizeof(bool) * NUM_KEYS);
+	memset(_released, 0, sizeof(bool) * NUM_KEYS);
 	glfwPollEvents();
 }
 
 
 bool InputCheckKey(int code) {
-	if (code < 0 || code > GLFW_KEY_LAST) return false;
+	if (code < 0 || code > NUM_KEYS) return false;
 	return _current[code];
 }
 
 bool InputCheckKeyDirect(int code) {
-	if (code < 0 || code > GLFW_KEY_LAST) return false;
+	if (code < 0 || code > NUM_KEYS) return false;
 	return glfwGetKey(win, code);
 }
 
 bool InputCheckKeyPressed(int code) {
-	if (code < 0 || code > GLFW_KEY_LAST) return false;
+	if (code < 0 || code > NUM_KEYS) return false;
 	return _pressed[code];
 }
 
 bool InputCheckKeyReleased(int code) {
-	if (code < 0 || code > GLFW_KEY_LAST) return false;
+	if (code < 0 || code > NUM_KEYS) return false;
 	return _released[code];
 }
 
 void InputClearKeys() {
-	memset(_current, 0, sizeof(bool) * GLFW_KEY_LAST);
-	memset(_pressed, 0, sizeof(bool) * GLFW_KEY_LAST);
-	memset(_released, 0, sizeof(bool) * GLFW_KEY_LAST);
+	memset(_current, 0, sizeof(bool) * NUM_KEYS);
+	memset(_pressed, 0, sizeof(bool) * NUM_KEYS);
+	memset(_released, 0, sizeof(bool) * NUM_KEYS);
 }
-
-
-/*
-unsigned int InputCountKeys() {
-unsigned int count = 0;
-for (unsigned int i = 0; i <= GLFW_KEY_LAST; i++) {
-if (_current[i]) count++;
-}
-return count;
-}
-
-unsigned int InputCountKeysPressed() {
-	unsigned int count = 0;
-	for (unsigned int i = 0; i <= GLFW_KEY_LAST; i++) {
-		if (_pressed[i]) count++;
-	}
-	return count;
-}
-
-unsigned int InputCountKeysReleased() {
-	unsigned int count = 0;
-	for (unsigned int i = 0; i <= GLFW_KEY_LAST; i++) {
-		if (_released[i]) count++;
-	}
-	return count;
-}
-*/
