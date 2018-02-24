@@ -7,7 +7,7 @@
 #include "CodeRunner.hpp"
 #include "InputHandler.hpp"
 #include "Instance.hpp"
-#include "zlib\zlib.h"
+#include <zlib.h>
 
 #define ZLIB_BUF_START 65536
 
