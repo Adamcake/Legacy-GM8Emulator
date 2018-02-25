@@ -21,3 +21,8 @@ Fortunately, the format of the gamedata can be found "documented" in the behavio
 Want to help us? We have an unending amount of research that needs doing! If you have some free time and want to help us document GM8's frame cycle, either by observation or debugging, please do get involved.
 
 If you have any questions or comments you can contact us at gm8emulator@gmail.com.
+
+## Building
+- Clone the repository with `git clone --recurse-submodules https://github.com/GM8Emulator/GM8Emulator.git`
+- If you're using Visual Studio, all the dependencies are already part of the repository. Simply run `cmake -G "Visual Studio 15 2017 Win64"` (optionally without `Win64` if you're on a 32-bit OS for some reason)
+- If you aren't using Visual Studio or building it on a non-windows system, the requirements are the glew and zlib packages installed. This is located with [FindGLEW](https://github.com/Kitware/CMake/blob/master/Modules/FindGLEW.cmake) and [FindZLIB](https://github.com/Kitware/CMake/blob/master/Modules/FindZLIB.cmake) respectively.
