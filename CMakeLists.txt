@@ -5,7 +5,7 @@ project(GM8Emulator)
 file(GLOB MiscSource "src/*.cpp")
 file(GLOB MiscSourceH "src/*.hpp")
 
-add_executable(GM8Emulator ${MiscSource} ${MiscSourceH} ${CodeRunner} ${CodeRunnerH})
+add_executable(GM8Emulator ${MiscSource} ${MiscSourceH})
 source_group("Headers" FILES ${MiscSourceH})
 source_group("Source" FILES ${MiscSource})
 
