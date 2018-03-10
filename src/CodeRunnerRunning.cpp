@@ -3,7 +3,7 @@
 #include "Instance.hpp"
 #include "InstanceList.hpp"
 #include "AssetManager.hpp"
-#include "GameRenderer.hpp"
+#include "Renderer.hpp"
 #include "GlobalValues.hpp"
 #include "Collision.hpp"
 
@@ -64,12 +64,12 @@ bool CodeRunner::_getGameValue(CRGameVar index, const unsigned char* arrayIndexV
 	switch (index) {
 		case MOUSE_X:
 			int mx;
-			_renderer->GetCursorPos(&mx, NULL);
+			RGetCursorPos(&mx, NULL);
 			out->dVal = (double)mx;
 			break;
 		case MOUSE_Y:
 			int my;
-			_renderer->GetCursorPos(NULL, &my);
+			RGetCursorPos(NULL, &my);
 			out->dVal = (double)my;
 			break;
 		case ROOM:
@@ -256,37 +256,37 @@ bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const 
 			out->dVal = instance->image_index;
 			break;
 		case IV_SPRITE_WIDTH:
-			if (instance->sprite_index < 0 || instance->sprite_index >= (int)_assetManager->GetSpriteCount()) {
+			if (instance->sprite_index < 0 || instance->sprite_index >= (int)AMGetSpriteCount()) {
 				out->dVal = 0;
 			}
 			else {
-				Sprite* s = _assetManager->GetSprite(instance->sprite_index);
+				Sprite* s = AMGetSprite(instance->sprite_index);
 				out->dVal = (s->exists ? s->width : 0);
 			}
 			break;
 		case IV_SPRITE_HEIGHT:
-			if (instance->sprite_index < 0 || instance->sprite_index >= (int)_assetManager->GetSpriteCount()) {
+			if (instance->sprite_index < 0 || instance->sprite_index >= (int)AMGetSpriteCount()) {
 				out->dVal = 0;
 			}
 			else {
-				Sprite* s = _assetManager->GetSprite(instance->sprite_index);
+				Sprite* s = AMGetSprite(instance->sprite_index);
 				out->dVal = (s->exists ? s->height : 0);
 			}
 			break;
 		case IV_BBOX_LEFT:
-			RefreshInstanceBbox(instance, _assetManager);
+			RefreshInstanceBbox(instance);
 			out->dVal = instance->bbox_left;
 			break;
 		case IV_BBOX_RIGHT:
-			RefreshInstanceBbox(instance, _assetManager);
+			RefreshInstanceBbox(instance);
 			out->dVal = instance->bbox_right;
 			break;
 		case IV_BBOX_BOTTOM:
-			RefreshInstanceBbox(instance, _assetManager);
+			RefreshInstanceBbox(instance);
 			out->dVal = instance->bbox_bottom;
 			break;
 		case IV_BBOX_TOP:
-			RefreshInstanceBbox(instance, _assetManager);
+			RefreshInstanceBbox(instance);
 			out->dVal = instance->bbox_top;
 			break;
 		default:
@@ -317,7 +317,7 @@ bool CodeRunner::_applySetMethod(CodeRunner::GMLType* lhs, CRSetMethod method, c
 			char* c = (char*)malloc(lLen + rLen);
 			memcpy(c, lhs->sVal, lLen);
 			memcpy(c + lLen, rhs->sVal, rLen);
-			(*lhs) = _constants[_RegConstantString(c, lLen + rLen)];
+			(*lhs) = _constants[_RegConstantString(c, (unsigned int)(lLen + rLen))];
 			free(c);
 		}
 		else {

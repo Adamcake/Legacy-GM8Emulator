@@ -529,8 +529,8 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 			// User scripts have precedence over internal functions, so first check if there's a script with this name.
 			Script* scr = NULL;
 			unsigned int scriptId;
-			for (scriptId = 0; scriptId < _assetManager->GetScriptCount(); scriptId++) {
-				Script* s = _assetManager->GetScript(scriptId);
+			for (scriptId = 0; scriptId < AMGetScriptCount(); scriptId++) {
+				Script* s = AMGetScript(scriptId);
 				if (s->exists) {
 					if (strcmp(s->name, firstWord.c_str()) == 0) {
 						scr = s;
@@ -959,73 +959,73 @@ bool CodeRunner::_getExpression(std::string input, unsigned int* pos, unsigned c
 bool CodeRunner::_isAsset(const char* name, unsigned int* index) {
 	// These are in order of precedence in the GM8 engine, since two assets can have the same name.
 	unsigned int i;
-	for (i = 0; i < _assetManager->GetObjectCount(); i++) {
-		if (_assetManager->GetObject(i)->exists) {
-			if (!strcmp(_assetManager->GetObject(i)->name, name)) {
+	for (i = 0; i < AMGetObjectCount(); i++) {
+		if (AMGetObject(i)->exists) {
+			if (!strcmp(AMGetObject(i)->name, name)) {
 				(*index) = i;
 				return true;
 			}
 		}
 	}
-	for (i = 0; i < _assetManager->GetSpriteCount(); i++) {
-		if (_assetManager->GetSprite(i)->exists) {
-			if (!strcmp(_assetManager->GetSprite(i)->name, name)) {
+	for (i = 0; i < AMGetSpriteCount(); i++) {
+		if (AMGetSprite(i)->exists) {
+			if (!strcmp(AMGetSprite(i)->name, name)) {
 				(*index) = i;
 				return true;
 			}
 		}
 	}
-	for (i = 0; i < _assetManager->GetSoundCount(); i++) {
-		if (_assetManager->GetSound(i)->exists) {
-			if (!strcmp(_assetManager->GetSound(i)->name, name)) {
+	for (i = 0; i < AMGetSoundCount(); i++) {
+		if (AMGetSound(i)->exists) {
+			if (!strcmp(AMGetSound(i)->name, name)) {
 				(*index) = i;
 				return true;
 			}
 		}
 	}
-	for (i = 0; i < _assetManager->GetBackgroundCount(); i++) {
-		if (_assetManager->GetBackground(i)->exists) {
-			if (!strcmp(_assetManager->GetBackground(i)->name, name)) {
+	for (i = 0; i < AMGetBackgroundCount(); i++) {
+		if (AMGetBackground(i)->exists) {
+			if (!strcmp(AMGetBackground(i)->name, name)) {
 				(*index) = i;
 				return true;
 			}
 		}
 	}
-	for (i = 0; i < _assetManager->GetPathCount(); i++) {
-		if (_assetManager->GetPath(i)->exists) {
-			if (!strcmp(_assetManager->GetPath(i)->name, name)) {
+	for (i = 0; i < AMGetPathCount(); i++) {
+		if (AMGetPath(i)->exists) {
+			if (!strcmp(AMGetPath(i)->name, name)) {
 				(*index) = i;
 				return true;
 			}
 		}
 	}
-	for (i = 0; i < _assetManager->GetFontCount(); i++) {
-		if (_assetManager->GetFont(i)->exists) {
-			if (!strcmp(_assetManager->GetFont(i)->name, name)) {
+	for (i = 0; i < AMGetFontCount(); i++) {
+		if (AMGetFont(i)->exists) {
+			if (!strcmp(AMGetFont(i)->name, name)) {
 				(*index) = i;
 				return true;
 			}
 		}
 	}
-	for (i = 0; i < _assetManager->GetTimelineCount(); i++) {
-		if (_assetManager->GetTimeline(i)->exists) {
-			if (!strcmp(_assetManager->GetTimeline(i)->name, name)) {
+	for (i = 0; i < AMGetTimelineCount(); i++) {
+		if (AMGetTimeline(i)->exists) {
+			if (!strcmp(AMGetTimeline(i)->name, name)) {
 				(*index) = i;
 				return true;
 			}
 		}
 	}
-	for (i = 0; i < _assetManager->GetScriptCount(); i++) {
-		if (_assetManager->GetScript(i)->exists) {
-			if (!strcmp(_assetManager->GetScript(i)->name, name)) {
+	for (i = 0; i < AMGetScriptCount(); i++) {
+		if (AMGetScript(i)->exists) {
+			if (!strcmp(AMGetScript(i)->name, name)) {
 				(*index) = i;
 				return true;
 			}
 		}
 	}
-	for (i = 0; i < _assetManager->GetRoomCount(); i++) {
-		if (_assetManager->GetRoom(i)->exists) {
-			if (!strcmp(_assetManager->GetRoom(i)->name, name)) {
+	for (i = 0; i < AMGetRoomCount(); i++) {
+		if (AMGetRoom(i)->exists) {
+			if (!strcmp(AMGetRoom(i)->name, name)) {
 				(*index) = i;
 				return true;
 			}
@@ -1199,8 +1199,8 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 						// It'a a script/function
 						Script* scr = NULL;
 						unsigned int scriptId;
-						for (scriptId = 0; scriptId < _assetManager->GetScriptCount(); scriptId++) {
-							Script* s = _assetManager->GetScript(scriptId);
+						for (scriptId = 0; scriptId < AMGetScriptCount(); scriptId++) {
+							Script* s = AMGetScript(scriptId);
 							if (s->exists) {
 								if (strcmp(s->name, word.c_str()) == 0) {
 									scr = s;

@@ -23,13 +23,12 @@ int main(int argc, char** argv) {
 	t1 = std::chrono::high_resolution_clock::now();
 #endif
 
-	Game* game = new Game();
+	GameInit();
 
 	// This is just temp - you must place a game called "game.exe" in the project directory (or in the same directory as your built exe) to load it.
 	// This can easily be changed to load from anywhere when the project is done.
-	if (!game->Load("game.exe")) {
+	if (!GameLoad("game.exe")) {
 		// Load failed
-		delete game;
 		return 2;
 	}
 
@@ -40,9 +39,8 @@ int main(int argc, char** argv) {
 	std::cout << "Successful load in " << se << " seconds" << std::endl;
 #endif
 
-	if (!game->StartGame()) {
+	if (!GameStart()) {
 		// Starting game failed
-		delete game;
 		return 3;
 	}
 
@@ -50,7 +48,7 @@ int main(int argc, char** argv) {
 	double totMus = 0;
 	while (true) {
 		t1 = std::chrono::high_resolution_clock::now();
-		if (!game->Frame()) {
+		if (!GameFrame()) {
 			break;
 		}
 		
@@ -65,7 +63,7 @@ int main(int argc, char** argv) {
 			t2 = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
 			double mus2 = time_span.count() * 1000000.0;
-			long long waitMus = (long long)((((double)1000000.0) / game->GetRoomSpeed()) - mus2);
+			long long waitMus = (long long)((((double)1000000.0) / GameGetRoomSpeed()) - mus2);
 			if (waitMus <= 0) {
 				break;
 			}
@@ -73,7 +71,7 @@ int main(int argc, char** argv) {
 	}
 
 	// Natural end of application
-	delete game;
+	GameTerminate();
 
 #if CHECK_MEMORY_LEAKS
 	_CrtDumpMemoryLeaks();

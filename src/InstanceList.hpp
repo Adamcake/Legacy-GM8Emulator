@@ -1,13 +1,11 @@
 #ifndef _A_INSTANCELIST_HPP_
 #define _A_INSTANCELIST_HPP_
 struct Instance;
-class AssetManager;
 
 // This is like an std::vector of Instance objects. The list will ALWAYS be in order of instance id.
 class InstanceList {
 	private:
 		Instance* _list;
-		AssetManager* _assetManager;
 		unsigned int _size;
 		unsigned int _highestIdAdded;
 
@@ -15,7 +13,7 @@ class InstanceList {
 		bool _InitInstance(Instance* instance, unsigned int id, double x, double y, unsigned int objectId);
 
 	public:
-		InstanceList(AssetManager* manager);
+		InstanceList();
 		~InstanceList();
 
 		// Iterator class for looping over instances. Has two modes of operation: all instances, or all matching a certain object/instance number.

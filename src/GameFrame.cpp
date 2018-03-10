@@ -1,19 +1,20 @@
 #include "Game.hpp"
-#include "GameRenderer.hpp"
+#include "Renderer.hpp"
 #include "Instance.hpp"
 #include "CodeActionManager.hpp"
 #include "CodeRunner.hpp"
 #include "InputHandler.hpp"
 #include "Collision.hpp"
+#include "GamePrivateGlobals.hpp"
 
 
-bool Game::LoadRoom(int id) {
+bool GameLoadRoom(int id) {
 	// Check room index is valid
 	if (id < 0) return false;
-	if (id >= (int)_assetManager.GetRoomCount()) return false;
+	if (id >= (int)AMGetRoomCount()) return false;
 
 	// Get the Room object for the room we're going to
-	Room* room = _assetManager.GetRoom(id);
+	Room* room = AMGetRoom(id);
 
 	// Check room exists
 	if (!room->exists) return false;
@@ -21,7 +22,7 @@ bool Game::LoadRoom(int id) {
 	unsigned int count = _instances.Count();
 	for (unsigned int i = 0; i < count; i++) {
 		// run "room end" event for _instances[i]
-		Object* o = _assetManager.GetObject(_instances[i]->object_index);
+		Object* o = AMGetObject(_instances[i]->object_index);
 		if (o->evOther.count(5)) {
 			if (!_codeActions->Run(o->evOther[5].actions, o->evOther[5].actionCount, _instances[i], NULL)) return false;
 		}
@@ -34,9 +35,9 @@ bool Game::LoadRoom(int id) {
 	InputClearKeys();
 
 	// Update renderer
-	_renderer->ResizeGameWindow(room->width, room->height);
-	_renderer->SetGameWindowTitle(room->caption);
-	_renderer->SetBGColour(room->backgroundColour);
+	RResizeGameWindow(room->width, room->height);
+	RSetGameWindowTitle(room->caption);
+	RSetBGColour(room->backgroundColour);
 
 	// Update room
 	_globals.room = id;
@@ -60,7 +61,7 @@ bool Game::LoadRoom(int id) {
 			// run room->instances[i] creation code
 			if (!_runner->Run(room->instances[i].creation, instance, NULL)) return false;
 			// run instance create event
-			Object* o = _assetManager.GetObject(instance->object_index);
+			Object* o = AMGetObject(instance->object_index);
 			if (!_codeActions->Run(o->evCreate, o->evCreateActionCount, instance, NULL)) return false;
 		}
 	}
@@ -71,7 +72,7 @@ bool Game::LoadRoom(int id) {
 	count = _instances.Count();
 	for (unsigned int i = 0; i < count; i++) {
 		// run _instances[i] room start event
-		Object* o = _assetManager.GetObject(_instances[i]->object_index);
+		Object* o = AMGetObject(_instances[i]->object_index);
 		if (o->evOther.count(4)) {
 			if (!_codeActions->Run(o->evOther[4].actions, o->evOther[4].actionCount, _instances[i], NULL)) return false;
 		}
@@ -82,7 +83,7 @@ bool Game::LoadRoom(int id) {
 
 
 
-bool Game::Frame() {
+bool GameFrame() {
 	Instance* instance;
 	InstanceList::Iterator iter(&_instances);
 
@@ -93,18 +94,18 @@ bool Game::Frame() {
 		// Don't run draw event for instances that don't exist or aren't visible.
 		if (instance->exists && instance->visible) {
 
-			Object* obj = _assetManager.GetObject(instance->object_index);
+			Object* obj = AMGetObject(instance->object_index);
 			if (obj->evDraw) {
 				// This object has a custom draw event.
 				if (!_codeActions->Run(obj->evDraw, obj->evDrawActionCount, instance, NULL)) return false;
-				if (_globals.changeRoom) return LoadRoom(_globals.roomTarget);
+				if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 			}
 			else {
 				// This is the default draw action if no draw event is present for this object.
 				if (instance->sprite_index >= 0) {
-					Sprite* sprite = _assetManager.GetSprite(instance->sprite_index);
+					Sprite* sprite = AMGetSprite(instance->sprite_index);
 					if (sprite->exists) {
-						_renderer->DrawImage(sprite->frames[((int)instance->image_index) % sprite->frameCount], instance->x, instance->y, instance->image_xscale, instance->image_yscale, instance->image_angle, instance->image_blend, instance->image_alpha);
+						RDrawImage(sprite->frames[((int)instance->image_index) % sprite->frameCount], instance->x, instance->y, instance->image_xscale, instance->image_yscale, instance->image_angle, instance->image_blend, instance->image_alpha);
 					}
 					else {
 						// Tried to draw non-existent sprite
@@ -116,8 +117,8 @@ bool Game::Frame() {
 	}
 
 	// Draw screen
-	_renderer->RenderFrame();
-	if (_renderer->ShouldClose()) return false;
+	RRenderFrame();
+	if (RShouldClose()) return false;
 
 	// Update sprite info
 	iter = InstanceList::Iterator(&_instances);
@@ -125,7 +126,7 @@ bool Game::Frame() {
 		instance->image_index += instance->image_speed;
 
 		if (instance->sprite_index >= 0) {
-			Sprite* s = _assetManager.GetSprite(instance->sprite_index);
+			Sprite* s = AMGetSprite(instance->sprite_index);
 			if (instance->image_index > s->frameCount) {
 				instance->image_index -= s->frameCount;
 			}
@@ -141,9 +142,9 @@ bool Game::Frame() {
 	// Run "begin step" event for all instances
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
-		Object* o = _assetManager.GetObject(instance->object_index);
+		Object* o = AMGetObject(instance->object_index);
 		if (!_codeActions->Run(o->evStepBegin, o->evStepBeginActionCount, instance, NULL)) return false;
-		if (_globals.changeRoom) return LoadRoom(_globals.roomTarget);
+		if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 	}
 
 	// TODO: if timeline_running, add timeline_speed to timeline_position and then run any events in that timeline indexed BELOW (not equal to) the current timeline_position
@@ -151,13 +152,13 @@ bool Game::Frame() {
 	// Subtract from alarms and run event if they reach 0
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
-		Object* obj = _assetManager.GetObject(instance->object_index);
+		Object* obj = AMGetObject(instance->object_index);
 		for (auto const& j : instance->alarm) {
 			if (j.second > 0) {
 				instance->alarm[j.first]--;
 				if (instance->alarm[j.first] == 0) {
 					if (!_codeActions->Run(obj->evAlarm[j.first].actions, obj->evAlarm[j.first].actionCount, instance, NULL)) return false;
-					if (_globals.changeRoom) return LoadRoom(_globals.roomTarget);
+					if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 				}
 			}
 		}
@@ -176,9 +177,9 @@ bool Game::Frame() {
 	// Run "step" event for all instances
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
-		Object* o = _assetManager.GetObject(instance->object_index);
+		Object* o = AMGetObject(instance->object_index);
 		if (!_codeActions->Run(o->evStep, o->evStepActionCount, instance, NULL)) return false;
-		if (_globals.changeRoom) return LoadRoom(_globals.roomTarget);
+		if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 	}
 
 	// Movement
@@ -222,16 +223,16 @@ bool Game::Frame() {
 	// Collision events
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
-		Object* o = _assetManager.GetObject(instance->object_index);
+		Object* o = AMGetObject(instance->object_index);
 		for (const auto& e : o->evCollision) {
 			InstanceList::Iterator iter(&_instances, e.first);
 
 			Instance* target = iter.Next();
 			while (target) {
 				if (target != instance) {
-					if (CollisionCheck(instance, target, &_assetManager)) {
+					if (CollisionCheck(instance, target)) {
 						if (!_codeActions->Run(e.second.actions, e.second.actionCount, instance, target)) return false;
-						if (_globals.changeRoom) return LoadRoom(_globals.roomTarget);
+						if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 					}
 				}
 				target = iter.Next();
@@ -244,9 +245,9 @@ bool Game::Frame() {
 	// Run "end step" event for all instances
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
-		Object* o = _assetManager.GetObject(instance->object_index);
+		Object* o = AMGetObject(instance->object_index);
 		if (!_codeActions->Run(o->evStepEnd, o->evStepEndActionCount, instance, NULL)) return false;
-		if (_globals.changeRoom) return LoadRoom(_globals.roomTarget);
+		if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 	}
 
 	_instances.ClearDeleted();

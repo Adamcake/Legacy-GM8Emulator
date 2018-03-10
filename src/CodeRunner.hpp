@@ -1,7 +1,5 @@
 #ifndef _A_CODERUNNER_HPP_
 #define _A_CODERUNNER_HPP_
-class AssetManager;
-class GameRenderer;
 class CodeActionManager;
 struct GlobalValues;
 struct Instance;
@@ -225,9 +223,7 @@ The values listed below must not overlap with the available OPERATOR values, as 
 
 class CodeRunner {
 	private:
-		AssetManager* _assetManager;
 		InstanceList* _instances;
-		GameRenderer* _renderer;
 		GlobalValues* _globalValues;
 		CodeActionManager* _codeActions;
 
@@ -372,7 +368,7 @@ class CodeRunner {
 		bool string(unsigned int argc, GMLType* argv, GMLType* out);
 
 	public:
-		CodeRunner(AssetManager* assets, InstanceList* instances, GlobalValues* globals, CodeActionManager* codeActions, GameRenderer* renderer);
+		CodeRunner(InstanceList* instances, GlobalValues* globals, CodeActionManager* codeActions);
 		~CodeRunner();
 
 		// For populating the constant lists. This should be called before anything else.
@@ -395,7 +391,7 @@ class CodeRunner {
 		bool Compile(CodeObject object);
 
 		// Run a compiled code object. Returns true on success, false on error (ie. the game should close.)
-		// Most be passed the instance ID of the "self" and "other" instances in this context. ("other" may be NULL.)
+		// Most be passed the instance ID of the "self" and "other" instances in this context. (both may be NULL)
 		bool Run(CodeObject code, Instance* self, Instance* other);
 
 		// Run a compiled GML question (boolean expression). Returns true on success, false on error (ie. the game should close.)

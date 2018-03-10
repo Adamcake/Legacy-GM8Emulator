@@ -6,9 +6,7 @@
 #include "RNG.hpp"
 
 
-CodeRunner::CodeRunner(AssetManager* assets, InstanceList* instances, GlobalValues* globals, CodeActionManager* codeActions, GameRenderer* renderer) {
-	_renderer = renderer;
-	_assetManager = assets;
+CodeRunner::CodeRunner(InstanceList* instances, GlobalValues* globals, CodeActionManager* codeActions) {
 	_instances = instances;
 	_globalValues = globals;
 	_codeActions = codeActions;

@@ -22,11 +22,11 @@ void rotateAround(double* pX, double* pY, double cX, double cY, double s, double
 	(*pY) = ynew + cY;
 }
 
-void RefreshInstanceBbox(Instance* i, AssetManager* assets) {
+void RefreshInstanceBbox(Instance* i) {
 	if (i->bboxIsStale) {
 		unsigned int spriteIndex = i->mask_index;
 		if (spriteIndex == -1) spriteIndex = i->sprite_index;
-		Sprite* s = assets->GetSprite(spriteIndex);
+		Sprite* s = AMGetSprite(spriteIndex);
 		CollisionMap* map = (s->separateCollision ? (s->collisionMaps + (int)i->image_index) : s->collisionMaps);
 
 		double tlX = (i->x - (s->originX * i->image_xscale)) + (map->left * i->image_xscale);
@@ -64,9 +64,9 @@ void RefreshInstanceBbox(Instance* i, AssetManager* assets) {
 	}
 }
 
-bool CollisionCheck(Instance * i1, Instance * i2, AssetManager * assets) {
-	RefreshInstanceBbox(i1, assets);
-	RefreshInstanceBbox(i2, assets);
+bool CollisionCheck(Instance * i1, Instance * i2) {
+	RefreshInstanceBbox(i1);
+	RefreshInstanceBbox(i2);
 	if (i1->bbox_right < i2->bbox_left) return false;
 	if (i2->bbox_right < i1->bbox_left) return false;
 	if (i1->bbox_bottom < i2->bbox_top) return false;
@@ -79,11 +79,11 @@ bool CollisionCheck(Instance * i1, Instance * i2, AssetManager * assets) {
 
 	unsigned int spriteIndex = i1->mask_index;
 	if (spriteIndex == -1) spriteIndex = i1->sprite_index;
-	Sprite* spr1 = assets->GetSprite(spriteIndex);
+	Sprite* spr1 = AMGetSprite(spriteIndex);
 	CollisionMap* map1 = (spr1->separateCollision ? (spr1->collisionMaps + (int)i1->image_index) : spr1->collisionMaps);
 	spriteIndex = i2->mask_index;
 	if (spriteIndex == -1) spriteIndex = i2->sprite_index;
-	Sprite* spr2 = assets->GetSprite(spriteIndex);
+	Sprite* spr2 = AMGetSprite(spriteIndex);
 	CollisionMap* map2 = (spr2->separateCollision ? (spr2->collisionMaps + (int)i2->image_index) : spr2->collisionMaps);
 
 	double a1 = i1->image_angle * PI / 180.0;
@@ -113,7 +113,7 @@ bool CollisionCheck(Instance * i1, Instance * i2, AssetManager * assets) {
 					curY = spr2->originY + ((curY - i2->y) / i2->image_yscale);
 					nx = dRound(curX);
 					ny = dRound(curY);
-					if (nx >= map2->left && nx <= map2->right && ny >= map2->top && ny <= map2->bottom) {
+					if (nx >= (int)map2->left && nx <= (int)map2->right && ny >= (int)map2->top && ny <= (int)map2->bottom) {
 						if (map2->collision[ny * w2 + nx]) {
 							return true;
 						}

@@ -3,83 +3,63 @@
 #include <vector>
 #include "Assets.hpp"
 
-class AssetManager {
-	private:
-		std::vector<Extension> _extensions;
-		std::vector<Trigger> _triggers;
-		std::vector<Constant> _constants;
-		std::vector<Sound> _sounds;
-		std::vector<Sprite> _sprites;
-		std::vector<Background> _backgrounds;
-		std::vector<Path> _paths;
-		std::vector<Script> _scripts;
-		std::vector<Font> _fonts;
-		std::vector<Timeline> _timelines;
-		std::vector<Object> _objects;
-		std::vector<Room> _rooms;
-		std::vector<IncludeFile> _includeFiles;
 
-	public:
-		AssetManager();
-		~AssetManager();
+void AMClear();
 
-		void Clear();
+void AMReserveExtensions(unsigned int count);
+void AMReserveTriggers(unsigned int count);
+void AMReserveConstants(unsigned int count);
+void AMReserveSounds(unsigned int count);
+void AMReserveSprites(unsigned int count);
+void AMReserveBackgrounds(unsigned int count);
+void AMReservePaths(unsigned int count);
+void AMReserveScripts(unsigned int count);
+void AMReserveFonts(unsigned int count);
+void AMReserveTimelines(unsigned int count);
+void AMReserveObjects(unsigned int count);
+void AMReserveRooms(unsigned int count);
+void AMReserveIncludeFiles(unsigned int count);
 
-		void ReserveExtensions(unsigned int count);
-		void ReserveTriggers(unsigned int count);
-		void ReserveConstants(unsigned int count);
-		void ReserveSounds(unsigned int count);
-		void ReserveSprites(unsigned int count);
-		void ReserveBackgrounds(unsigned int count);
-		void ReservePaths(unsigned int count);
-		void ReserveScripts(unsigned int count);
-		void ReserveFonts(unsigned int count);
-		void ReserveTimelines(unsigned int count);
-		void ReserveObjects(unsigned int count);
-		void ReserveRooms(unsigned int count);
-		void ReserveIncludeFiles(unsigned int count);
+Extension* AMAddExtension();
+Trigger* AMAddTrigger();
+Constant* AMAddConstant();
+Sound* AMAddSound();
+Sprite* AMAddSprite();
+Background* AMAddBackground();
+Path* AMAddPath();
+Script* AMAddScript();
+Font* AMAddFont();
+Timeline* AMAddTimeline();
+Object* AMAddObject();
+Room* AMAddRoom();
+IncludeFile* AMAddIncludeFile();
 
-		Extension* AddExtension();
-		Trigger* AddTrigger();
-		Constant* AddConstant();
-		Sound* AddSound();
-		Sprite* AddSprite();
-		Background* AddBackground();
-		Path* AddPath();
-		Script* AddScript();
-		Font* AddFont();
-		Timeline* AddTimeline();
-		Object* AddObject();
-		Room* AddRoom();
-		IncludeFile* AddIncludeFile();
+Extension* AMGetExtension(unsigned int index);
+Trigger* AMGetTrigger(unsigned int index);
+Constant* AMGetConstant(unsigned int index);
+Sound* AMGetSound(unsigned int index);
+Sprite* AMGetSprite(unsigned int index);
+Background* AMGetBackground(unsigned int index);
+Path* AMGetPath(unsigned int index);
+Script* AMGetScript(unsigned int index);
+Font* AMGetFont(unsigned int index);
+Timeline* AMGetTimeline(unsigned int index);
+Object* AMGetObject(unsigned int index);
+Room* AMGetRoom(unsigned int index);
+IncludeFile* AMGetIncludeFile(unsigned int index);
 
-		Extension* GetExtension(unsigned int index);
-		Trigger* GetTrigger(unsigned int index);
-		Constant* GetConstant(unsigned int index);
-		Sound* GetSound(unsigned int index);
-		Sprite* GetSprite(unsigned int index);
-		Background* GetBackground(unsigned int index);
-		Path* GetPath(unsigned int index);
-		Script* GetScript(unsigned int index);
-		Font* GetFont(unsigned int index);
-		Timeline* GetTimeline(unsigned int index);
-		Object* GetObject(unsigned int index);
-		Room* GetRoom(unsigned int index);
-		IncludeFile* GetIncludeFile(unsigned int index);
-
-		inline unsigned int GetExtensionCount() const { return (unsigned int)_extensions.size(); }
-		inline unsigned int GetTriggerCount() const { return (unsigned int)_triggers.size(); }
-		inline unsigned int GetConstantCount() const { return (unsigned int)_constants.size(); }
-		inline unsigned int GetSoundCount() const { return (unsigned int)_sounds.size(); }
-		inline unsigned int GetSpriteCount() const { return (unsigned int)_sprites.size(); }
-		inline unsigned int GetBackgroundCount() const { return (unsigned int)_backgrounds.size(); }
-		inline unsigned int GetPathCount() const { return (unsigned int)_paths.size(); }
-		inline unsigned int GetScriptCount() const { return (unsigned int)_scripts.size(); }
-		inline unsigned int GetFontCount() const { return (unsigned int)_fonts.size(); }
-		inline unsigned int GetTimelineCount() const { return (unsigned int)_timelines.size(); }
-		inline unsigned int GetObjectCount() const { return (unsigned int)_objects.size(); }
-		inline unsigned int GetRoomCount() const { return (unsigned int)_rooms.size(); }
-		inline unsigned int GetIncludeFileCount() const { return (unsigned int)_includeFiles.size(); }
-};
+unsigned int AMGetExtensionCount();
+unsigned int AMGetTriggerCount();
+unsigned int AMGetConstantCount();
+unsigned int AMGetSoundCount();
+unsigned int AMGetSpriteCount();
+unsigned int AMGetBackgroundCount();
+unsigned int AMGetPathCount();
+unsigned int AMGetScriptCount();
+unsigned int AMGetFontCount();
+unsigned int AMGetTimelineCount();
+unsigned int AMGetObjectCount();
+unsigned int AMGetRoomCount();
+unsigned int AMGetIncludeFileCount();
 
 #endif

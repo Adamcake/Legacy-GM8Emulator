@@ -48,7 +48,7 @@ bool CodeRunner::instance_create(unsigned int argc, GMLType* argv, GMLType* out)
 		out->state = GML_TYPE_DOUBLE;
 		out->dVal = (double)_nextInstanceID;
 	}
-	Object* o = _assetManager->GetObject(objID);
+	Object* o = AMGetObject(objID);
 	if (!_codeActions->Run(o->evCreate, o->evCreateActionCount, i, NULL)) return false;
 	_nextInstanceID++;
 	return true;
@@ -295,7 +295,7 @@ bool CodeRunner::move_wrap(unsigned int argc, GMLType* argv, GMLType* out) {
 	Instance* instance = _contexts.top().self;
 
 	if (hor) {
-		unsigned int roomW = _assetManager->GetRoom(_globalValues->room)->width;
+		unsigned int roomW = AMGetRoom(_globalValues->room)->width;
 		if (instance->x < -margin) {
 			instance->x += roomW;
 		}
@@ -305,7 +305,7 @@ bool CodeRunner::move_wrap(unsigned int argc, GMLType* argv, GMLType* out) {
 	}
 
 	if (ver) {
-		unsigned int roomH = _assetManager->GetRoom(_globalValues->room)->height;
+		unsigned int roomH = AMGetRoom(_globalValues->room)->height;
 		if (instance->y < -margin) {
 			instance->y += roomH;
 		}
@@ -343,7 +343,7 @@ bool CodeRunner::place_meeting(unsigned int argc, GMLType* argv, GMLType* out) {
 		Instance* target;
 		while (target = iter.Next()) {
 			if (target != self) {
-				if (CollisionCheck(self, target, _assetManager)) {
+				if (CollisionCheck(self, target)) {
 					out->dVal = 1.0;
 					break;
 				}

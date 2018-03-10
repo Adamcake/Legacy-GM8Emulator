@@ -2,7 +2,7 @@
 #define PI 3.14159265358979324
 #include <gl/glew.h>
 #include <GLFW/glfw3.h>
-#include "GameRenderer.hpp"
+#include "Renderer.hpp"
 #include "GameSettings.hpp"
 #include "InputHandler.hpp"
 
@@ -42,14 +42,46 @@ void mat4Mult(const GLfloat* lhs, const GLfloat* rhs, GLfloat* out) {
 	}
 }
 
+struct RImage {
+	unsigned int w;
+	unsigned int h;
+	unsigned int originX;
+	unsigned int originY;
+	unsigned char* data;
+	GLuint glTexObject;
+	unsigned int glIndex;
+	bool registered;
+};
 
-GameRenderer::GameRenderer() {
+void _RegImg(unsigned int ix, RImage* i);
+void _DrawTex(unsigned int ix, GLuint obj);
+
+std::vector<RImage> _images;
+
+double bgR;
+double bgG;
+double bgB;
+
+GLFWwindow* window;
+bool contextSet;
+unsigned int windowW;
+unsigned int windowH;
+
+unsigned int _maxGpuTextures;
+unsigned int _gpuTextures;
+
+GLuint _glProgram;
+GLuint _vao;
+GLuint _vbo;
+
+
+void RInit() {
 	window = NULL;
 	_gpuTextures = 0;
 	contextSet = false;
 }
 
-GameRenderer::~GameRenderer() {
+void RTerminate() {
 	for (RImage img : _images) {
 		free(img.data);
 	}
@@ -58,7 +90,7 @@ GameRenderer::~GameRenderer() {
 	glfwTerminate();
 }
 
-bool GameRenderer::MakeGameWindow(GameSettings* settings, unsigned int w, unsigned int h) {
+bool RMakeGameWindow(GameSettings* settings, unsigned int w, unsigned int h) {
 	// Fail if we already did this
 	if (contextSet) return false;
 
@@ -154,7 +186,7 @@ bool GameRenderer::MakeGameWindow(GameSettings* settings, unsigned int w, unsign
 	return !glGetError();
 }
 
-void GameRenderer::ResizeGameWindow(unsigned int w, unsigned int h) {
+void RResizeGameWindow(unsigned int w, unsigned int h) {
 	// Only do this if the w and h settings aren't equal to what size the window was last set to - even if the user has resized it since then.
 	if (w != windowW || h != windowH) {
 		glfwSetWindowSize(window, w, h);
@@ -163,11 +195,11 @@ void GameRenderer::ResizeGameWindow(unsigned int w, unsigned int h) {
 	}
 }
 
-void GameRenderer::SetGameWindowTitle(const char* title) {
+void RSetGameWindowTitle(const char* title) {
 	glfwSetWindowTitle(window, title);
 }
 
-void GameRenderer::GetCursorPos(int* xpos, int* ypos) {
+void RGetCursorPos(int* xpos, int* ypos) {
 	double xp, yp;
 	int actualWinW, actualWinH;
 	glfwGetCursorPos(window, &xp, &yp);
@@ -180,17 +212,17 @@ void GameRenderer::GetCursorPos(int* xpos, int* ypos) {
 	if(ypos) (*ypos) = (int)yp;
 }
 
-bool GameRenderer::ShouldClose() {
+bool RShouldClose() {
 	return glfwWindowShouldClose(window);
 }
 
-void GameRenderer::SetBGColour(unsigned int col) {
+void RSetBGColour(unsigned int col) {
 	bgR = (double)(col & 0xFF) / 0xFF;
 	bgG = (double)((col >> 8) & 0xFF) / 0xFF;
 	bgB = (double)((col >> 16) & 0xFF) / 0xFF;
 }
 
-RImageIndex GameRenderer::MakeImage(unsigned int w, unsigned int h, unsigned int originX, unsigned int originY, unsigned char * bytes) {
+RImageIndex RMakeImage(unsigned int w, unsigned int h, unsigned int originX, unsigned int originY, unsigned char * bytes) {
 	RImage img;
 	img.w = w;
 	img.h = h;
@@ -210,7 +242,7 @@ RImageIndex GameRenderer::MakeImage(unsigned int w, unsigned int h, unsigned int
 	return ((unsigned int)_images.size()) - 1;
 }
 
-void GameRenderer::DrawImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha) {
+void RDrawImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha) {
 	RImage* img = _images._Myfirst() + ix;
 
 	// Calculate a single matrix for scaling and transforming the sprite
@@ -287,7 +319,7 @@ void GameRenderer::DrawImage(RImageIndex ix, double x, double y, double xscale, 
 	}
 }
 
-void GameRenderer::RenderFrame() {
+void RRenderFrame() {
 	int actualWinW, actualWinH;
 	glfwGetWindowSize(window, &actualWinW, &actualWinH);
 	glViewport(0, 0, actualWinW, actualWinH);
@@ -315,7 +347,7 @@ void GameRenderer::RenderFrame() {
 
 // Private
 
-void GameRenderer::_DrawTex(unsigned int ix, GLuint obj) {
+void _DrawTex(unsigned int ix, GLuint obj) {
 	GLint tex = glGetUniformLocation(_glProgram, "tex");
 	GLint vertTexCoord = glGetAttribLocation(_glProgram, "vertTexCoord");
 	glUniform1i(tex, ix);
@@ -327,7 +359,7 @@ void GameRenderer::_DrawTex(unsigned int ix, GLuint obj) {
 	glActiveTexture(NULL);
 }
 
-void GameRenderer::_RegImg(unsigned int ix, RImage* i) {
+void _RegImg(unsigned int ix, RImage* i) {
 	glActiveTexture(GL_TEXTURE0 + ix);
 	glBindTexture(GL_TEXTURE_2D, i->glTexObject);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

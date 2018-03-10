@@ -5,11 +5,10 @@
 #define INSTANCE_CAPACITY 65536
 
 
-InstanceList::InstanceList(AssetManager* manager) {
+InstanceList::InstanceList() {
 	_list = new Instance[INSTANCE_CAPACITY];
 	_size = 0;
 	_highestIdAdded = 0;
-	_assetManager = manager;
 }
 
 InstanceList::~InstanceList() {
@@ -111,7 +110,7 @@ Instance * InstanceList::operator[](unsigned int index) {
 // Private
 
 bool InstanceList::_InitInstance(Instance* instance, unsigned int id, double x, double y, unsigned int objectId) {
-	Object* obj = _assetManager->GetObject(objectId);
+	Object* obj = AMGetObject(objectId);
 	if (!obj->exists) return false;
 	instance->exists = true;
 	instance->id = id;

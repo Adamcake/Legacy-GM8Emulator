@@ -1,13 +1,20 @@
 #include "AssetManager.hpp"
 
-AssetManager::AssetManager() {
-}
+std::vector<Extension> _extensions;
+std::vector<Trigger> _triggers;
+std::vector<Constant> _constants;
+std::vector<Sound> _sounds;
+std::vector<Sprite> _sprites;
+std::vector<Background> _backgrounds;
+std::vector<Path> _paths;
+std::vector<Script> _scripts;
+std::vector<Font> _fonts;
+std::vector<Timeline> _timelines;
+std::vector<Object> _objects;
+std::vector<Room> _rooms;
+std::vector<IncludeFile> _includeFiles;
 
-AssetManager::~AssetManager() {
-	Clear();
-}
-
-void AssetManager::Clear() {
+void AMClear() {
 	_extensions.clear();
 	_triggers.clear();
 	_constants.clear();
@@ -22,183 +29,198 @@ void AssetManager::Clear() {
 	_rooms.clear();
 }
 
-void AssetManager::ReserveExtensions(unsigned int count) {
+void AMReserveExtensions(unsigned int count) {
 	_extensions.reserve(count);
 }
 
-void AssetManager::ReserveTriggers(unsigned int count) {
+void AMReserveTriggers(unsigned int count) {
 	_triggers.reserve(count);
 }
 
-void AssetManager::ReserveConstants(unsigned int count) {
+void AMReserveConstants(unsigned int count) {
 	_constants.reserve(count);
 }
 
-void AssetManager::ReserveSounds(unsigned int count) {
+void AMReserveSounds(unsigned int count) {
 	_sounds.reserve(count);
 }
 
-void AssetManager::ReserveSprites(unsigned int count) {
+void AMReserveSprites(unsigned int count) {
 	_sprites.reserve(count);
 }
 
-void AssetManager::ReserveBackgrounds(unsigned int count) {
+void AMReserveBackgrounds(unsigned int count) {
 	_backgrounds.reserve(count);
 }
 
-void AssetManager::ReservePaths(unsigned int count) {
+void AMReservePaths(unsigned int count) {
 	_paths.reserve(count);
 }
 
-void AssetManager::ReserveScripts(unsigned int count) {
+void AMReserveScripts(unsigned int count) {
 	_scripts.reserve(count);
 }
 
-void AssetManager::ReserveFonts(unsigned int count) {
+void AMReserveFonts(unsigned int count) {
 	_fonts.reserve(count);
 }
 
-void AssetManager::ReserveTimelines(unsigned int count) {
+void AMReserveTimelines(unsigned int count) {
 	_timelines.reserve(count);
 }
 
-void AssetManager::ReserveObjects(unsigned int count) {
+void AMReserveObjects(unsigned int count) {
 	_objects.reserve(count);
 }
 
-void AssetManager::ReserveRooms(unsigned int count) {
+void AMReserveRooms(unsigned int count) {
 	_rooms.reserve(count);
 }
 
-void AssetManager::ReserveIncludeFiles(unsigned int count) {
+void AMReserveIncludeFiles(unsigned int count) {
 	_includeFiles.reserve(count);
 }
 
-Extension * AssetManager::AddExtension() {
+Extension * AMAddExtension() {
 	_extensions.push_back(Extension());
 	return _extensions._Mylast() - 1;
 }
 
-Trigger * AssetManager::AddTrigger() {
+Trigger * AMAddTrigger() {
 	_triggers.push_back(Trigger());
 	return _triggers._Mylast() - 1;
 }
 
-Constant * AssetManager::AddConstant() {
+Constant * AMAddConstant() {
 	_constants.push_back(Constant());
 	return _constants._Mylast() - 1;
 }
 
-Sound * AssetManager::AddSound() {
+Sound * AMAddSound() {
 	_sounds.push_back(Sound());
 	return _sounds._Mylast() - 1;
 }
 
-Sprite * AssetManager::AddSprite() {
+Sprite * AMAddSprite() {
 	_sprites.push_back(Sprite());
 	return _sprites._Mylast() - 1;
 }
 
-Background * AssetManager::AddBackground() {
+Background * AMAddBackground() {
 	_backgrounds.push_back(Background());
 	return _backgrounds._Mylast() - 1;
 }
 
-Path * AssetManager::AddPath() {
+Path * AMAddPath() {
 	_paths.push_back(Path());
 	return _paths._Mylast() - 1;
 }
 
-Script * AssetManager::AddScript() {
+Script * AMAddScript() {
 	_scripts.push_back(Script());
 	return _scripts._Mylast() - 1;
 }
 
-Font * AssetManager::AddFont() {
+Font * AMAddFont() {
 	_fonts.push_back(Font());
 	return _fonts._Mylast() - 1;
 }
 
-Timeline * AssetManager::AddTimeline() {
+Timeline * AMAddTimeline() {
 	_timelines.push_back(Timeline());
 	return _timelines._Mylast() - 1;
 }
 
-Object * AssetManager::AddObject() {
+Object * AMAddObject() {
 	_objects.push_back(Object());
 	return _objects._Mylast() - 1;
 }
 
-Room * AssetManager::AddRoom() {
+Room * AMAddRoom() {
 	_rooms.push_back(Room());
 	return _rooms._Mylast() - 1;
 }
 
-IncludeFile * AssetManager::AddIncludeFile() {
+IncludeFile * AMAddIncludeFile() {
 	_includeFiles.push_back(IncludeFile());
 	return _includeFiles._Mylast() - 1;
 }
 
-Extension * AssetManager::GetExtension(unsigned int index) {
+Extension * AMGetExtension(unsigned int index) {
 	return _extensions._Myfirst() + index;
 }
 
-Trigger * AssetManager::GetTrigger(unsigned int index)
+Trigger * AMGetTrigger(unsigned int index)
 {
 	return _triggers._Myfirst() + index;
 }
 
-Constant * AssetManager::GetConstant(unsigned int index)
+Constant * AMGetConstant(unsigned int index)
 {
 	return _constants._Myfirst() + index;
 }
 
-Sound * AssetManager::GetSound(unsigned int index)
+Sound * AMGetSound(unsigned int index)
 {
 	return _sounds._Myfirst() + index;
 }
 
-Sprite * AssetManager::GetSprite(unsigned int index)
+Sprite * AMGetSprite(unsigned int index)
 {
 	return _sprites._Myfirst() + index;
 }
 
-Background * AssetManager::GetBackground(unsigned int index)
+Background * AMGetBackground(unsigned int index)
 {
 	return _backgrounds._Myfirst() + index;
 }
 
-Path * AssetManager::GetPath(unsigned int index)
+Path * AMGetPath(unsigned int index)
 {
 	return _paths._Myfirst() + index;
 }
 
-Script * AssetManager::GetScript(unsigned int index)
+Script * AMGetScript(unsigned int index)
 {
 	return _scripts._Myfirst() + index;
 }
 
-Font * AssetManager::GetFont(unsigned int index)
+Font * AMGetFont(unsigned int index)
 {
 	return _fonts._Myfirst() + index;
 }
 
-Timeline * AssetManager::GetTimeline(unsigned int index)
+Timeline * AMGetTimeline(unsigned int index)
 {
 	return _timelines._Myfirst() + index;
 }
 
-Object * AssetManager::GetObject(unsigned int index)
+Object * AMGetObject(unsigned int index)
 {
 	return _objects._Myfirst() + index;
 }
 
-Room * AssetManager::GetRoom(unsigned int index)
+Room * AMGetRoom(unsigned int index)
 {
 	return _rooms._Myfirst() + index;
 }
 
-IncludeFile * AssetManager::GetIncludeFile(unsigned int index)
+IncludeFile * AMGetIncludeFile(unsigned int index)
 {
 	return _includeFiles._Myfirst() + index;
 }
+
+
+unsigned int AMGetExtensionCount() { return (unsigned int)_extensions.size(); }
+unsigned int AMGetTriggerCount() { return (unsigned int)_triggers.size(); }
+unsigned int AMGetConstantCount() { return (unsigned int)_constants.size(); }
+unsigned int AMGetSoundCount() { return (unsigned int)_sounds.size(); }
+unsigned int AMGetSpriteCount() { return (unsigned int)_sprites.size(); }
+unsigned int AMGetBackgroundCount() { return (unsigned int)_backgrounds.size(); }
+unsigned int AMGetPathCount() { return (unsigned int)_paths.size(); }
+unsigned int AMGetScriptCount() { return (unsigned int)_scripts.size(); }
+unsigned int AMGetFontCount() { return (unsigned int)_fonts.size(); }
+unsigned int AMGetTimelineCount() { return (unsigned int)_timelines.size(); }
+unsigned int AMGetObjectCount() { return (unsigned int)_objects.size(); }
+unsigned int AMGetRoomCount() { return (unsigned int)_rooms.size(); }
+unsigned int AMGetIncludeFileCount() { return (unsigned int)_includeFiles.size(); }
