@@ -333,6 +333,8 @@ class CodeRunner {
 
 		// GML internal functions
 		bool cos(unsigned int argc, GMLType* argv, GMLType* out);
+		bool draw_rectangle(unsigned int argc, GMLType* argv, GMLType* out);
+		bool draw_set_color(unsigned int argc, GMLType* argv, GMLType* out);
 		bool execute_string(unsigned int argc, GMLType* argv, GMLType* out);
 		bool file_bin_open(unsigned int argc, GMLType* argv, GMLType* out);
 		bool file_bin_close(unsigned int argc, GMLType* argv, GMLType* out);

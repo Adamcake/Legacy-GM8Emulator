@@ -507,6 +507,12 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 	else if (firstWord == "repeat") {
 		// "repeat" is followed by an expression telling us how many times to repeat the code block after it.
 		// TBD
+		return false;
+	}
+	else if (firstWord == "switch") {
+		// "switch" statements contain an expression and some case labels. Each case label is also followed by an expression.
+		// TBD
+		return false;
 	}
 	else if (firstWord == "return") {
 		// "return" means we write a value to the return buffer, then exit.

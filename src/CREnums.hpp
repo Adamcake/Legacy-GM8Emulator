@@ -92,6 +92,8 @@ enum CRExpVType {
 
 enum CRInternalFunction {
 	COS,
+	DRAW_RECTANGLE,
+	DRAW_SET_COLOR,
 	EXECUTE_STRING,
 	FILE_BIN_OPEN,
 	FILE_BIN_CLOSE,

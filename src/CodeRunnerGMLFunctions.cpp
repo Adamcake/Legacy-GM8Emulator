@@ -35,6 +35,16 @@ bool CodeRunner::cos(unsigned int argc, GMLType* argv, GMLType* out) {
 	return true;
 }
 
+bool CodeRunner::draw_rectangle(unsigned int argc, GMLType* argv, GMLType* out) {
+	// todo
+	return true;
+}
+
+bool CodeRunner::draw_set_color(unsigned int argc, GMLType* argv, GMLType* out) {
+	// todo
+	return true;
+}
+
 bool CodeRunner::execute_string(unsigned int argc, GMLType* argv, GMLType* out) {
 	// tbd
 	return false;

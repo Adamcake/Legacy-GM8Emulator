@@ -83,6 +83,14 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("cos");
 				_gmlFuncs.push_back(&CodeRunner::cos);
 				break;
+			case DRAW_RECTANGLE:
+				_internalFuncNames.push_back("draw_rectangle");
+				_gmlFuncs.push_back(&CodeRunner::draw_rectangle);
+				break;
+			case DRAW_SET_COLOR:
+				_internalFuncNames.push_back("draw_set_color");
+				_gmlFuncs.push_back(&CodeRunner::draw_set_color);
+				break;
 			case EXECUTE_STRING:
 				_internalFuncNames.push_back("execute_string");
 				_gmlFuncs.push_back(&CodeRunner::execute_string);
