@@ -481,6 +481,34 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 
 		free(ifBlockCode);
 	}
+	else if (firstWord == "continue") {
+		// "continue" means go to the next loop iteration. We put these into a list for dealing with later by the caller.
+		// But if we're not in a while/for/until loop, then it just exits the script.
+		if (_continues.size() == 0) {
+			output.push_back(OP_EXIT);
+		}
+		else {
+			_continues.top().push_back((unsigned int)output.size());
+			output.push_back(OP_NOP);
+			output.push_back(OP_NOP);
+			output.push_back(OP_NOP);
+			output.push_back(OP_NOP);
+		}
+	}
+	else if (firstWord == "break") {
+		// "break" means exit a while/for/until loop or switch statement. We put these into a list for dealing with later by the caller.
+		// If outside any of those contexts, it exits the script.
+		if (_breaks.size() == 0) {
+			output.push_back(OP_EXIT);
+		}
+		else {
+			_breaks.top().push_back((unsigned int)output.size());
+			output.push_back(OP_NOP);
+			output.push_back(OP_NOP);
+			output.push_back(OP_NOP);
+			output.push_back(OP_NOP);
+		}
+	}
 	else if (firstWord == "with") {
 		// "with" indicates a change in the "self" and "other" variables for the contained code block.
 		findFirstNonWhitespace(code, pos);
@@ -511,8 +539,22 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 	}
 	else if (firstWord == "switch") {
 		// "switch" statements contain an expression and some case labels. Each case label is also followed by an expression.
-		// TBD
-		return false;
+		// This is a bit hacky, like switch statements in general. Sorry in advance.
+		
+		// First, calculate the value of the first expression and put it on the var stack
+		findFirstNonWhitespace(code, pos);
+		unsigned char val[3];
+		if (!_getExpression(code, pos, val)) {
+			return false;
+		}
+		output.push_back(OP_VARSTACK_PUSH);
+		output.push_back(OP_SET_VARSTACK);
+		output.push_back(val[0]);
+		output.push_back(val[1]);
+		output.push_back(val[2]);
+
+		// Finally
+		output.push_back(OP_VARSTACK_POP);
 	}
 	else if (firstWord == "return") {
 		// "return" means we write a value to the return buffer, then exit.

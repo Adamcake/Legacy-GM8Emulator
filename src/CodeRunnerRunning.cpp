@@ -844,12 +844,55 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				}
 				break;
 			}
+			case OP_TEST_VALS_EQUAL: { // Test if two VALs are equal
+				pos++;
+				GMLType v1, v2;
+				if (!_parseVal(bytes + pos, &v1)) return false;
+				pos += 3;
+				if (!_parseVal(bytes + pos, &v2)) return false;
+				pos += 3;
+
+				if (!((v1.state == v2.state) && (v1.state == GML_TYPE_DOUBLE ? (v1.dVal == v2.dVal) : (!strcmp(v1.sVal, v2.sVal))))) { // when did LISP get here?
+					if (bytes[pos] == OP_JUMP || bytes[pos] == OP_JUMP_BACK)
+						pos += 2;
+					else if (bytes[pos] == OP_JUMP_LONG || bytes[pos] == OP_JUMP_BACK_LONG)
+						pos += 4;
+				}
+			}
 			case OP_JUMP: { // short jump forward
 				pos += 2 + bytes[pos + 1];
 				break;
 			}
 			case OP_JUMP_BACK: { // short jump forward
 				pos -= bytes[pos + 1] - 2;
+				break;
+			}
+			case OP_SET_INTSTACK: { // Set top value of int stack
+				GMLType v;
+				if (!_parseVal(bytes + pos, &v)) return false;
+				_stack.top() = _round(v.dVal);
+				break;
+			}
+			case OP_SET_VARSTACK: { // Set top value of var stack
+				GMLType v;
+				if (!_parseVal(bytes + pos, &v)) return false;
+				_varstack.top() = v;
+				break;
+			}
+			case OP_INTSTACK_PUSH: { // Push onto int stack
+				_stack.push(0);
+				break;
+			}
+			case OP_INTSTACK_POP: { // Pop from int stack
+				_stack.pop();
+				break;
+			}
+			case OP_VARSTACK_PUSH: { // Push onto var stack
+				_varstack.push(GMLType());
+				break;
+			}
+			case OP_VARSTACK_POP: { // Pop from var stack
+				_varstack.pop();
 				break;
 			}
 			default: {

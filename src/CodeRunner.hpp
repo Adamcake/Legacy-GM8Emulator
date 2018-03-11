@@ -12,6 +12,7 @@ enum CRVarType;
 enum CROperator;
 enum CRSetMethod;
 #include <vector>
+#include <list>
 #include <map>
 #include <stack>
 #include <string>
@@ -106,39 +107,45 @@ Followed by 3 bytes indicating the VAL to test. If the next op isn't a jump, the
 0D: Test two values for equality (next JMP instruction is skipped if the VALs do not match)
 Followed by 6 bytes indicating the two VALs to test. If the next op isn't a jump, the test result is discarded.
 
-0E: Else (ie. the following JMP only gets run if the previous one was skipped by a test)
-Followed by 0 bytes.
-
-0F: Change context
+0E: Change context
 Followed by 6 bytes. The first 3 indicate a VAL to dereference and use as "self". The last 3 indicate how far to JMP ahead (excluding this instruction) if no instances are found.
 "other" will be set to the previous "self". The current state before changing will be pushed onto a session stack.
 
-10: Revert context
+0F: Revert context
 Followed by 0 bytes. Goes back to the start of the context and changes the "self" to be the next one iterated. If there are no more instances,
 then the context will be popped from the stack and running will continue from here.
 
-11: Set top stack integer
-Followed by 3 bytes indicating VAL.
-
-12: Jump ahead short
+10: Jump ahead short
 Followed by 1 byte. The byte indicates how many instructions to jump ahead AFTER that byte.
 
-13: Jump ahead long
+11: Jump ahead long
 Followed by 3 bytes. The bytes indicate how many instructions to jump ahead AFTER those bytes.
 
-14: Jump back short
+12: Jump back short
 Followed by 1 byte. The byte indicates how many instructions to jump back AFTER that byte (ie. the distance must include the 2 bytes used by this instruction.)
 
-15: Jump back long
+13: Jump back long
 Followed by 3 bytes. The bytes indicate how many instructions to jump back AFTER those bytes (ie. the distance must include the 4 bytes used by this instruction.)
 
-16: Push onto stack
+14: Set top integer stack value
+Followed by 3 bytes indicating a VAL. Will be rounded.
+
+15: Set top var stack value
+Followed by 3 bytes indicating a VAL.
+
+16: Push onto integer stack
+Followed by 0 bytes. The value pushed is 0.
+
+17: Pop from integer stack
 Followed by 0 bytes.
 
-17: Pop from stack
-Followed by 0 bytes.
+18: Push onto var stack
+Followed by 0 bytes. The var pushed will be a real with value 0.0.
 
-18: Return
+19: Pop from var stack
+Followed by 0 bytes
+
+1A: Return
 Followed by 3 bytes indicating a VAL. (Writes to the return buffer and exits.)
 
 
@@ -280,8 +287,13 @@ class CodeRunner {
 		std::map<const char*, CROperator> _ANOperators; //AlphaNumeric
 		std::vector<bool(CodeRunner::*)(unsigned int,GMLType*,GMLType*)> _gmlFuncs;
 
-		// Internal register used for loops and such
+		// Internal registers used for loops and such
 		std::stack<int> _stack;
+		std::stack<GMLType> _varstack;
+
+		// Retained list of locations of "break" and "continue" operators during compile, so that JMP distances may be set later
+		std::stack<std::list<unsigned int>> _continues;
+		std::stack<std::list<unsigned int>> _breaks;
 
 		// Field map
 		std::map<InstanceID, std::map<unsigned int, GMLType>> _fields;
