@@ -1,6 +1,13 @@
 #ifndef _A_GLOBALVALUES_HPP_
 #define _A_GLOBALVALUES_HPP_
 
+
+#define _CRTDBG_MAP_ALLOC
+#ifdef _DEBUG
+#define DEBUG_NEW new(_NORMAL_BLOCK, __FILE__, __LINE__)
+#define new DEBUG_NEW
+#endif
+
 // These are the GML values that are global (ie. not tied to any one instance.)
 struct GlobalValues {
 	// Read-write - these can be set either by the Game object or the GML runner

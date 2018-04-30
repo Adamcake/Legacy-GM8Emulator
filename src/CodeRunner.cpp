@@ -3,6 +3,7 @@
 #include "InstanceList.hpp"
 #include "CodeActionManager.hpp"
 #include "CREnums.hpp"
+#include "CRInterpretation.hpp"
 #include "RNG.hpp"
 
 
@@ -53,18 +54,29 @@ CodeObject CodeRunner::RegisterQuestion(char * code, unsigned int len) {
 }
 
 bool CodeRunner::Compile(CodeObject object) {
-	unsigned char* out;
 	if (_codeObjects[object].question) {
+		unsigned char* out;
 		if (!_CompileExpression(_codeObjects[object].code, &out)) return false;
+		_codeObjects[object].compiled = out;
 	}
 	else {
-		if (!_CompileCode(_codeObjects[object].code, &out)) return false;
+		std::vector<CRStatement*> lex;
+		if (!_InterpretCode(_codeObjects[object].code, &lex)) return false;
+
+		std::vector<unsigned char> out;
+		_CompileStatements(&lex, &out);
+		out.push_back(OP_EXIT);
+
+		_codeObjects[object].compiled = (unsigned char*)malloc(out.size());
+		memcpy(_codeObjects[object].compiled, out._Myfirst(), out.size());
+
+		for (CRStatement* s : lex) {
+			delete s;
+		}
 	}
 
-	_codeObjects[object].compiled = out;
 	free(_codeObjects[object].code);
 	_codeObjects[object].code = NULL;
-
 	return true;
 }
 

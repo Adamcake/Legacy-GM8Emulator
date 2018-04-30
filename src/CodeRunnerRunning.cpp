@@ -867,6 +867,14 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				pos -= bytes[pos + 1] - 2;
 				break;
 			}
+			case OP_JUMP_LONG: { // long jump forward
+				pos += 4 + (bytes[pos + 1]) + (bytes[pos + 2] << 8) + (bytes[pos + 3] << 16);
+				break;
+			}
+			case OP_JUMP_BACK_LONG: { // long jump backward
+				pos -= (bytes[pos + 1]) + (bytes[pos + 2] << 8) + (bytes[pos + 3] << 16) - 4;
+				break;
+			}
 			case OP_SET_INTSTACK: { // Set top value of int stack
 				GMLType v;
 				if (!_parseVal(bytes + pos, &v)) return false;

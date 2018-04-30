@@ -1,4 +1,5 @@
 #include "CodeRunner.hpp"
+#include "CRInterpretation.hpp"
 #include "CREnums.hpp"
 #include "AssetManager.hpp"
 #include "CRExpression.hpp"
@@ -268,17 +269,12 @@ bool getSetMethod(std::string input, unsigned int* pos, CRSetMethod* method) {
 	return true;
 }
 
-bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char** outHandle, unsigned int* outSize) {
-	std::vector<unsigned char> output;
-	output.reserve(32); // Prevents a lot of memory re-allocation with small memory amounts
-
+bool CodeRunner::_InterpretLine(std::string code, unsigned int* pos, std::vector<CRStatement*>* output) {
 	// Get the first word at the current position. Word may be something like "var", "while", or a script or function name, and so on.
 	std::string firstWord = getWord(code, pos);
 
 	// Exit if we're at the end of the string
 	if ((*pos) >= code.size()) {
-		(*outHandle) = NULL;
-		(*outSize) = 0;
 		return true;
 	}
 
@@ -287,28 +283,26 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 	if (firstWord.size() == 0 && code[*pos] == '{') {
 		// Special case. If this code is a pair of curly brackets then we'll compile the whole content of it.
 		std::string newCode = getBracketContents(code, pos, '{', '}');
-		unsigned char* newBytes;
-		unsigned int newByteCount;
-		if (!_CompileCode(newCode.c_str(), &newBytes, &newByteCount, true)) return false;
-		std::copy(newBytes, newBytes + newByteCount, std::back_inserter(output));
-		free(newBytes);
+		if (!_InterpretCode(newCode.c_str(), output, true)) return false;
 	}
 	else if (firstWord == "exit") {
 		// This keyword means exit the script, so we compile this into an "01" instruction.
-		output.push_back(OP_EXIT);
+		output->push_back(new CRSExit());
 		findFirstNonWhitespace(code, pos);
 		if (code[*pos] == ';') (*pos)++;
 	}
 	else if (firstWord == "var") {
 		// The "var" keyword tells us to bind some field names to local variables.
-		output.push_back(OP_BIND_VARS);
+		CRSBindVars* v = new CRSBindVars();
 
 		std::vector<std::string> varNames;
 		while (true) {
-			// Get the var name and put it in our list
+			// Get the var name, register it and add it to the list of binds
 			std::string firstWord = getWord(code, pos);
 			if (firstWord.size() == 0) return false;
-			varNames.push_back(firstWord);
+			unsigned int fieldNum = _RegField(firstWord.c_str(), (unsigned int)firstWord.size());
+			if (fieldNum >= 65536) return false;
+			v->_vars.push_back(fieldNum);
 
 			// Check if there's another var name on the same line, these must be comma-separated
 			findFirstNonWhitespace(code, pos);
@@ -323,251 +317,165 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 				break;
 			}
 		}
-		if (varNames.size() > 256) return false;
-		output.push_back((unsigned char)varNames.size());
-		for (std::string n : varNames) {
-			unsigned int fieldNum = _RegField(n.c_str(), (unsigned int)n.size());
-			if (fieldNum >= 65536) return false;
-			output.push_back(fieldNum & 0xFF);
-			output.push_back((fieldNum >> 8) & 0xFF);
-		}
+		output->push_back(v);
 	}
 	else if (firstWord == "while") {
 		// "while" generates a loop, which translates to tests and jumps in bytecode.
-		// TBD
-		return false;
+		CRSWhile* v = new CRSWhile();
+		if (!_getExpression(code, pos, v->_test)) return false;
+		findFirstNonWhitespace(code, pos);
+		if (!_InterpretLine(code, pos, &(v->_code))) return false;
+		output->push_back(v);
 	}
 	else if (firstWord == "do") {
 		// "do" generates a loop in which the first iteration is always run. It can only be terminated by an "until" statement.
-		// TBD
-		return false;
+		CRSDoUntil* v = new CRSDoUntil();
+		findFirstNonWhitespace(code, pos);
+		if (!_InterpretLine(code, pos, &v->_code)) return false;
+		std::string until = getWord(code, pos);
+		if (until != "until") return false;
+		if (!_getExpression(code, pos, v->_test)) return false;
+		output->push_back(v);
 	}
 	else if (firstWord == "for") {
 		// "for" generates a loop: for(a;b;c) where a is the initializer, c happens at the end of each iteration, and the loop then continues if b evaluates to true.
+		CRSFor* v = new CRSFor();
 		findFirstNonWhitespace(code, pos);
 		if (code[*pos] != '(') return false;
 		(*pos)++;
 
-		// Get and write initializer
-		unsigned char* forBlockCode;
-		unsigned int forBlockCount;
-		if (!_CompileLine(code, pos, &forBlockCode, &forBlockCount)) return false;
-		std::copy(forBlockCode, forBlockCode + forBlockCount, std::back_inserter(output));
-		free(forBlockCode);
-
-		// Get the test so we can write it later
-		findFirstNonWhitespace(code, pos);
-		unsigned char val[3];
-		if (!_getExpression(code, pos, val)) return false;
+		if (!_InterpretLine(code, pos, &v->_init)) return false;
+		if (!_getExpression(code, pos, v->_test)) return false;
 		if (code[*pos] != ';') return false;
 		(*pos)++;
-
-		// Get the end statement to write later
 		findFirstNonWhitespace(code, pos);
-		if (!_CompileLine(code, pos, &forBlockCode, &forBlockCount)) return false;
-
-		// Get the content of the for loop
-		findFirstNonWhitespace(code, pos);
+		if (!_InterpretLine(code, pos, &v->_final)) return false;
 		if (code[*pos] != ')') return false;
 		(*pos)++;
-		unsigned char* forInnerBlockCode;
-		unsigned int forInnerBlockCount;
-		if (!_CompileLine(code, pos, &forInnerBlockCode, &forInnerBlockCount)) return false;
 
-		// Write ops
-		output.push_back(OP_TEST_VAL_NOT);
-		output.push_back(val[0]);
-		output.push_back(val[1]);
-		output.push_back(val[2]);
-		unsigned int jmpBytes = forInnerBlockCount + forBlockCount + 2;
-		bool longJumps = jmpBytes >= 250;
-
-		if (longJumps) {
-			jmpBytes += 2;
-			output.push_back(OP_JUMP_LONG);
-			output.push_back(jmpBytes & 0xFF);
-			output.push_back((jmpBytes >> 8) & 0xFF);
-			output.push_back((jmpBytes >> 16) & 0xFF);
-		}
-		else {
-			output.push_back(OP_JUMP);
-			output.push_back(jmpBytes & 0xFF);
-		}
-		std::copy(forInnerBlockCode, forInnerBlockCode + forInnerBlockCount, std::back_inserter(output));
-		std::copy(forBlockCode, forBlockCode + forBlockCount, std::back_inserter(output));
-		if (longJumps) {
-			output.push_back(OP_JUMP_BACK_LONG);
-			output.push_back((jmpBytes + 8) & 0xFF);
-			output.push_back(((jmpBytes + 8) >> 8) & 0xFF);
-			output.push_back(((jmpBytes + 8) >> 16) & 0xFF);
-		}
-		else {
-			output.push_back(OP_JUMP_BACK);
-			output.push_back((jmpBytes + 6) & 0xFF);
-		}
-
-		free(forInnerBlockCode);
-		free(forBlockCode);
+		findFirstNonWhitespace(code, pos);
+		if (!_InterpretLine(code, pos, &v->_code)) return false;
+		output->push_back(v);
 	}
 	else if (firstWord == "if") {
 		// "if" incurs a simple test to see whether the following expression evaluates to true.
-		findFirstNonWhitespace(code, pos);
-		unsigned char val[3];
-		if (!_getExpression(code, pos, val)) {
-			return false;
-		}
+		CRSIf* v = new CRSIf();
+		if (!_getExpression(code, pos, v->_test)) return false;
+		if (!_InterpretLine(code, pos, &v->_code)) return false;
 
-		output.push_back(OP_TEST_VAL_NOT);
-		output.push_back(val[0]);
-		output.push_back(val[1]);
-		output.push_back(val[2]);
-
-		unsigned char* ifBlockCode;
-		unsigned int ifBlockCount;
-		if (!_CompileLine(code, pos, &ifBlockCode, &ifBlockCount)) return false;
-
-		// Check whether this "if" has an associated "else"
-		unsigned int tPos = *pos;
-		std::string nextWord = getWord(code, &tPos);
-		if (nextWord == "else") {
-			// This is an if/else block. So we want to format it like: TEST_FALSE(val) JMP(to else block) (if block) JMP(past else block) (else block)
-			(*pos) = tPos;
-			unsigned char* elseBlockCode;
-			unsigned int elseBlockCount;
-			if (!_CompileLine(code, pos, &elseBlockCode, &elseBlockCount)) return false;
-
-			unsigned int bytesToJmp = ifBlockCount + (elseBlockCount > 255 ? 4 : 2);
-			if (bytesToJmp > 255) {
-				output.push_back(OP_JUMP_LONG);
-				output.push_back(bytesToJmp & 0xFF);
-				output.push_back((bytesToJmp >> 8) & 0xFF);
-				output.push_back((bytesToJmp >> 16) & 0xFF);
-			}
-			else {
-				output.push_back(OP_JUMP);
-				output.push_back(bytesToJmp);
-			}
-
-			std::copy(ifBlockCode, ifBlockCode + ifBlockCount, std::back_inserter(output));
-
-			if (elseBlockCount > 255) {
-				output.push_back(OP_JUMP_LONG);
-				output.push_back(elseBlockCount & 0xFF);
-				output.push_back((elseBlockCount >> 8) & 0xFF);
-				output.push_back((elseBlockCount >> 16) & 0xFF);
-			}
-			else {
-				output.push_back(OP_JUMP);
-				output.push_back(elseBlockCount);
-			}
-
-			std::copy(elseBlockCode, elseBlockCode + elseBlockCount, std::back_inserter(output));
-			free(elseBlockCode);
+		unsigned int posBefore = *pos;
+		std::string word = getWord(code, pos);
+		if (word == "else") {
+			findFirstNonWhitespace(code, pos);
+			if (!_InterpretLine(code, pos, &v->_elseCode)) return false;
 		}
 		else {
-			// This "if" block doesn't have an "else", so write a test, jump and the code block.
-			if (ifBlockCount > 255) {
-				output.push_back(OP_JUMP_LONG);
-				output.push_back(ifBlockCount & 0xFF);
-				output.push_back((ifBlockCount >> 8) & 0xFF);
-				output.push_back((ifBlockCount >> 16) & 0xFF);
-			}
-			else {
-				output.push_back(OP_JUMP);
-				output.push_back(ifBlockCount);
-			}
-			std::copy(ifBlockCode, ifBlockCount + ifBlockCode, std::back_inserter(output));
+			(*pos) = posBefore;
 		}
 
-		free(ifBlockCode);
-	}
-	else if (firstWord == "continue") {
-		// "continue" means go to the next loop iteration. We put these into a list for dealing with later by the caller.
-		// But if we're not in a while/for/until loop, then it just exits the script.
-		if (_continues.size() == 0) {
-			output.push_back(OP_EXIT);
-		}
-		else {
-			_continues.top().push_back((unsigned int)output.size());
-			output.push_back(OP_NOP);
-			output.push_back(OP_NOP);
-			output.push_back(OP_NOP);
-			output.push_back(OP_NOP);
-		}
+		output->push_back(v);
 	}
 	else if (firstWord == "break") {
-		// "break" means exit a while/for/until loop or switch statement. We put these into a list for dealing with later by the caller.
-		// If outside any of those contexts, it exits the script.
-		if (_breaks.size() == 0) {
-			output.push_back(OP_EXIT);
+		// "break" escapes to the end of the current loop.
+		output->push_back(new CRSBreak());
+		findFirstNonWhitespace(code, pos);
+		if ((*pos) < code.size()) {
+			if (code[*pos] == ';') (*pos)++;
 		}
-		else {
-			_breaks.top().push_back((unsigned int)output.size());
-			output.push_back(OP_NOP);
-			output.push_back(OP_NOP);
-			output.push_back(OP_NOP);
-			output.push_back(OP_NOP);
+	}
+	else if (firstWord == "continue") {
+		// "continue" skips the current loop iteration.
+		output->push_back(new CRSContinue());
+		findFirstNonWhitespace(code, pos);
+		if ((*pos) < code.size()) {
+			if (code[*pos] == ';') (*pos)++;
 		}
 	}
 	else if (firstWord == "with") {
 		// "with" indicates a change in the "self" and "other" variables for the contained code block.
-		findFirstNonWhitespace(code, pos);
-		unsigned char val[3];
-		if (!_getExpression(code, pos, val)) {
-			return false;
-		}
-
-		unsigned char* withBlockCode;
-		unsigned int withBlockCount;
-		if (!_CompileLine(code, pos, &withBlockCode, &withBlockCount)) return false;
-		withBlockCount++;
-		output.push_back(OP_CHANGE_CONTEXT);
-		output.push_back(val[0]);
-		output.push_back(val[1]);
-		output.push_back(val[2]);
-		output.push_back(withBlockCount & 0xFF);
-		output.push_back((withBlockCount >> 8) & 0xFF);
-		output.push_back((withBlockCount >> 16) & 0xFF);
-		withBlockCount--;
-		std::copy(withBlockCode, withBlockCount + withBlockCode, std::back_inserter(output));
-		output.push_back(OP_REVERT_CONTEXT);
+		CRSWith* v = new CRSWith();
+		if (!_getExpression(code, pos, v->_id)) return false;
+		if (!_InterpretLine(code, pos, &v->_code)) return false;
+		output->push_back(v);
 	}
 	else if (firstWord == "repeat") {
 		// "repeat" is followed by an expression telling us how many times to repeat the code block after it.
-		// TBD
-		return false;
+		CRSRepeat* v = new CRSRepeat();
+		if (!_getExpression(code, pos, v->_count)) return false;
+		if (!_InterpretLine(code, pos, &v->_code)) return false;
+		output->push_back(v);
 	}
 	else if (firstWord == "switch") {
 		// "switch" statements contain an expression and some case labels. Each case label is also followed by an expression.
-		// This is a bit hacky, like switch statements in general. Sorry in advance.
-		
-		// First, calculate the value of the first expression and put it on the var stack
+		CRSSwitch* v = new CRSSwitch();
+		if (!_getExpression(code, pos, v->_val)) return false;
+		findFirstNonWhitespace(code, pos);
+		if (code[*pos] != '{') return false;
+		(*pos)++;
+		findFirstNonWhitespace(code, pos);
+
+		while (code[*pos] != '}') {
+			unsigned int oldPos = (*pos);
+			bool defaulted = false;
+			std::string word = getWord(code, pos);
+			if (word == "case") {
+				CRSwitchCase c;
+				c._offset = v->_code.size();
+				if (!_getExpression(code, pos, v->_val)) return false;
+				if(!defaulted) v->_cases.push_back(c);
+
+				findFirstNonWhitespace(code, pos);
+				if (code[*pos] != ':') return false;
+				(*pos)++;
+			}
+			else if (word == "default") {
+				if (!defaulted) {
+					CRSwitchCase c;
+					c._default = true;
+					c._offset = v->_code.size();
+					v->_cases.push_back(c);
+				}
+				findFirstNonWhitespace(code, pos);
+				if (code[*pos] != ':') return false;
+				(*pos)++;
+				defaulted = true;
+			}
+			else {
+				(*pos) = oldPos;
+				if (!_InterpretLine(code, pos, &v->_code)) return false;
+			}
+			findFirstNonWhitespace(code, pos);
+		}
+		(*pos)++;
+
+		output->push_back(v);
+	}
+	else if (firstWord == "case") {
+		// "case" should only occur in switch. If we come across it here, it should cause an error when the code runs.
+		// We don't have a way to do that so instead we're just going to ignore it (emulator-only non-crashes are within spec.)
 		findFirstNonWhitespace(code, pos);
 		unsigned char val[3];
-		if (!_getExpression(code, pos, val)) {
-			return false;
-		}
-		output.push_back(OP_VARSTACK_PUSH);
-		output.push_back(OP_SET_VARSTACK);
-		output.push_back(val[0]);
-		output.push_back(val[1]);
-		output.push_back(val[2]);
-
-		// Finally
-		output.push_back(OP_VARSTACK_POP);
+		if (!_getExpression(code, pos, val)) return false;
+		findFirstNonWhitespace(code, pos);
+		if (code[*pos] != ':') return false;
+		(*pos)++;
+	}
+	else if (firstWord == "default") {
+		// "default" should only occur in switch. If we come across it here, it should cause an error when the code runs.
+		// We don't have a way to do that so instead we're just going to ignore it (emulator-only non-crashes are within spec.)
+		findFirstNonWhitespace(code, pos);
+		if (code[*pos] != ':') return false;
+		(*pos)++;
 	}
 	else if (firstWord == "return") {
 		// "return" means we write a value to the return buffer, then exit.
+		CRSReturn* v = new CRSReturn();
+		if (!_getExpression(code, pos, v->_val)) return false;
 		findFirstNonWhitespace(code, pos);
-		unsigned char val[3];
-		if (!_getExpression(code, pos, val)) {
-			return false;
+		if ((*pos) < code.size()) {
+			if (code[*pos] == ';') (*pos)++;
 		}
-		if (code[*pos] == ';') (*pos)++;
-		output.push_back(OP_RETURN);
-		output.push_back(val[0]);
-		output.push_back(val[1]);
-		output.push_back(val[2]);
+		output->push_back(v);
 	}
 	else {
 		// If this doesn't start with any keywords, then it's either an assignment or a script call.
@@ -587,38 +495,9 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 				}
 			}
 
-			if (scr) {
-				// User script.
-				output.push_back(OP_RUN_SCRIPT);
-				output.push_back((unsigned char)(scriptId & 0xFF)); // Script id, little endian
-				output.push_back((unsigned char)((scriptId & 0xFF00) >> 8));
-			}
-			else {
-				// Built-in function.
-				output.push_back(OP_RUN_INTERNAL_FUNC);
-
-				// First resolve the function name to an internal function id.
-				unsigned int funcId;
-				for (funcId = 0; funcId < _INTERNAL_FUNC_COUNT; funcId++) {
-					if (strcmp(_internalFuncNames[funcId], firstWord.c_str()) == 0) {
-						break;
-					}
-				}
-				if (funcId == _INTERNAL_FUNC_COUNT) {
-					// We didn't find this as an internal function, that means we can't compile this.
-					return false;
-				}
-				// First two bytes indicate func id
-				output.push_back((unsigned char)(funcId & 0xFF));
-				output.push_back((unsigned char)((funcId >> 8) & 0xFF));
-			}
-
-			// We'll use this as a reference later for setting the number of args after they've all been parsed.
-			unsigned int argCPos = (unsigned int)output.size();
-			output.push_back(0);
-
 			// Args
 			unsigned char argCount = 0;
+			std::vector<unsigned char> args;
 			unsigned char valBuffer[3];
 
 			(*pos)++;
@@ -627,9 +506,9 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 				while (true) {
 					findFirstNonWhitespace(code, pos);
 					if (!_getExpression(code, pos, valBuffer)) return false;
-					output.push_back(valBuffer[0]);
-					output.push_back(valBuffer[1]);
-					output.push_back(valBuffer[2]);
+					args.push_back(valBuffer[0]);
+					args.push_back(valBuffer[1]);
+					args.push_back(valBuffer[2]);
 					argCount++;
 
 					if (code[*pos] == ')') {
@@ -641,13 +520,45 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 					else return false;
 				}
 			}
-			output[argCPos] = argCount;
 			(*pos)++;
 			findFirstNonWhitespace(code, pos);
 			if (code[*pos] == ';') (*pos)++;
+
+			if (scr) {
+				// User script.
+				CRSUserScript* v = new CRSUserScript();
+				v->_id = scriptId;
+				v->_argCount = argCount;
+				v->_args = args;
+				output->push_back(v);
+			}
+			else {
+				// Built-in function.
+				// First resolve the function name to an internal function id.
+				unsigned int funcId;
+				for (funcId = 0; funcId < _INTERNAL_FUNC_COUNT; funcId++) {
+					if (strcmp(_internalFuncNames[funcId], firstWord.c_str()) == 0) {
+						break;
+					}
+				}
+				if (funcId == _INTERNAL_FUNC_COUNT) {
+					// We didn't find this as an internal function, that means we can't compile this.
+					return false;
+				}
+				
+				CRSFunction* v = new CRSFunction();
+				v->_id = funcId;
+				v->_argCount = argCount;
+				v->_args = args;
+				output->push_back(v);
+			}
 		}
 		else {
-			// This is an assignment. First, our bytecode needs to dereference the correct instance to assign to.
+			// This is an assignment. Assignments are pre-compiled into bytecode because it's easier than lexing them.
+			CRSPreCompiled* v = new CRSPreCompiled();
+			output->push_back(v);
+
+			// First, our bytecode needs to dereference the correct instance to assign to.
 			std::string nextWord;
 
 			if (firstWord.size() == 0) {
@@ -665,10 +576,10 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 				if (code[*pos] != '.') return false;
 				(*pos)++;
 
-				output.push_back(OPERATOR_DEREF);
-				output.push_back(val[0]);
-				output.push_back(val[1]);
-				output.push_back(val[2]);
+				v->_code.push_back(OPERATOR_DEREF);
+				v->_code.push_back(val[0]);
+				v->_code.push_back(val[1]);
+				v->_code.push_back(val[2]);
 
 				nextWord = getWord(code, pos);
 			}
@@ -700,10 +611,10 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 
 					unsigned char val[3];
 					if (!_makeVal(derefExpression.c_str(), (unsigned int)derefExpression.size(), val)) return false;
-					output.push_back(OP_DEREF);
-					output.push_back(val[0]);
-					output.push_back(val[1]);
-					output.push_back(val[2]);
+					v->_code.push_back(OP_DEREF);
+					v->_code.push_back(val[0]);
+					v->_code.push_back(val[1]);
+					v->_code.push_back(val[2]);
 
 					(*pos)++;
 					nextWord = getWord(code, pos);
@@ -720,40 +631,40 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 			unsigned int varIx;
 			CRVarType type = _getVarType(nextWord, &varIx); // Only send the locals if there are no derefs, cause otherwise the variable can't be local
 			switch (type) {
-				case VARTYPE_FIELD:
-					if (array) {
-						output.push_back(OP_SET_ARRAY);
-						unsigned char val[3];
-						if (!_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val)) return false;
-						output.push_back(val[0]);
-						output.push_back(val[1]);
-						output.push_back(val[2]);
-					}
-					else {
-						output.push_back(OP_SET_FIELD);
-					}
-					output.push_back((unsigned char)(varIx & 0xFF));
-					output.push_back((unsigned char)((varIx >> 8) & 0xFF));
-					break;
-				case VARTYPE_INSTANCE:
-					if (array != (bool)(varIx == IV_ALARM)) { // if instance var is alarm and an array isn't used, OR it's not alarm and an array is used
-						// Invalid instance var
-						return false;
-					}
-					output.push_back(OP_SET_INSTANCE_VAR);
-					output.push_back((unsigned char)(varIx & 0xFF));
+			case VARTYPE_FIELD:
+				if (array) {
+					v->_code.push_back(OP_SET_ARRAY);
 					unsigned char val[3];
-					if (array) {
-						if (!_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val)) return false;
-					}
-					output.push_back(val[0]);
-					output.push_back(val[1]);
-					output.push_back(val[2]);
-					break;
-				case VARTYPE_GAME:
-					output.push_back(OP_SET_GAME_VALUE);
-					output.push_back((unsigned char)varIx);
-					break;
+					if (!_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val)) return false;
+					v->_code.push_back(val[0]);
+					v->_code.push_back(val[1]);
+					v->_code.push_back(val[2]);
+				}
+				else {
+					v->_code.push_back(OP_SET_FIELD);
+				}
+				v->_code.push_back((unsigned char)(varIx & 0xFF));
+				v->_code.push_back((unsigned char)((varIx >> 8) & 0xFF));
+				break;
+			case VARTYPE_INSTANCE:
+				if (array != (bool)(varIx == IV_ALARM)) { // if instance var is alarm and an array isn't used, OR it's not alarm and an array is used
+					// Invalid instance var
+					return false;
+				}
+				v->_code.push_back(OP_SET_INSTANCE_VAR);
+				v->_code.push_back((unsigned char)(varIx & 0xFF));
+				unsigned char val[3];
+				if (array) {
+					if (!_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val)) return false;
+				}
+				v->_code.push_back(val[0]);
+				v->_code.push_back(val[1]);
+				v->_code.push_back(val[2]);
+				break;
+			case VARTYPE_GAME:
+				v->_code.push_back(OP_SET_GAME_VALUE);
+				v->_code.push_back((unsigned char)varIx);
+				break;
 			default:
 				return false;
 			}
@@ -765,28 +676,25 @@ bool CodeRunner::_CompileLine(std::string code, unsigned int* pos, unsigned char
 				// Invalid gml
 				return false;
 			}
-			output.push_back(method);
+			v->_code.push_back(method);
 
 			// Now we just have to get the VAL to assign.
 			findFirstNonWhitespace(code, pos);
 			unsigned char val[3];
 			if (!_getExpression(code, pos, val)) return false;
-			output.push_back(val[0]);
-			output.push_back(val[1]);
-			output.push_back(val[2]);
+			v->_code.push_back(val[0]);
+			v->_code.push_back(val[1]);
+			v->_code.push_back(val[2]);
 
 			if (anyDerefs) {
 				// Write a "reset deref" instruction after we're done here.
-				output.push_back(OP_RESET_DEREF);
+				v->_code.push_back(OP_RESET_DEREF);
 			}
 			if (code[*pos] == ';') (*pos)++;
 		}
 	}
 
-	// We've compiled all the code we can do in one go, so now write the output.
-	(*outHandle) = (unsigned char*)malloc(output.size());
-	memcpy((*outHandle), output._Myfirst(), output.size());
-	(*outSize) = (unsigned int)output.size();
+	// We've compiled all the code we can do in one go and stored it in the output.
 	return true;
 }
 
@@ -1085,34 +993,18 @@ bool CodeRunner::_isAsset(const char* name, unsigned int* index) {
 
 
 
-bool CodeRunner::_CompileCode(const char* str, unsigned char** outHandle, unsigned int* outCount, bool session) {
+bool CodeRunner::_InterpretCode(const char* str, std::vector<CRStatement*>* output, bool session) {
 	// We only have to remove comments and substitute strings if we're not already in an existing session.
 	std::string code;
 	if(!session)code = substituteConstants(removeComments(str));
 	else code = std::string(str);
 
 	unsigned int pos = 0;
-	std::vector<unsigned char> output;
-	output.reserve(256); // Prevents a lot of realloc calls when there's a small amount of memory in the vector
 
 	// We loop through, pulling commands until there are no more.
 	while (pos < code.size()) {
-		unsigned char* lineBytes;
-		unsigned int lineByteCount;
-		if (!_CompileLine(code, &pos, &lineBytes, &lineByteCount)) return false;
-		std::copy(lineBytes, lineBytes + lineByteCount, std::back_inserter(output));
-		free(lineBytes);
+		if (!_InterpretLine(code, &pos, output)) return false;
 	}
-
-	// Our bytecode must be terminated by an 01.
-	if (!session) {
-		output.push_back(OP_EXIT);
-	}
-
-	// Write the finished operator list to the output pointer
-	(*outHandle) = (unsigned char*)malloc(output.size());
-	memcpy((*outHandle), output._Myfirst(), output.size());
-	if (outCount) (*outCount) = (unsigned int)output.size();
 
 	return true;
 }

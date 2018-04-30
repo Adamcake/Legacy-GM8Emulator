@@ -1,6 +1,8 @@
 #ifndef _A_CODERUNNER_HPP_
 #define _A_CODERUNNER_HPP_
+
 class CodeActionManager;
+struct CRStatement;
 struct GlobalValues;
 struct Instance;
 struct CRExpressionElement;
@@ -291,10 +293,6 @@ class CodeRunner {
 		std::stack<int> _stack;
 		std::stack<GMLType> _varstack;
 
-		// Retained list of locations of "break" and "continue" operators during compile, so that JMP distances may be set later
-		std::stack<std::list<unsigned int>> _continues;
-		std::stack<std::list<unsigned int>> _breaks;
-
 		// Field map
 		std::map<InstanceID, std::map<unsigned int, GMLType>> _fields;
 
@@ -308,17 +306,16 @@ class CodeRunner {
 		unsigned int** _roomOrder;
 		unsigned int _roomOrderCount;
 
-		// Compile some code and return the position of the compiled code in outHandle.
+		// Interpret some code and return the position of the compiled code in outHandle.
 		// Returns true on success, false on failure to compile (ie. program should exit.)
-		bool _CompileCode(const char* str, unsigned char** outHandle, unsigned int* outCount = NULL, bool session = false);
+		bool _InterpretCode(const char* str, std::vector<CRStatement*>* output, bool session = false);
 
 		// Compile an expression and return the position of the compiled expression in outHandle.
 		// Returns true on success, false on failure to compile (ie. program should exit.)
 		bool _CompileExpression(const char* str, unsigned char** outHandle, bool session = false, unsigned int* outCharsUsed = NULL, unsigned int* outSize = NULL);
 
-
 		// Helper functions for compiling
-		bool _CompileLine(std::string str, unsigned int* pos, unsigned char** outHandle, unsigned int* outSize);
+		bool _InterpretLine(std::string str, unsigned int* pos, std::vector<CRStatement*>* output);
 		unsigned int _RegConstantDouble(double d);
 		unsigned int _RegConstantString(const char* c, unsigned int len);
 		unsigned int _RegField(const char* c, unsigned int len);

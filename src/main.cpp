@@ -1,13 +1,13 @@
-#define CHECK_MEMORY_LEAKS 0
+#define CHECK_MEMORY_LEAKS 1
 #define OUTPUT_FRAME_TIME 0
 #include <chrono>
 #include <thread>
 #include "Game.hpp"
 
 #if CHECK_MEMORY_LEAKS
-#define _CRTDBG_MAP_ALLOC  
+#define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>  
-#include <crtdbg.h>  
+#include <crtdbg.h>
 #endif
 
 #if OUTPUT_FRAME_TIME
@@ -17,6 +17,10 @@
 
 
 int main(int argc, char** argv) {
+#if CHECK_MEMORY_LEAKS
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+
 	std::chrono::high_resolution_clock::time_point t1, t2;
 
 #if OUTPUT_FRAME_TIME
@@ -29,6 +33,7 @@ int main(int argc, char** argv) {
 	// This can easily be changed to load from anywhere when the project is done.
 	if (!GameLoad("game.exe")) {
 		// Load failed
+		GameTerminate();
 		return 2;
 	}
 
@@ -41,6 +46,7 @@ int main(int argc, char** argv) {
 
 	if (!GameStart()) {
 		// Starting game failed
+		GameTerminate();
 		return 3;
 	}
 
@@ -72,10 +78,5 @@ int main(int argc, char** argv) {
 
 	// Natural end of application
 	GameTerminate();
-
-#if CHECK_MEMORY_LEAKS
-	_CrtDumpMemoryLeaks();
-#endif
-
 	return 0;
 }
