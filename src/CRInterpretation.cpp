@@ -215,8 +215,8 @@ void CRSSwitch::write(std::vector<unsigned char>* output) const {
 	}
 	codeOffsets[i] = comp.size();
 
-	unsigned int dist = comp.size();
-	if (dist > 255) {
+	unsigned int dist = comp.size() + 4;
+	if (dist > 251) {
 		output->push_back(OP_JUMP_LONG);
 		output->push_back((unsigned char)(dist & 0xFF));
 		output->push_back((unsigned char)((dist >> 8) & 0xFF));
@@ -236,7 +236,7 @@ void CRSSwitch::write(std::vector<unsigned char>* output) const {
 
 	unsigned int jmpsLength = 0;
 	for (const CRSwitchCase i : _cases) {
-		int jdist = (jmpsLength + dist + 4) - codeOffsets[i._offset];
+		int jdist = (jmpsLength + dist) - codeOffsets[i._offset];
 		if (!i._default) {
 			output->push_back(OP_TEST_VALS_EQUAL);
 			output->push_back(_val[0]);

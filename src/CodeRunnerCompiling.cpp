@@ -421,7 +421,7 @@ bool CodeRunner::_InterpretLine(std::string code, unsigned int* pos, std::vector
 			if (word == "case") {
 				CRSwitchCase c;
 				c._offset = v->_code.size();
-				if (!_getExpression(code, pos, v->_val)) return false;
+				if (!_getExpression(code, pos, c._val)) return false;
 				if(!defaulted) v->_cases.push_back(c);
 
 				findFirstNonWhitespace(code, pos);

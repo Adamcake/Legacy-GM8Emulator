@@ -858,6 +858,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 					else if (bytes[pos] == OP_JUMP_LONG || bytes[pos] == OP_JUMP_BACK_LONG)
 						pos += 4;
 				}
+				break;
 			}
 			case OP_JUMP: { // short jump forward
 				pos += 2 + bytes[pos + 1];
