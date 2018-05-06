@@ -414,7 +414,7 @@ bool CodeRunner::_readExpVal(unsigned char* code, unsigned int* pos, Instance* d
 	// Get and apply any unary operators
 	while (code[*pos] == EVMOD_NOT || code[*pos] == EVMOD_NEGATIVE || code[*pos] == EVMOD_TILDE) {
 		if (var.state == GML_TYPE_STRING) return false;
-		if (code[*pos] == EVMOD_NOT) var.dVal = (_isTrue(&var) ? 1.0 : 0.0);
+		if (code[*pos] == EVMOD_NOT) var.dVal = (_isTrue(&var) ? 0.0 : 1.0);
 		else if (code[*pos] == EVMOD_NEGATIVE) var.dVal = -var.dVal;
 		else var.dVal = ~_round(var.dVal);
 		(*pos)++;
@@ -858,7 +858,6 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 					else if (bytes[pos] == OP_JUMP_LONG || bytes[pos] == OP_JUMP_BACK_LONG)
 						pos += 4;
 				}
-				break;
 			}
 			case OP_JUMP: { // short jump forward
 				pos += 2 + bytes[pos + 1];
@@ -878,30 +877,36 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 			}
 			case OP_SET_INTSTACK: { // Set top value of int stack
 				GMLType v;
-				if (!_parseVal(bytes + pos, &v)) return false;
+				if (!_parseVal(bytes + pos + 1, &v)) return false;
 				_stack.top() = _round(v.dVal);
+				pos += 4;
 				break;
 			}
 			case OP_SET_VARSTACK: { // Set top value of var stack
 				GMLType v;
-				if (!_parseVal(bytes + pos, &v)) return false;
+				if (!_parseVal(bytes + pos + 1, &v)) return false;
 				_varstack.top() = v;
+				pos += 4;
 				break;
 			}
 			case OP_INTSTACK_PUSH: { // Push onto int stack
 				_stack.push(0);
+				pos++;
 				break;
 			}
 			case OP_INTSTACK_POP: { // Pop from int stack
 				_stack.pop();
+				pos++;
 				break;
 			}
 			case OP_VARSTACK_PUSH: { // Push onto var stack
 				_varstack.push(GMLType());
+				pos++;
 				break;
 			}
 			case OP_VARSTACK_POP: { // Pop from var stack
 				_varstack.pop();
+				pos++;
 				break;
 			}
 			default: {

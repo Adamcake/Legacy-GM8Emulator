@@ -335,6 +335,7 @@ bool CodeRunner::_InterpretLine(std::string code, unsigned int* pos, std::vector
 		std::string until = getWord(code, pos);
 		if (until != "until") return false;
 		if (!_getExpression(code, pos, v->_test)) return false;
+		if (code[*pos] == ';') (*pos)++;
 		output->push_back(v);
 	}
 	else if (firstWord == "for") {

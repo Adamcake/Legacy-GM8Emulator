@@ -63,12 +63,19 @@ bool CodeRunner::Compile(CodeObject object) {
 		std::vector<CRStatement*> lex;
 		if (!_InterpretCode(_codeObjects[object].code, &lex)) return false;
 
-		std::vector<unsigned char> out;
+		CRSOutput out;
 		_CompileStatements(&lex, &out);
-		out.push_back(OP_EXIT);
 
-		_codeObjects[object].compiled = (unsigned char*)malloc(out.size());
-		memcpy(_codeObjects[object].compiled, out._Myfirst(), out.size());
+		out._breaks.insert(out._breaks.end(), out._continues.begin(), out._continues.end()); // append continues to breaks because we treat them the same
+		for (unsigned int off : out._breaks) {
+			// all breaks and continues that weren't in any handling block will exit the script
+			out._output[off] = OP_EXIT;
+		}
+
+		out._output.push_back(OP_EXIT);
+
+		_codeObjects[object].compiled = (unsigned char*)malloc(out._output.size());
+		memcpy(_codeObjects[object].compiled, out._output._Myfirst(), out._output.size());
 
 		for (CRStatement* s : lex) {
 			delete s;
@@ -424,6 +431,14 @@ bool CodeRunner::Init() {
 				return false;
 		}
 	}
+
+	if (_codeObjects.size()) return false;
+	_codeObjects.push_back(CRCodeObject());
+	_codeObjects[0].question = true;
+	_codeObjects[0].code = NULL;
+	_codeObjects[0].compiled = (unsigned char*)malloc(10);
+	unsigned char c[10] = { 0x01, 0x00, 0x00, 0x00, 0x02, 0x01, 0x40, 0x00, 0x01, 0x00 };
+	memcpy(_codeObjects[0].compiled, c, 10);
 
 	_operators = { {"^^", OPERATOR_BOOLEAN_XOR}, {"<<", OPERATOR_LSHIFT}, {">>", OPERATOR_RSHIFT}, {"&&", OPERATOR_BOOLEAN_AND}, {"||", OPERATOR_BOOLEAN_OR}, {"==", OPERATOR_EQUALS}, {"!=", OPERATOR_NOT_EQUAL}, {"<=", OPERATOR_LTE}, {">=", OPERATOR_GTE}, {"=", OPERATOR_EQUALS}, {"<", OPERATOR_LT}, {">", OPERATOR_GT}, {"+", OPERATOR_ADD}, {"-", OPERATOR_SUBTRACT}, {"*", OPERATOR_MULTIPLY}, {"/", OPERATOR_DIVIDE}, {"&", OPERATOR_BITWISE_AND}, {"|", OPERATOR_BITWISE_OR}, {"^", OPERATOR_BITWISE_XOR}, {".", OPERATOR_DEREF} };
 	_ANOperators = { {"and", OPERATOR_BOOLEAN_AND}, {"or", OPERATOR_BOOLEAN_OR}, {"xor", OPERATOR_BOOLEAN_XOR}, {"mod", OPERATOR_MOD}, {"div", OPERATOR_DIV} };

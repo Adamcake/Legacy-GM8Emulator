@@ -29,7 +29,7 @@ VAL:
 Wherever "VAL" is used below, it refers to a 3-byte structure where the first 2 bits indicates the nature of the value, and the following 22 bits is the value itself.
 The bytes for the latter part are big-endian, ie. the 6 bits in the first byte are only used in the case of a number too large for 2 bytes.
 Byte 1 can have the following values:
-- 0: top stack variable (bytes discarded)
+- 0: top int stack variable (other bytes discarded)
 - 1: absolute integer (bytes will be parsed into signed int)
 - 2: const reference (bytes are a const db reference)
 - 3: expression (bytes are an expression reference, expression will be evaluated)
