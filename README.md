@@ -15,7 +15,7 @@ Strictly speaking, "emulator" is not a correct term. In computing, an emulator i
 Why not?
 
 ## Building
-- Clone the repository with `git clone --recurse-submodules https://github.com/GM8Emulator/GM8Emulator.git`
+- Clone the repository with `git clone --recurse-submodules https://gitlab.com/GM8Emulator/GM8Emulator.git`
 - If you're using Visual Studio, all the dependencies are already part of the repository. Simply run `cmake -G "Visual Studio 15 2017 Win64"` (optionally without `Win64` if you're on a 32-bit OS for some reason)
 - If you aren't using Visual Studio or building it on a non-windows system, the requirements are the glew and zlib packages installed. This is located with [FindGLEW](https://github.com/Kitware/CMake/blob/master/Modules/FindGLEW.cmake) and [FindZLIB](https://github.com/Kitware/CMake/blob/master/Modules/FindZLIB.cmake) respectively.
 
