@@ -178,6 +178,23 @@ The only regular operators which may be used on two string types are "+" and the
 The tilde operator will round its provided value with FISTP before evaluating. The <<, >>, &, | and ^ operators will round the values on both sides with FISTP before evaluating.
 
 
+=====
+FONTS
+=====
+
+In GameMaker executables, fonts are already compiled, which is nice and convenient for us. The Font asset is a large image which contains every letter, number and character that can be drawn in that font. The font size and settings like Bold or Italic are set in the Font editor, and cannot be changed during gameplay, so we don't have to worry about letter-scaling or anti-aliasing or anything like that. We just take the letters and draw them exactly as they are.
+
+Also in the Font object you'll find a set of exactly 1536 integers. This consists of 6 integers for each printed char in the Font (there are always 256 chars, but the unused ones are usually set to 0.) Looking up the relevant info in this array is therefore done by taking the char you want to draw and multiplying it by 6, then accessing the 6 integers at that position. For instance, if you want to look up the data on how to draw 'a', you would calculate ('a' * 6) which is 582, so then you get the 582nd, 583rd, 584th, 585th, 586th and 587th integers. Respectively, these represent:
+- the x coordinate of 'a' in the sprite
+- the y coordinate of 'a' in the sprite
+- the pixel width of 'a' in the sprite
+- the pixel height of 'a' in the sprite
+- the cursor-width of 'a' (ie. how many pixels to the right should the cursor be moved after drawing 'a')
+- the cursor-offset of 'a' (ie. how many pixels to the right of the cursor position should 'a' be drawn)
+
+By default, the font aligns used are fa_top and fa_left, which are the simplest. All you have to do for this is start the cursor at their given x position, and draw letters downwards from their given y position (that is, their given y position is the top pixel of the letters.) On the other hand, if the draw_halign is set to fa_center or fa_left, you'll need to pre-determine the width of the string before you start drawing, by adding up the cursor-width of each char in the string. For a draw_valign of fa_middle, you'll need to work out the tallest letter in the string so that you can divide it by 2.
+
+
 =============
 MISCELLANEOUS
 =============
