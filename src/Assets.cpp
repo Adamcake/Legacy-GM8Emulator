@@ -110,13 +110,11 @@ Background::Background()
 {
 	name = NULL;
 	exists = true;
-	data = NULL;
 }
 
 Background::~Background()
 {
 	free(name);
-	free(data);
 }
 
 Path::Path()

@@ -196,7 +196,8 @@ class Background {
 
 		unsigned int width;
 		unsigned int height;
-		unsigned char* data;
+		//unsigned char* data;
+		RImageIndex image;
 };
 
 class Path {
@@ -236,6 +237,7 @@ class Font {
 		bool italic;
 		unsigned int rangeBegin;
 		unsigned int rangeEnd;
+		RImageIndex image;
 		
 };
 

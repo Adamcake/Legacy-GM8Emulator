@@ -1,5 +1,5 @@
 #define CHECK_MEMORY_LEAKS 1
-#define OUTPUT_FRAME_TIME 0
+#define OUTPUT_FRAME_TIME 1
 #include <chrono>
 #include <thread>
 #include "Game.hpp"
@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-	std::chrono::high_resolution_clock::time_point t1, t2;
+	std::chrono::high_resolution_clock::time_point t1, t2, t3;
 
 #if OUTPUT_FRAME_TIME
 	t1 = std::chrono::high_resolution_clock::now();
@@ -49,6 +49,13 @@ int main(int argc, char** argv) {
 		GameTerminate();
 		return 3;
 	}
+
+#if OUTPUT_FRAME_TIME
+	t3 = std::chrono::high_resolution_clock::now();
+	time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t3 - t1);
+	se = time_span.count();
+	std::cout << "Successful game start in " << se << " seconds" << std::endl;
+#endif
 
 	unsigned int a = 0;
 	double totMus = 0;

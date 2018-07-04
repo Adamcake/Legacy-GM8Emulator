@@ -821,8 +821,18 @@ bool GameLoad(const char * pFilename) {
 
 		if (background->width > 0 && background->height > 0) {
 			unsigned int len = ReadDword(data, &dataPos);
-			background->data = (unsigned char*)malloc(len);
-			memcpy(background->data, (data + dataPos), len);
+			unsigned int dStart = dataPos;
+
+			// Convert RGBA to BGRA
+			unsigned int pixelDataEnd = dataPos + len;
+			unsigned char tmp;
+			for (; dataPos < pixelDataEnd; dataPos += 4) {
+				tmp = data[dataPos];
+				data[dataPos] = data[dataPos + 2];
+				data[dataPos + 2] = tmp;
+			}
+
+			background->image = RMakeImage(background->width, background->height, 0, 0, (data + dStart));
 		}
 	}
 
@@ -940,8 +950,24 @@ bool GameLoad(const char * pFilename) {
 		unsigned int w = ReadDword(data, &dataPos);
 		unsigned int h = ReadDword(data, &dataPos);
 		unsigned int dlen = ReadDword(data, &dataPos);
+		if (w * h != dlen) {
+			// Bad font data
+			free(data);
+			free(buffer);
+			return false;
+		}
 
-		// tbd - there are %dlen bytes here containing the font bitmap.
+		unsigned char* d = (unsigned char*)malloc(dlen * 4);
+		unsigned int dp = 3;
+		memset(d, 0xFF, dlen * 4);
+		for (; dlen; dlen--) {
+			d[dp] = *(data + dataPos);
+			dataPos++;
+			dp += 4;
+		}
+
+		font->image = RMakeImage(w, h, 0, 0, d);
+		free(d);
 	}
 
 	// Timelines
