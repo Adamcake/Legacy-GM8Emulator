@@ -157,6 +157,7 @@ bool RMakeGameWindow(GameSettings* settings, unsigned int w, unsigned int h) {
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, (GLint*)(&_maxTextureSize));
 	_colourOutsideRoom = settings->colourOutsideRoom;
 	glClear(GL_COLOR_BUFFER_BIT);
+	glfwSwapInterval(0);
 	InputInit(_window);
 
 	// Make shaders
@@ -372,6 +373,7 @@ void RRenderFrame() {
 	glfwGetWindowSize(_window, &actualWinW, &actualWinH);
 	glViewport(0, 0, actualWinW, actualWinH);
 	glfwSwapBuffers(_window);
+	glFlush();
 
 	glUseProgram(_glProgram);
 	glClearColor((GLclampf)(_colourOutsideRoom & 0xFF000000) / 0xFF000000, (GLclampf)(_colourOutsideRoom & 0xFF0000) / 0xFF0000, (GLclampf)(_colourOutsideRoom & 0xFF00) / 0xFF00, (GLclampf)(_colourOutsideRoom & 0xFF) / 0xFF);
