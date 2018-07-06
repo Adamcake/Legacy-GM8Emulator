@@ -33,7 +33,10 @@ RImageIndex RMakeImage(unsigned int w, unsigned int h, unsigned int originX, uns
 // Draws a registered image at the given X and Y. Tries to imitate draw_sprite_ext() from GML.
 void RDrawImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha);
 
-// Render the current frame. This should be done exactly once per cycle.
+// Clear the screen and prepare for drawing sprites
+void RStartFrame();
+
+// Render the current frame after drawing all images
 void RRenderFrame();
 
 #endif

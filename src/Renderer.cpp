@@ -368,27 +368,31 @@ void RDrawImage(RImageIndex ix, double x, double y, double xscale, double yscale
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-void RRenderFrame() {
+
+void RStartFrame() {
 	int actualWinW, actualWinH;
 	glfwGetWindowSize(_window, &actualWinW, &actualWinH);
-	glViewport(0, 0, actualWinW, actualWinH);
-	glfwSwapBuffers(_window);
-	glFlush();
-
 	glUseProgram(_glProgram);
-	glClearColor((GLclampf)(_colourOutsideRoom & 0xFF000000) / 0xFF000000, (GLclampf)(_colourOutsideRoom & 0xFF0000) / 0xFF0000, (GLclampf)(_colourOutsideRoom & 0xFF00) / 0xFF00, (GLclampf)(_colourOutsideRoom & 0xFF) / 0xFF);
+	glClearColor((GLclampf)(_colourOutsideRoom & 0xFF) / 0xFF, (GLclampf)((_colourOutsideRoom >> 8) & 0xFF) / 0xFF, (GLclampf)((_colourOutsideRoom >> 16) & 0xFF) / 0xFF, (GLclampf)1.0);
 	glViewport(0, 0, actualWinW, actualWinH);
 	glScissor(0, 0, actualWinW, actualWinH);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	// Later, we'll use this for clearing the background of each active view's viewport. But views aren't supported right now.
-	glClearColor((GLfloat)(_roomBGColour & 0xFF) / 0xFF, (GLfloat)((_roomBGColour >> 8) & 0xFF) / 0xFF, (GLfloat)((_roomBGColour >> 16) & 0xFF) / 0xFF, (GLfloat)1.0);
+	glClearColor((GLclampf)(_roomBGColour & 0xFF) / 0xFF, (GLclampf)((_roomBGColour >> 8) & 0xFF) / 0xFF, (GLclampf)((_roomBGColour >> 16) & 0xFF) / 0xFF, (GLclampf)1.0);
 	glViewport(0, 0, actualWinW, actualWinH);
 	glScissor(0, 0, actualWinW, actualWinH);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	GLint vertTexCoord = glGetAttribLocation(_glProgram, "vertTexCoord");
 	glEnableVertexAttribArray(vertTexCoord);
+}
+
+void RRenderFrame() {
+	int actualWinW, actualWinH;
+	glfwGetWindowSize(_window, &actualWinW, &actualWinH);
+	glViewport(0, 0, actualWinW, actualWinH);
+	glfwSwapBuffers(_window);
 }
 
 

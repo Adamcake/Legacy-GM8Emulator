@@ -87,53 +87,6 @@ bool GameFrame() {
 	Instance* instance;
 	InstanceList::Iterator iter(&_instances);
 
-	// Run draw event for all instances (TODO: correct depth order)
-	unsigned int icount = _instances.Count();
-	for (unsigned int i = 0; i < icount; i++) {
-		Instance* instance = _instances[i];
-		// Don't run draw event for instances that don't exist or aren't visible.
-		if (instance->exists && instance->visible) {
-
-			Object* obj = AMGetObject(instance->object_index);
-			if (obj->evDraw) {
-				// This object has a custom draw event.
-				if (!_codeActions->Run(obj->evDraw, obj->evDrawActionCount, instance, NULL)) return false;
-				if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
-			}
-			else {
-				// This is the default draw action if no draw event is present for this object.
-				if (instance->sprite_index >= 0) {
-					Sprite* sprite = AMGetSprite(instance->sprite_index);
-					if (sprite->exists) {
-						RDrawImage(sprite->frames[((int)instance->image_index) % sprite->frameCount], instance->x, instance->y, instance->image_xscale, instance->image_yscale, instance->image_angle, instance->image_blend, instance->image_alpha);
-					}
-					else {
-						// Tried to draw non-existent sprite
-						return false;
-					}
-				}
-			}
-		}
-	}
-
-	// Draw screen
-	RRenderFrame();
-	if (RShouldClose()) return false;
-
-	// Update sprite info
-	iter = InstanceList::Iterator(&_instances);
-	while (instance = iter.Next()) {
-		instance->image_index += instance->image_speed;
-
-		if (instance->sprite_index >= 0) {
-			Sprite* s = AMGetSprite(instance->sprite_index);
-			if (instance->image_index > s->frameCount) {
-				instance->image_index -= s->frameCount;
-			}
-			if (instance->image_speed && s->separateCollision) instance->bboxIsStale = true;
-		}
-	}
-
 	// Update inputs from keyboard and mouse (doesn't really matter where this is in the event order as far as I know)
 	InputUpdate();
 
@@ -248,6 +201,56 @@ bool GameFrame() {
 		Object* o = AMGetObject(instance->object_index);
 		if (!_codeActions->Run(o->evStepEnd, o->evStepEndActionCount, instance, NULL)) return false;
 		if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+	}
+
+	// Prepare screen for drawing
+	RStartFrame();
+
+	// Run draw event for all instances (TODO: correct depth order)
+	unsigned int icount = _instances.Count();
+	for (unsigned int i = 0; i < icount; i++) {
+		Instance* instance = _instances[i];
+		// Don't run draw event for instances that don't exist or aren't visible.
+		if (instance->exists && instance->visible) {
+
+			Object* obj = AMGetObject(instance->object_index);
+			if (obj->evDraw) {
+				// This object has a custom draw event.
+				if (!_codeActions->Run(obj->evDraw, obj->evDrawActionCount, instance, NULL)) return false;
+				if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+			}
+			else {
+				// This is the default draw action if no draw event is present for this object.
+				if (instance->sprite_index >= 0) {
+					Sprite* sprite = AMGetSprite(instance->sprite_index);
+					if (sprite->exists) {
+						RDrawImage(sprite->frames[((int)instance->image_index) % sprite->frameCount], instance->x, instance->y, instance->image_xscale, instance->image_yscale, instance->image_angle, instance->image_blend, instance->image_alpha);
+					}
+					else {
+						// Tried to draw non-existent sprite
+						return false;
+					}
+				}
+			}
+		}
+	}
+
+	// Draw screen
+	RRenderFrame();
+	if (RShouldClose()) return false;
+
+	// Update sprite info
+	iter = InstanceList::Iterator(&_instances);
+	while (instance = iter.Next()) {
+		instance->image_index += instance->image_speed;
+
+		if (instance->sprite_index >= 0) {
+			Sprite* s = AMGetSprite(instance->sprite_index);
+			if (instance->image_index > s->frameCount) {
+				instance->image_index -= s->frameCount;
+			}
+			if (instance->image_speed && s->separateCollision) instance->bboxIsStale = true;
+		}
 	}
 
 	_instances.ClearDeleted();
