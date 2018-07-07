@@ -294,14 +294,19 @@ RImageIndex RMakeImage(unsigned int w, unsigned int h, unsigned int originX, uns
 }
 
 void RDrawImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha) {
-	RAtlasImage* img = _atlasImages._Myfirst() + ix;
+	RAtlasImage* r = _atlasImages._Myfirst() + ix;
+	RDrawPartialImage(ix, x, y, xscale, yscale, rot, blend, alpha, 0, 0, r->w, r->h);
+}
+
+void RDrawPartialImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha, unsigned int partX, unsigned int partY, unsigned int partW, unsigned int partH) {
+	RAtlasImage* aImg = _atlasImages._Myfirst() + ix;
 
 	// Calculate a single matrix for scaling and transforming the sprite
 	double dRot = rot * PI / 180;
 	GLfloat sinRot = (GLfloat)sin(dRot);
 	GLfloat cosRot = (GLfloat)cos(dRot);
-	GLfloat dx = ((GLfloat)img->originX / img->w);
-	GLfloat dy = ((GLfloat)img->originY / img->h);
+	GLfloat dx = ((GLfloat)aImg->originX / aImg->w);
+	GLfloat dy = ((GLfloat)aImg->originY / aImg->h);
 
 	// TODO: We can optimize this a lot by pre-calculating the final matrix instead of multiplying a ton of hard-coded values for every draw.
 	//       But that should wait until we've implemented views, as that will affect the result.
@@ -312,8 +317,8 @@ void RDrawImage(RImageIndex ix, double x, double y, double xscale, double yscale
 		-dx, -dy, 0, 1
 	};
 	GLfloat scale[16] = {
-		(GLfloat)(img->w * xscale), 0, 0, 0,
-		0,(GLfloat)(img->h * -yscale), 0, 0,
+		(GLfloat)(partW * xscale), 0, 0, 0,
+		0,(GLfloat)(partH * -yscale), 0, 0,
 		0, 0, 1, 0,
 		0, 0, 0, 1
 	};
@@ -345,15 +350,14 @@ void RDrawImage(RImageIndex ix, double x, double y, double xscale, double yscale
 	mat4Mult(project, scale2, tmp);
 	mat4Mult(tmp, transform, project);
 
-	RAtlasImage* aImg = &_atlasImages[ix];
 	RAtlas* atlas = &_atlases[aImg->atlasId];
 
 	// Bind uniform shader values
 	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "project"), 1, GL_FALSE, project);
 	glUniform1f(glGetUniformLocation(_glProgram, "objAlpha"), (GLfloat)alpha);
 	glUniform3f(glGetUniformLocation(_glProgram, "objBlend"), (GLfloat)(blend & 0xFF) / 0xFF, (GLfloat)(blend & 0xFF00) / 0xFF00, (GLfloat)(blend & 0xFF0000) / 0xFF0000);
-	glUniform2f(glGetUniformLocation(_glProgram, "atlasXY"), (GLfloat)((double)aImg->x / (double)atlas->w), (GLfloat)((double)aImg->y / (double)atlas->h));
-	glUniform2f(glGetUniformLocation(_glProgram, "atlasWH"), (GLfloat)((double)aImg->w / (double)atlas->w), (GLfloat)((double)aImg->h / (double)atlas->h));
+	glUniform2f(glGetUniformLocation(_glProgram, "atlasXY"), (GLfloat)((double)(aImg->x + partX) / (double)atlas->w), (GLfloat)((double)(aImg->y + partY) / (double)atlas->h));
+	glUniform2f(glGetUniformLocation(_glProgram, "atlasWH"), (GLfloat)((double)(partW) / (double)atlas->w), (GLfloat)((double)(partH) / (double)atlas->h));
 
 	// Do drawing
 	GLint tex = glGetUniformLocation(_glProgram, "tex");

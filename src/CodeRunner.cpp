@@ -23,6 +23,9 @@ CodeRunner::~CodeRunner() {
 	for (char* c : _fieldNames) {
 		free(c);
 	}
+	for (GMLType t : _constants) {
+		free(t.sVal);
+	}
 }
 
 CodeObject CodeRunner::Register(char* code, unsigned int len) {

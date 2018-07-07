@@ -206,6 +206,31 @@ bool GameFrame() {
 	// Prepare screen for drawing
 	RStartFrame();
 
+	// Draw room backgrounds
+	Room* room = AMGetRoom(_globals.room);
+	for (unsigned int i = 0; i < room->backgroundCount; i++) {
+		RoomBackground bg = room->backgrounds[i];
+		if (bg.visible && !bg.foreground) {
+			Background* b = AMGetBackground(bg.backgroundIndex);
+			unsigned int stretchedW = (bg.stretch ? room->width : b->width);
+			unsigned int stretchedH = (bg.stretch ? room->height : b->height);
+			double scaleX = (bg.stretch ? ((double)room->width / b->width) : 1);
+			double scaleY = (bg.stretch ? ((double)room->height / b->height) : 1);
+
+			for (int startY = (bg.tileVert ? (bg.y - stretchedH) : 0); startY < (int)room->height; startY += stretchedH) {
+				for (int startX = (bg.tileHor ? (bg.x - stretchedW) : 0); startX < (int)room->width; startX += stretchedW) {
+					RDrawImage(b->image, startX, startY, scaleX, scaleY, 0, 0xFFFFFFFF, 1);
+				}
+			}
+		}
+	}
+
+	// Draw all tiles (TODO: correct depth order)
+	for (unsigned int i = 0; i < room->tileCount; i++) {
+		RoomTile tile = room->tiles[i];
+		RDrawPartialImage(AMGetBackground(tile.backgroundIndex)->image, tile.x, tile.y, 1, 1, 0, 0xFFFFFFFF, 1, tile.tileX, tile.tileY, tile.width, tile.height);
+	}
+
 	// Run draw event for all instances (TODO: correct depth order)
 	unsigned int icount = _instances.Count();
 	for (unsigned int i = 0; i < icount; i++) {
@@ -230,6 +255,24 @@ bool GameFrame() {
 						// Tried to draw non-existent sprite
 						return false;
 					}
+				}
+			}
+		}
+	}
+
+	// Draw room foregrounds
+	for (unsigned int i = 0; i < room->backgroundCount; i++) {
+		RoomBackground bg = room->backgrounds[i];
+		if (bg.visible && bg.foreground) {
+			Background* b = AMGetBackground(bg.backgroundIndex);
+			unsigned int stretchedW = (bg.stretch ? room->width : b->width);
+			unsigned int stretchedH = (bg.stretch ? room->height : b->height);
+			double scaleX = (bg.stretch ? ((double)room->width / b->width) : 1);
+			double scaleY = (bg.stretch ? ((double)room->height / b->height) : 1);
+
+			for (int startY = (bg.tileVert ? (bg.y - stretchedH) : 0); startY < (int)room->height; startY += stretchedH) {
+				for (int startX = (bg.tileHor ? (bg.x - stretchedW) : 0); startX < (int)room->width; startX += stretchedW) {
+					RDrawImage(b->image, startX, startY, scaleX, scaleY, 0, 0xFFFFFFFF, 1);
 				}
 			}
 		}
