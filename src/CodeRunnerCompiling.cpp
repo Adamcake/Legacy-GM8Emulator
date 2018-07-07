@@ -25,61 +25,65 @@ std::string removeComments(std::string input) {
 		else {
 			char nextChar = input.c_str()[i + 1];
 
-			if (thisChar == '/') {
-				if (nextChar == '/' && (!multiLineComment) && (!singleQuoteString) && (!doubleQuoteString)) {
-					singleLineComment = true;
-					i++;
-					continue;
-				}
-				else if (nextChar == '*' && (!singleLineComment) && (!singleQuoteString) && (!doubleQuoteString)) {
-					multiLineComment = true;
-					i++;
-					continue;
-				}
-				else {
+			switch (thisChar) {
+				case '/':
+					if (nextChar == '/' && (!multiLineComment) && (!singleQuoteString) && (!doubleQuoteString)) {
+						singleLineComment = true;
+						i++;
+						continue;
+					}
+					else if (nextChar == '*' && (!singleLineComment) && (!singleQuoteString) && (!doubleQuoteString)) {
+						multiLineComment = true;
+						i++;
+						continue;
+					}
+					else {
+						if ((!singleLineComment) && (!multiLineComment)) {
+							inputNoComments += thisChar;
+						}
+					}
+					break;
+
+				case '*':
+					if (multiLineComment) {
+						if (nextChar == '/' && (!singleQuoteString) && (!doubleQuoteString)) {
+							multiLineComment = false;
+							i++;
+						}
+					}
+					else {
+						inputNoComments += thisChar;
+					}
+					break;
+
+				case '\'':
+					if ((!multiLineComment) && (!singleLineComment)) {
+						if (!doubleQuoteString) {
+							singleQuoteString = !singleQuoteString;
+						}
+						inputNoComments += thisChar;
+					}
+					break;
+
+				case '"':
+					if ((!multiLineComment) && (!singleLineComment)) {
+						if (!singleQuoteString) {
+							doubleQuoteString = !doubleQuoteString;
+						}
+						inputNoComments += thisChar;
+					}
+					break;
+
+				case 10:
+				case 13:
+					singleLineComment = false;
+					inputNoComments += thisChar;
+					break;
+
+				default:
 					if ((!singleLineComment) && (!multiLineComment)) {
 						inputNoComments += thisChar;
 					}
-				}
-			}
-
-			else if (thisChar == '*') {
-				if (nextChar == '/' && (!singleQuoteString) && (!doubleQuoteString)) {
-					multiLineComment = false;
-					i++;
-				}
-				else {
-					inputNoComments += thisChar;
-				}
-			}
-
-			else if (thisChar == '\'') {
-				if ((!multiLineComment) && (!singleLineComment)) {
-					if (!doubleQuoteString) {
-						singleQuoteString = !singleQuoteString;
-					}
-					inputNoComments += thisChar;
-				}
-			}
-
-			else if (thisChar == '"') {
-				if ((!multiLineComment) && (!singleLineComment)) {
-					if (!singleQuoteString) {
-						doubleQuoteString = !doubleQuoteString;
-					}
-					inputNoComments += thisChar;
-				}
-			}
-
-			else if (thisChar == 10 || thisChar == 13) {
-				singleLineComment = false;
-				inputNoComments += thisChar;
-			}
-
-			else {
-				if ((!singleLineComment) && (!multiLineComment)) {
-					inputNoComments += thisChar;
-				}
 			}
 		}
 	}
