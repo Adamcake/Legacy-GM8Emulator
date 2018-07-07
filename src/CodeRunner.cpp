@@ -186,6 +186,14 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("make_color_hsv");
 				_gmlFuncs.push_back(&CodeRunner::make_color_hsv);
 				break;
+			case MIN:
+				_internalFuncNames.push_back("min");
+				_gmlFuncs.push_back(&CodeRunner::min);
+				break;
+			case MAX:
+				_internalFuncNames.push_back("max");
+				_gmlFuncs.push_back(&CodeRunner::max);
+				break;
 			case MOVE_WRAP:
 				_internalFuncNames.push_back("move_wrap");
 				_gmlFuncs.push_back(&CodeRunner::move_wrap);
@@ -201,6 +209,10 @@ bool CodeRunner::Init() {
 			case POINT_DIRECTION:
 				_internalFuncNames.push_back("point_direction");
 				_gmlFuncs.push_back(&CodeRunner::point_direction);
+				break;
+			case POWER:
+				_internalFuncNames.push_back("power");
+				_gmlFuncs.push_back(&CodeRunner::power);
 				break;
 			case RANDOM:
 				_internalFuncNames.push_back("random");
@@ -241,6 +253,14 @@ bool CodeRunner::Init() {
 			case STRING:
 				_internalFuncNames.push_back("string");
 				_gmlFuncs.push_back(&CodeRunner::string);
+				break;
+			case SQR:
+				_internalFuncNames.push_back("sqr");
+				_gmlFuncs.push_back(&CodeRunner::sqr);
+				break;
+			case SQRT:
+				_internalFuncNames.push_back("sqrt");
+				_gmlFuncs.push_back(&CodeRunner::sqrt);
 				break;
 			default:
 				// There's something in the enum that isn't listed here. Abort

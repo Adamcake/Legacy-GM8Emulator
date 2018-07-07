@@ -363,10 +363,13 @@ class CodeRunner {
 		bool keyboard_check_pressed(unsigned int argc, GMLType* argv, GMLType* out);
 		bool keyboard_check_released(unsigned int argc, GMLType* argv, GMLType* out);
 		bool make_color_hsv(unsigned int argc, GMLType* argv, GMLType* out);
+		bool max(unsigned int argc, GMLType* argv, GMLType* out);
+		bool min(unsigned int argc, GMLType* argv, GMLType* out);
 		bool move_wrap(unsigned int argc, GMLType* argv, GMLType* out);
 		bool ord(unsigned int argc, GMLType* argv, GMLType* out);
 		bool place_meeting(unsigned int argc, GMLType* argv, GMLType* out);
 		bool point_direction(unsigned int argc, GMLType* argv, GMLType* out);
+		bool power(unsigned int argc, GMLType* argv, GMLType* out);
 		bool random(unsigned int argc, GMLType* argv, GMLType* out);
 		bool random_range(unsigned int argc, GMLType* argv, GMLType* out);
 		bool random_get_seed(unsigned int argc, GMLType* argv, GMLType* out);
@@ -376,6 +379,8 @@ class CodeRunner {
 		bool room_goto_previous(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sin(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sound_play(unsigned int argc, GMLType* argv, GMLType* out);
+		bool sqr(unsigned int argc, GMLType* argv, GMLType* out);
+		bool sqrt(unsigned int argc, GMLType* argv, GMLType* out);
 		bool string(unsigned int argc, GMLType* argv, GMLType* out);
 
 	public:

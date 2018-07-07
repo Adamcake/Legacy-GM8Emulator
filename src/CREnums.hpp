@@ -116,10 +116,13 @@ enum CRInternalFunction {
 	KEYBOARD_CHECK_PRESSED,
 	KEYBOARD_CHECK_RELEASED,
 	MAKE_COLOR_HSV,
+	MAX,
+	MIN,
 	MOVE_WRAP,
 	ORD,
 	PLACE_MEETING,
 	POINT_DIRECTION,
+	POWER,
 	RANDOM,
 	RANDOM_RANGE,
 	RANDOM_GET_SEED,
@@ -130,6 +133,8 @@ enum CRInternalFunction {
 	SIN,
 	SOUND_PLAY,
 	STRING,
+	SQR,
+	SQRT,
 	_INTERNAL_FUNC_COUNT // As long as this one is last, it'll tell us how many internal functions are in this enum. So don't move it.
 };
 

@@ -297,6 +297,73 @@ bool CodeRunner::make_color_hsv(unsigned int argc, GMLType* argv, GMLType* out) 
 	return true;
 }
 
+bool CodeRunner::max(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (out) {
+		GMLType ret;
+		if (argc == 0) {
+			(*out) = ret;
+			return true;
+		}
+
+		ret = *argv;
+		for (GMLType* arg = argv + 1; arg < (argv + argc); arg++) {
+			if (arg->state == GML_TYPE_STRING && ret.state == GML_TYPE_STRING) {
+				unsigned int c = 0;
+				while (true) {
+					if ((*(arg->sVal + c)) > (*(ret.sVal + c))) {
+						ret = *arg;
+						break;
+					}
+					if ((*(arg->sVal + c)) == '\0') {
+						break;
+					}
+					c++;
+				}
+			}
+			else if (arg->state == GML_TYPE_DOUBLE && ret.state == GML_TYPE_DOUBLE) {
+				if (arg->dVal > ret.dVal) ret = *arg;
+			}
+		}
+		(*out) = ret;
+	}
+	return true;
+}
+
+bool CodeRunner::min(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (out) {
+		GMLType ret;
+		if (argc == 0) {
+			(*out) = ret;
+			return true;
+		}
+
+		ret = *argv;
+		for (GMLType* arg = argv + 1; arg < (argv + argc); arg++) {
+			if (arg->state == GML_TYPE_STRING && ret.state == GML_TYPE_STRING) {
+				unsigned int c = 0;
+				while (true) {
+					if ((*(arg->sVal + c)) < (*(ret.sVal + c))) {
+						ret = *arg;
+						break;
+					}
+					if ((*(ret.sVal + c)) == '\0') {
+						break;
+					}
+					c++;
+				}
+			}
+			else if (arg->state == GML_TYPE_DOUBLE && ret.state == GML_TYPE_DOUBLE) {
+				if (arg->dVal < ret.dVal) ret = *arg;
+			}
+			else {
+				ret = *arg;
+			}
+		}
+		(*out) = ret;
+	}
+	return true;
+}
+
 bool CodeRunner::move_wrap(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[2].state == GML_TYPE_STRING) return false;
 	bool hor = _isTrue(argv + 0);
@@ -370,6 +437,14 @@ bool CodeRunner::point_direction(unsigned int argc, GMLType* argv, GMLType* out)
 	if (out) {
 		out->state = GML_TYPE_DOUBLE;
 		out->dVal = (::atan2((argv[1].dVal - argv[3].dVal), (argv[2].dVal - argv[0].dVal))) * 180.0 / PI;
+	}
+	return true;
+}
+
+bool CodeRunner::power(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (out) {
+		(*out).state = GML_TYPE_DOUBLE;
+		(*out).dVal = ::pow(argv[0].dVal, argv[1].dVal);
 	}
 	return true;
 }
@@ -466,6 +541,23 @@ bool CodeRunner::string(unsigned int argc, GMLType* argv, GMLType* out) {
 			out->sVal = (char*)malloc(len + 1);
 			memcpy(out->sVal, c, len + 1);
 		}
+	}
+	return true;
+}
+
+bool CodeRunner::sqr(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (out) {
+		out->state = GML_TYPE_DOUBLE;
+		out->dVal = argv[0].dVal * argv[0].dVal;
+	}
+	return true;
+}
+
+bool CodeRunner::sqrt(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (argv[0].dVal < 0) return false;
+	if (out) {
+		out->state = GML_TYPE_DOUBLE;
+		out->dVal = ::sqrt(argv[0].dVal);
 	}
 	return true;
 }
