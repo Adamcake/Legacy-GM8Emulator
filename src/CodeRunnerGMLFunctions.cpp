@@ -59,6 +59,45 @@ bool CodeRunner::cos(unsigned int argc, GMLType* argv, GMLType* out) {
 	return true;
 }
 
+bool CodeRunner::distance_to_object(unsigned int argc, GMLType* argv, GMLType* out) {
+	Instance* self = _contexts.top().self;
+	Instance* other;
+	InstanceList::Iterator iter(_instances, _round(argv[0].dVal));
+	double lowestDist = 1000000.0; // GML default
+	RefreshInstanceBbox(self);
+
+	while (other = iter.Next()) {
+		RefreshInstanceBbox(other);
+
+		int distanceAbove = other->bbox_top - self->bbox_bottom;
+		int distanceBelow = self->bbox_top - other->bbox_bottom;
+		unsigned int absHeightDiff = 0;
+		if (distanceAbove > 0) absHeightDiff = distanceAbove;
+		else if (distanceBelow > 0) absHeightDiff = distanceBelow;
+
+		int distanceLeft = other->bbox_left - self->bbox_right;
+		int distanceRight = self->bbox_left - other->bbox_right;
+		unsigned int absSideDiff = 0;
+		if (distanceLeft > 0) absSideDiff = distanceLeft;
+		else if (distanceRight > 0) absSideDiff = distanceRight;
+
+		double absDist = 0.0;
+		if (absSideDiff || absHeightDiff) {
+			absDist = ::sqrt((absSideDiff * absSideDiff) + (absHeightDiff * absHeightDiff));
+			if (absDist < lowestDist) lowestDist = absDist;
+		}
+		else {
+			lowestDist = 0.0;
+			break;
+		}
+	}
+
+	out->state = GML_TYPE_DOUBLE;
+	out->dVal = lowestDist;
+
+	return true;
+}
+
 bool CodeRunner::draw_rectangle(unsigned int argc, GMLType* argv, GMLType* out) {
 	// todo
 	return true;
@@ -91,13 +130,13 @@ bool CodeRunner::draw_set_valign(unsigned int argc, GMLType* argv, GMLType* out)
 
 bool CodeRunner::draw_sprite(unsigned int argc, GMLType* argv, GMLType* out) {
 	Sprite* spr = AMGetSprite(_round(argv[0].dVal));
-	RDrawImage(spr->frames[_round(argv[1].dVal)], argv[2].dVal, argv[3].dVal, 1.0, 1.0, 0, 0xFFFFFFFF, 1.0);
+	RDrawImage(spr->frames[_round(argv[1].dVal) % spr->frameCount], argv[2].dVal, argv[3].dVal, 1.0, 1.0, 0, 0xFFFFFFFF, 1.0);
 	return true;
 }
 
 bool CodeRunner::draw_sprite_ext(unsigned int argc, GMLType* argv, GMLType* out) {
 	Sprite* spr = AMGetSprite(_round(argv[0].dVal));
-	RDrawImage(spr->frames[_round(argv[1].dVal)], argv[2].dVal, argv[3].dVal, argv[4].dVal, argv[5].dVal, argv[6].dVal, _round(argv[7].dVal), argv[8].dVal);
+	RDrawImage(spr->frames[_round(argv[1].dVal) % spr->frameCount], argv[2].dVal, argv[3].dVal, argv[4].dVal, argv[5].dVal, argv[6].dVal, _round(argv[7].dVal), argv[8].dVal);
 	return true;
 }
 

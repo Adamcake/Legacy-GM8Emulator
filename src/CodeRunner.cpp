@@ -113,6 +113,10 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("cos");
 				_gmlFuncs.push_back(&CodeRunner::cos);
 				break;
+			case DISTANCE_TO_OBJECT:
+				_internalFuncNames.push_back("distance_to_object");
+				_gmlFuncs.push_back(&CodeRunner::distance_to_object);
+				break;
 			case DRAW_RECTANGLE:
 				_internalFuncNames.push_back("draw_rectangle");
 				_gmlFuncs.push_back(&CodeRunner::draw_rectangle);

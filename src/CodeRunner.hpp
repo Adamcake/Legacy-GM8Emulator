@@ -351,6 +351,7 @@ class CodeRunner {
 		bool abs(unsigned int argc, GMLType* argv, GMLType* out);
 		bool choose(unsigned int argc, GMLType* argv, GMLType* out);
 		bool cos(unsigned int argc, GMLType* argv, GMLType* out);
+		bool distance_to_object(unsigned int argc, GMLType* argv, GMLType* out);
 		bool draw_rectangle(unsigned int argc, GMLType* argv, GMLType* out);
 		bool draw_set_alpha(unsigned int argc, GMLType* argv, GMLType* out);
 		bool draw_set_color(unsigned int argc, GMLType* argv, GMLType* out);
