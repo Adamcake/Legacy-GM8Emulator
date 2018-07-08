@@ -255,7 +255,7 @@ class CodeRunner {
 		struct GMLType {
 			GMLTypeState state = GML_TYPE_DOUBLE;
 			double dVal = 0.0;
-			char* sVal;
+			char* sVal = NULL;
 		};
 
 		// Runtime context
@@ -326,7 +326,6 @@ class CodeRunner {
 		bool _compileExpStruct(CRExpressionElement* exp, unsigned char** out, unsigned int* outSize);
 		bool _isAsset(const char* name, unsigned int* index);
 
-
 		// Helper functions for running
 		int _round(double);
 		bool _runCode(const unsigned char* code, GMLType* out);
@@ -340,10 +339,23 @@ class CodeRunner {
 		bool _isTrue(const GMLType* value);
 		bool _applySetMethod(GMLType* lhs, CRSetMethod method, const GMLType* const rhs);
 
+
+		// "draw" vars
+		unsigned int _drawFont = -1;
+		int _drawColour = 0;
+		int _drawValign = 0;
+		int _drawHalign = 0;
+		double _drawAlpha = 1.0;
+
 		// GML internal functions
 		bool cos(unsigned int argc, GMLType* argv, GMLType* out);
 		bool draw_rectangle(unsigned int argc, GMLType* argv, GMLType* out);
+		bool draw_set_alpha(unsigned int argc, GMLType* argv, GMLType* out);
 		bool draw_set_color(unsigned int argc, GMLType* argv, GMLType* out);
+		bool draw_set_font(unsigned int argc, GMLType* argv, GMLType* out);
+		bool draw_set_halign(unsigned int argc, GMLType* argv, GMLType* out);
+		bool draw_set_valign(unsigned int argc, GMLType* argv, GMLType* out);
+		bool draw_text(unsigned int argc, GMLType* argv, GMLType* out);
 		bool execute_string(unsigned int argc, GMLType* argv, GMLType* out);
 		bool file_bin_open(unsigned int argc, GMLType* argv, GMLType* out);
 		bool file_bin_close(unsigned int argc, GMLType* argv, GMLType* out);

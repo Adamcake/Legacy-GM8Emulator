@@ -7,9 +7,11 @@
 #include "CodeActionManager.hpp"
 #include "InputHandler.hpp"
 #include "Collision.hpp"
+#include "Renderer.hpp"
 
 #include <iomanip> // for string()
 #include <sstream> // for string()
+#include <string>
 
 /*
 All GML functions have this format:
@@ -40,8 +42,112 @@ bool CodeRunner::draw_rectangle(unsigned int argc, GMLType* argv, GMLType* out) 
 	return true;
 }
 
+bool CodeRunner::draw_set_alpha(unsigned int argc, GMLType* argv, GMLType* out) {
+	_drawAlpha = argv[0].dVal;
+	return true;
+}
+
 bool CodeRunner::draw_set_color(unsigned int argc, GMLType* argv, GMLType* out) {
-	// todo
+	_drawColour = _round(argv[0].dVal);
+	return true;
+}
+
+bool CodeRunner::draw_set_font(unsigned int argc, GMLType* argv, GMLType* out) {
+	_drawFont = _round(argv[0].dVal);
+	return true;
+}
+
+bool CodeRunner::draw_set_halign(unsigned int argc, GMLType* argv, GMLType* out) {
+	_drawHalign = _round(argv[0].dVal);
+	return true;
+}
+
+bool CodeRunner::draw_set_valign(unsigned int argc, GMLType* argv, GMLType* out) {
+	_drawValign = _round(argv[0].dVal);
+	return true;
+}
+
+bool CodeRunner::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
+	const char* str = argv[2].sVal;
+	std::string st;
+	if (argv[2].state == GML_TYPE_DOUBLE) {
+		std::stringstream ss;
+		ss << std::fixed << std::setprecision(2) << argv[2].dVal;
+		st = ss.str();
+		str = st.c_str();
+	}
+
+	Font* font = AMGetFont(_drawFont);
+	if (font && font->exists) {
+		int cursorX = argv[0].dVal;
+		int cursorY = argv[1].dVal;
+
+		unsigned tallest = 0;
+		for (const char* pC = str; (*pC) != '\0'; pC++) {
+			const char c = *pC;
+			if (c == '#' && (pC == str || *(pC - 1) != '\\')) continue;
+			unsigned int h = font->dmap[(c * 6) + 3];
+			if (h > tallest) tallest = h;
+		}
+
+		if (_drawValign == 1 || _drawValign == 2) {
+			unsigned int lineCount = 1;
+			for (const char* pC = str; (*pC) != '\0'; pC++) {
+				const char c = *pC;
+				if (c == '#' && (pC == str || *(pC - 1) != '\\')) {
+					lineCount++;
+				}
+			}
+			lineCount = lineCount * tallest;
+			if (_drawValign == 1) lineCount /= 2;
+			cursorY -= lineCount;
+		}
+
+		bool recalcX = true;
+		for (const char* pC = str; (*pC) != '\0'; pC++) {
+			const char c = *pC;
+			if (c == '#' && (pC == str || *(pC - 1) != '\\')) {
+				recalcX = true;
+				cursorY += tallest;
+				continue;
+			}
+			else if (c == '\\' && *(pC + 1) == '#') {
+				continue;
+			}
+
+			if (recalcX) {
+				cursorX = _round(argv[0].dVal);
+				if (_drawHalign == 1 || _drawHalign == 2) {
+					unsigned int lineWidth = 0;
+					for (const char* tC = pC; (*tC) != '\0'; tC++) {
+						if ((*tC) == '#' && (tC == str || *(tC - 1) != '\\')) break;
+						if ((*tC) == '\\' && *(tC + 1) == '#') continue;
+						lineWidth += font->dmap[((*tC) * 6) + 4];
+					}
+					if (_drawHalign == 1) lineWidth /= 2;
+					cursorX -= lineWidth;
+				}
+				recalcX = false;
+			}
+
+			if (font->rangeBegin <= c && font->rangeEnd >= c) {
+				unsigned int* dmapPos = font->dmap + (c * 6);
+				unsigned int cX = *(dmapPos);
+				unsigned int cY = *(dmapPos + 1);
+				unsigned int cW = *(dmapPos + 2);
+				unsigned int cH = *(dmapPos + 3);
+				unsigned int cCW = *(dmapPos + 4);
+				unsigned int cCO = *(dmapPos + 5);
+
+				RDrawPartialImage(font->image, cursorX + (int)cCO, cursorY, 1, 1, 0.0, _drawColour, _drawAlpha, cX, cY, cW, cH);
+				cursorX += cCW;
+			}
+		}
+	}
+	else {
+		// Should use the default font here
+	}
+
 	return true;
 }
 

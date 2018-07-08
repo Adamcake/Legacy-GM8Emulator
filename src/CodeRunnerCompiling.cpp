@@ -727,8 +727,9 @@ unsigned int CodeRunner::_RegConstantString(const char* c, unsigned int len) {
 	}
 	GMLType t;
 	t.state = GML_TYPE_STRING;
-	t.sVal = (char*)malloc(len);
+	t.sVal = (char*)malloc(len + 1);
 	memcpy(t.sVal, c, len);
+	t.sVal[len] = '\0';
 	unsigned int ret = (unsigned int)_constants.size();
 	_constants.push_back(t);
 	return ret;

@@ -1,12 +1,6 @@
 #ifndef _A_GAMEPRIVATEGLOBALS_HPP_
 #define _A_GAMEPRIVATEGLOBALS_HPP_
 
-#define _CRTDBG_MAP_ALLOC
-#ifdef _DEBUG
-#define DEBUG_NEW new(_NORMAL_BLOCK, __FILE__, __LINE__)
-#define new DEBUG_NEW
-#endif
-
 #include "InstanceList.hpp"
 #include "GlobalValues.hpp"
 #include "GameSettings.hpp"

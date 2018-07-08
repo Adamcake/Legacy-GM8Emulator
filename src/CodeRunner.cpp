@@ -109,9 +109,29 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("draw_rectangle");
 				_gmlFuncs.push_back(&CodeRunner::draw_rectangle);
 				break;
+			case DRAW_SET_ALPHA:
+				_internalFuncNames.push_back("draw_set_alpha");
+				_gmlFuncs.push_back(&CodeRunner::draw_set_alpha);
+				break;
 			case DRAW_SET_COLOR:
 				_internalFuncNames.push_back("draw_set_color");
 				_gmlFuncs.push_back(&CodeRunner::draw_set_color);
+				break;
+			case DRAW_SET_FONT:
+				_internalFuncNames.push_back("draw_set_font");
+				_gmlFuncs.push_back(&CodeRunner::draw_set_font);
+				break;
+			case DRAW_SET_HALIGN:
+				_internalFuncNames.push_back("draw_set_halign");
+				_gmlFuncs.push_back(&CodeRunner::draw_set_halign);
+				break;
+			case DRAW_SET_VALIGN:
+				_internalFuncNames.push_back("draw_set_valign");
+				_gmlFuncs.push_back(&CodeRunner::draw_set_valign);
+				break;
+			case DRAW_TEXT:
+				_internalFuncNames.push_back("draw_text");
+				_gmlFuncs.push_back(&CodeRunner::draw_text);
 				break;
 			case EXECUTE_STRING:
 				_internalFuncNames.push_back("execute_string");

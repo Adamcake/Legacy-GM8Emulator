@@ -235,10 +235,12 @@ class Font {
 		unsigned int size;
 		bool bold;
 		bool italic;
+		unsigned int charset;
+		unsigned int aaLevel;
 		unsigned int rangeBegin;
 		unsigned int rangeEnd;
 		RImageIndex image;
-		
+		unsigned int dmap[0x600];
 };
 
 class Timeline {

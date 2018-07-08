@@ -941,10 +941,15 @@ bool GameLoad(const char * pFilename) {
 		font->rangeBegin = ReadDword(data, &dataPos);
 		font->rangeEnd = ReadDword(data, &dataPos);
 
+		if (version == 810) {
+			font->charset = font->rangeBegin & 0xFF000000;
+			font->aaLevel = font->rangeBegin & 0x00FF0000;
+			font->rangeBegin &= 0x0000FFFF;
+		}
+
 		// Coordinate data for characters 0-255 in the bitmap.
-		unsigned int dmap[0x600];
 		for (unsigned int i = 0; i < 0x600; i++) {
-			dmap[i] = ReadDword(data, &dataPos); // Have to do it this way instead of a memcpy so it stays endian-safe.
+			font->dmap[i] = ReadDword(data, &dataPos); // Have to do it this way instead of a memcpy so it stays endian-safe.
 		}
 
 		unsigned int w = ReadDword(data, &dataPos);
@@ -966,7 +971,7 @@ bool GameLoad(const char * pFilename) {
 			dp += 4;
 		}
 
-		font->image = RMakeImage(w, h, 0, 0, d);
+		font->image = RMakeImage(w, h, 0, 0, (unsigned char*)d);
 		free(d);
 	}
 
