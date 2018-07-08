@@ -94,6 +94,7 @@ enum CRExpVType {
 };
 
 enum CRInternalFunction {
+	ABS,
 	COS,
 	DRAW_RECTANGLE,
 	DRAW_SET_ALPHA,

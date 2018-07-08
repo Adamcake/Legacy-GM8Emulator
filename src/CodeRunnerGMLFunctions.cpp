@@ -29,6 +29,14 @@ Your implementation must account for "out" being NULL. For example, instance_cre
 but if out is NULL then it doesn't output anything, as the runner has indicated that the output isn't required.
 */
 
+bool CodeRunner::abs(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (out) {
+		out->state = GML_TYPE_DOUBLE;
+		out->dVal = ::abs(argv[0].dVal);
+	}
+	return true;
+}
+
 bool CodeRunner::cos(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (out) {
 		out->state = GML_TYPE_DOUBLE;

@@ -101,6 +101,10 @@ bool CodeRunner::Init() {
 	_internalFuncNames.reserve(_INTERNAL_FUNC_COUNT);
 	for (unsigned int func = 0; func < _INTERNAL_FUNC_COUNT; func++) {
 		switch (func) {
+			case ABS:
+				_internalFuncNames.push_back("abs");
+				_gmlFuncs.push_back(&CodeRunner::abs);
+				break;
 			case COS:
 				_internalFuncNames.push_back("cos");
 				_gmlFuncs.push_back(&CodeRunner::cos);

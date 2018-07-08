@@ -348,6 +348,7 @@ class CodeRunner {
 		double _drawAlpha = 1.0;
 
 		// GML internal functions
+		bool abs(unsigned int argc, GMLType* argv, GMLType* out);
 		bool cos(unsigned int argc, GMLType* argv, GMLType* out);
 		bool draw_rectangle(unsigned int argc, GMLType* argv, GMLType* out);
 		bool draw_set_alpha(unsigned int argc, GMLType* argv, GMLType* out);
