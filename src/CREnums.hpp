@@ -124,6 +124,7 @@ enum CRInternalFunction {
 	MAKE_COLOR_HSV,
 	MAX,
 	MIN,
+	MOVE_CONTACT_SOLID,
 	MOVE_WRAP,
 	ORD,
 	PLACE_FREE,

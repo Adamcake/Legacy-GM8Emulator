@@ -478,6 +478,45 @@ bool CodeRunner::min(unsigned int argc, GMLType* argv, GMLType* out) {
 	return true;
 }
 
+bool CodeRunner::move_contact_solid(unsigned int argc, GMLType* argv, GMLType* out) {
+	int maxdist = _round(argv[1].dVal);
+	if (maxdist <= 0) maxdist = 1000; // GML default
+	double hspeed = ::cos(argv[0].dVal * PI / 180.0);
+	double vspeed = -::sin(argv[0].dVal * PI / 180.0);
+	Instance* self = _contexts.top().self;
+	bool moved = false;
+
+	for (unsigned int i = 0; i < maxdist; i++) {
+		InstanceList::Iterator iter(_instances);
+		bool collision = false;
+		
+		Instance* target;
+		while (target = iter.Next()) {
+			if ((target != self) && target->solid) {
+				if (CollisionCheck(self, target)) {
+					collision = true;
+					break;
+				}
+			}
+		}
+
+		if (collision) {
+			if (moved) {
+				self->x -= hspeed;
+				self->y -= vspeed;
+			}
+			break;
+		}
+		else {
+			self->x += hspeed;
+			self->y += vspeed;
+			self->bboxIsStale = true;
+			moved = true;
+		}
+	}
+	return true;
+}
+
 bool CodeRunner::move_wrap(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[2].state == GML_TYPE_STRING) return false;
 	bool hor = _isTrue(argv + 0);

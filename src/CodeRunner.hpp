@@ -378,6 +378,7 @@ class CodeRunner {
 		bool make_color_hsv(unsigned int argc, GMLType* argv, GMLType* out);
 		bool max(unsigned int argc, GMLType* argv, GMLType* out);
 		bool min(unsigned int argc, GMLType* argv, GMLType* out);
+		bool move_contact_solid(unsigned int argc, GMLType* argv, GMLType* out);
 		bool move_wrap(unsigned int argc, GMLType* argv, GMLType* out);
 		bool ord(unsigned int argc, GMLType* argv, GMLType* out);
 		bool place_free(unsigned int argc, GMLType* argv, GMLType* out);

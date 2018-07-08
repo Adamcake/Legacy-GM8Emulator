@@ -221,6 +221,10 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("max");
 				_gmlFuncs.push_back(&CodeRunner::max);
 				break;
+			case MOVE_CONTACT_SOLID:
+				_internalFuncNames.push_back("move_contact_solid");
+				_gmlFuncs.push_back(&CodeRunner::move_contact_solid);
+				break;
 			case MOVE_WRAP:
 				_internalFuncNames.push_back("move_wrap");
 				_gmlFuncs.push_back(&CodeRunner::move_wrap);
