@@ -393,6 +393,7 @@ class CodeRunner {
 		bool room_goto(unsigned int argc, GMLType* argv, GMLType* out);
 		bool room_goto_next(unsigned int argc, GMLType* argv, GMLType* out);
 		bool room_goto_previous(unsigned int argc, GMLType* argv, GMLType* out);
+		bool sign(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sin(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sound_play(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sound_stop(unsigned int argc, GMLType* argv, GMLType* out);

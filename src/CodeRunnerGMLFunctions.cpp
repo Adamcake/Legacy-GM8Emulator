@@ -721,6 +721,14 @@ bool CodeRunner::room_goto_previous(unsigned int argc, GMLType* argv, GMLType* o
 	return false;
 }
 
+bool CodeRunner::sign(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (out) {
+		out->state = GML_TYPE_DOUBLE;
+		out->dVal = (argv[0].dVal == 0 ? 0 : (argv[0].dVal < 0 ? -1 : 1));
+	}
+	return true;
+}
+
 bool CodeRunner::sin(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (out) {
 		out->state = GML_TYPE_DOUBLE;

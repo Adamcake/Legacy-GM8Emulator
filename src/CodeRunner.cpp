@@ -281,6 +281,10 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("room_goto_previous");
 				_gmlFuncs.push_back(&CodeRunner::room_goto_previous);
 				break;
+			case SIGN:
+				_internalFuncNames.push_back("sign");
+				_gmlFuncs.push_back(&CodeRunner::sign);
+				break;
 			case SIN:
 				_internalFuncNames.push_back("sin");
 				_gmlFuncs.push_back(&CodeRunner::sin);
