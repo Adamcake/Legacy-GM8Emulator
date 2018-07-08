@@ -695,6 +695,7 @@ bool CodeRunner::_InterpretLine(std::string code, unsigned int* pos, std::vector
 				// Write a "reset deref" instruction after we're done here.
 				v->_code.push_back(OP_RESET_DEREF);
 			}
+			findFirstNonWhitespace(code, pos);
 			if (code[*pos] == ';') (*pos)++;
 		}
 	}

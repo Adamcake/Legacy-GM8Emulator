@@ -391,6 +391,8 @@ class CodeRunner {
 		bool room_goto_previous(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sin(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sound_play(unsigned int argc, GMLType* argv, GMLType* out);
+		bool sound_stop(unsigned int argc, GMLType* argv, GMLType* out);
+		bool sound_stop_all(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sqr(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sqrt(unsigned int argc, GMLType* argv, GMLType* out);
 		bool string(unsigned int argc, GMLType* argv, GMLType* out);

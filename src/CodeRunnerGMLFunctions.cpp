@@ -633,6 +633,16 @@ bool CodeRunner::sound_play(unsigned int argc, GMLType* argv, GMLType* out) {
 	return true;
 }
 
+bool CodeRunner::sound_stop(unsigned int argc, GMLType* argv, GMLType* out) {
+	// tbd
+	return true;
+}
+
+bool CodeRunner::sound_stop_all(unsigned int argc, GMLType* argv, GMLType* out) {
+	// tbd
+	return true;
+}
+
 bool CodeRunner::string(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (out) {
 		out->state = GML_TYPE_STRING;

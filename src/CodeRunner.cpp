@@ -273,6 +273,14 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("sound_play");
 				_gmlFuncs.push_back(&CodeRunner::sound_play);
 				break;
+			case SOUND_STOP:
+				_internalFuncNames.push_back("sound_stop");
+				_gmlFuncs.push_back(&CodeRunner::sound_stop);
+				break;
+			case SOUND_STOP_ALL:
+				_internalFuncNames.push_back("sound_stop_all");
+				_gmlFuncs.push_back(&CodeRunner::sound_stop_all);
+				break;
 			case STRING:
 				_internalFuncNames.push_back("string");
 				_gmlFuncs.push_back(&CodeRunner::string);
