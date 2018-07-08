@@ -16,7 +16,9 @@ double RNGRandom(double bound) {
 int RNGIrandom(int bound) {
 	seed *= 0x8088405;
 	seed++;
-	long long v = ((long long)seed) * ((long long)bound);
+	unsigned long long ls = ((unsigned long long)seed) & 0xFFFFFFFF;
+	long long lb = ((long long)bound);
+	unsigned long long v = ls * lb;
 	v >>= 32;
 	return (int)v;
 }

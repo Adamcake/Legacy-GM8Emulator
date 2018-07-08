@@ -105,6 +105,10 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("abs");
 				_gmlFuncs.push_back(&CodeRunner::abs);
 				break;
+			case CHOOSE:
+				_internalFuncNames.push_back("choose");
+				_gmlFuncs.push_back(&CodeRunner::choose);
+				break;
 			case COS:
 				_internalFuncNames.push_back("cos");
 				_gmlFuncs.push_back(&CodeRunner::cos);
@@ -133,6 +137,14 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("draw_set_valign");
 				_gmlFuncs.push_back(&CodeRunner::draw_set_valign);
 				break;
+			case DRAW_SPRITE:
+				_internalFuncNames.push_back("draw_sprite");
+				_gmlFuncs.push_back(&CodeRunner::draw_sprite);
+				break;
+			case DRAW_SPRITE_EXT:
+				_internalFuncNames.push_back("draw_sprite_ext");
+				_gmlFuncs.push_back(&CodeRunner::draw_sprite_ext);
+				break;
 			case DRAW_TEXT:
 				_internalFuncNames.push_back("draw_text");
 				_gmlFuncs.push_back(&CodeRunner::draw_text);
@@ -157,6 +169,10 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("file_bin_write_byte");
 				_gmlFuncs.push_back(&CodeRunner::file_bin_write_byte);
 				break;
+			case FILE_DELETE:
+				_internalFuncNames.push_back("file_delete");
+				_gmlFuncs.push_back(&CodeRunner::file_delete);
+				break;
 			case FILE_EXISTS:
 				_internalFuncNames.push_back("file_exists");
 				_gmlFuncs.push_back(&CodeRunner::file_exists);
@@ -164,6 +180,10 @@ bool CodeRunner::Init() {
 			case FLOOR:
 				_internalFuncNames.push_back("floor");
 				_gmlFuncs.push_back(&CodeRunner::floor);
+				break;
+			case GAME_END:
+				_internalFuncNames.push_back("game_end");
+				_gmlFuncs.push_back(&CodeRunner::game_end);
 				break;
 			case GAME_RESTART:
 				_internalFuncNames.push_back("game_restart");
@@ -288,6 +308,14 @@ bool CodeRunner::Init() {
 			case SIN:
 				_internalFuncNames.push_back("sin");
 				_gmlFuncs.push_back(&CodeRunner::sin);
+				break;
+			case SOUND_ISPLAYING:
+				_internalFuncNames.push_back("sound_isplaying");
+				_gmlFuncs.push_back(&CodeRunner::sound_isplaying);
+				break;
+			case SOUND_LOOP:
+				_internalFuncNames.push_back("sound_loop");
+				_gmlFuncs.push_back(&CodeRunner::sound_loop);
 				break;
 			case SOUND_PLAY:
 				_internalFuncNames.push_back("sound_play");

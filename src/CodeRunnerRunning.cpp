@@ -255,6 +255,9 @@ bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const 
 		case IV_IMAGE_INDEX:
 			out->dVal = instance->image_index;
 			break;
+		case IV_SPRITE_INDEX:
+			out->dVal = instance->sprite_index;
+			break;
 		case IV_SPRITE_WIDTH:
 			if (instance->sprite_index < 0 || instance->sprite_index >= (int)AMGetSpriteCount()) {
 				out->dVal = 0;

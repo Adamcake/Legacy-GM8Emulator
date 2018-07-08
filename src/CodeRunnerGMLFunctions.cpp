@@ -37,6 +37,20 @@ bool CodeRunner::abs(unsigned int argc, GMLType* argv, GMLType* out) {
 	return true;
 }
 
+bool CodeRunner::choose(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (!argc) {
+		if (out) {
+			out->state = GML_TYPE_DOUBLE;
+			out->dVal = 0.0;
+		}
+		return true;
+	}
+
+	int rand = RNGIrandom(argc);
+	(*out) = argv[rand];
+	return true;
+}
+
 bool CodeRunner::cos(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (out) {
 		out->state = GML_TYPE_DOUBLE;
@@ -72,6 +86,18 @@ bool CodeRunner::draw_set_halign(unsigned int argc, GMLType* argv, GMLType* out)
 
 bool CodeRunner::draw_set_valign(unsigned int argc, GMLType* argv, GMLType* out) {
 	_drawValign = _round(argv[0].dVal);
+	return true;
+}
+
+bool CodeRunner::draw_sprite(unsigned int argc, GMLType* argv, GMLType* out) {
+	Sprite* spr = AMGetSprite(_round(argv[0].dVal));
+	RDrawImage(spr->frames[_round(argv[1].dVal)], argv[2].dVal, argv[3].dVal, 1.0, 1.0, 0, 0xFFFFFFFF, 1.0);
+	return true;
+}
+
+bool CodeRunner::draw_sprite_ext(unsigned int argc, GMLType* argv, GMLType* out) {
+	Sprite* spr = AMGetSprite(_round(argv[0].dVal));
+	RDrawImage(spr->frames[_round(argv[1].dVal)], argv[2].dVal, argv[3].dVal, argv[4].dVal, argv[5].dVal, argv[6].dVal, _round(argv[7].dVal), argv[8].dVal);
 	return true;
 }
 
@@ -319,6 +345,13 @@ bool CodeRunner::file_bin_write_byte(unsigned int argc, GMLType* argv, GMLType* 
 	return true;
 }
 
+bool CodeRunner::file_delete(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (argv[0].state == GML_TYPE_STRING) {
+		remove(argv[0].sVal);
+	}
+	return true;
+}
+
 bool CodeRunner::file_exists(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[0].state != GML_TYPE_STRING) return false;
 	if (out) {
@@ -334,6 +367,10 @@ bool CodeRunner::floor(unsigned int argc, GMLType* argv, GMLType* out) {
 		out->dVal = ::floor(argv[0].dVal);
 	}
 	return true;
+}
+
+bool CodeRunner::game_end(unsigned int argc, GMLType* argv, GMLType* out) {
+	return false;
 }
 
 bool CodeRunner::game_restart(unsigned int argc, GMLType* argv, GMLType* out) {
@@ -734,6 +771,16 @@ bool CodeRunner::sin(unsigned int argc, GMLType* argv, GMLType* out) {
 		out->state = GML_TYPE_DOUBLE;
 		out->dVal = ::sin(argv[0].dVal);
 	}
+	return true;
+}
+
+bool CodeRunner::sound_isplaying(unsigned int argc, GMLType* argv, GMLType* out) {
+	// tbd
+	return true;
+}
+
+bool CodeRunner::sound_loop(unsigned int argc, GMLType* argv, GMLType* out) {
+	// tbd
 	return true;
 }
 

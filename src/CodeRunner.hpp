@@ -349,6 +349,7 @@ class CodeRunner {
 
 		// GML internal functions
 		bool abs(unsigned int argc, GMLType* argv, GMLType* out);
+		bool choose(unsigned int argc, GMLType* argv, GMLType* out);
 		bool cos(unsigned int argc, GMLType* argv, GMLType* out);
 		bool draw_rectangle(unsigned int argc, GMLType* argv, GMLType* out);
 		bool draw_set_alpha(unsigned int argc, GMLType* argv, GMLType* out);
@@ -356,14 +357,18 @@ class CodeRunner {
 		bool draw_set_font(unsigned int argc, GMLType* argv, GMLType* out);
 		bool draw_set_halign(unsigned int argc, GMLType* argv, GMLType* out);
 		bool draw_set_valign(unsigned int argc, GMLType* argv, GMLType* out);
+		bool draw_sprite(unsigned int argc, GMLType* argv, GMLType* out);
+		bool draw_sprite_ext(unsigned int argc, GMLType* argv, GMLType* out);
 		bool draw_text(unsigned int argc, GMLType* argv, GMLType* out);
 		bool execute_string(unsigned int argc, GMLType* argv, GMLType* out);
 		bool file_bin_open(unsigned int argc, GMLType* argv, GMLType* out);
 		bool file_bin_close(unsigned int argc, GMLType* argv, GMLType* out);
 		bool file_bin_read_byte(unsigned int argc, GMLType* argv, GMLType* out);
 		bool file_bin_write_byte(unsigned int argc, GMLType* argv, GMLType* out);
+		bool file_delete(unsigned int argc, GMLType* argv, GMLType* out);
 		bool file_exists(unsigned int argc, GMLType* argv, GMLType* out);
 		bool floor(unsigned int argc, GMLType* argv, GMLType* out);
+		bool game_end(unsigned int argc, GMLType* argv, GMLType* out);
 		bool game_restart(unsigned int argc, GMLType* argv, GMLType* out);
 		bool instance_create(unsigned int argc, GMLType* argv, GMLType* out);
 		bool instance_destroy(unsigned int argc, GMLType* argv, GMLType* out);
@@ -395,6 +400,8 @@ class CodeRunner {
 		bool room_goto_previous(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sign(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sin(unsigned int argc, GMLType* argv, GMLType* out);
+		bool sound_isplaying(unsigned int argc, GMLType* argv, GMLType* out);
+		bool sound_loop(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sound_play(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sound_stop(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sound_stop_all(unsigned int argc, GMLType* argv, GMLType* out);
