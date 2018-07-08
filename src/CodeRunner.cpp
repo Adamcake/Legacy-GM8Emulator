@@ -185,6 +185,10 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("instance_number");
 				_gmlFuncs.push_back(&CodeRunner::instance_number);
 				break;
+			case INSTANCE_POSITION:
+				_internalFuncNames.push_back("instance_position");
+				_gmlFuncs.push_back(&CodeRunner::instance_position);
+				break;
 			case IRANDOM:
 				_internalFuncNames.push_back("irandom");
 				_gmlFuncs.push_back(&CodeRunner::irandom);

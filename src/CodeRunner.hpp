@@ -369,6 +369,7 @@ class CodeRunner {
 		bool instance_destroy(unsigned int argc, GMLType* argv, GMLType* out);
 		bool instance_exists(unsigned int argc, GMLType* argv, GMLType* out);
 		bool instance_number(unsigned int argc, GMLType* argv, GMLType* out);
+		bool instance_position(unsigned int argc, GMLType* argv, GMLType* out);
 		bool irandom(unsigned int argc, GMLType* argv, GMLType* out);
 		bool irandom_range(unsigned int argc, GMLType* argv, GMLType* out);
 		bool keyboard_check(unsigned int argc, GMLType* argv, GMLType* out);

@@ -8,4 +8,7 @@ void RefreshInstanceBbox(Instance* i);
 // Checks for collision between two instances
 bool CollisionCheck(Instance* i1, Instance* i2);
 
+// Checks for an instance collision at a certain point
+bool CollisionPointCheck(Instance* i, int x, int y);
+
 #endif

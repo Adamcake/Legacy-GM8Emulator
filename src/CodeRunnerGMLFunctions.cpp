@@ -80,7 +80,7 @@ bool CodeRunner::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
 	std::string st;
 	if (argv[2].state == GML_TYPE_DOUBLE) {
 		std::stringstream ss;
-		ss << std::fixed << std::setprecision(2) << argv[2].dVal;
+		ss << /*std::fixed << std::setprecision(2) <<*/ argv[2].dVal;
 		st = ss.str();
 		str = st.c_str();
 	}
@@ -200,6 +200,27 @@ bool CodeRunner::instance_number(unsigned int argc, GMLType* argv, GMLType* out)
 	unsigned int count = 0;
 	while (it.Next()) count++;
 	out->dVal = (double)count;
+	return true;
+}
+
+bool CodeRunner::instance_position(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (out) {
+		int objId = _round(argv[2].dVal);
+		int x = _round(argv[0].dVal);
+		int y = _round(argv[1].dVal);
+		InstanceList::Iterator it(_instances, (unsigned int)objId);
+		if (objId == -3) it = InstanceList::Iterator(_instances);
+		Instance* instance;
+		double ret = -4.0;
+		while (instance = it.Next()) {
+			if (CollisionPointCheck(instance, x, y)) {
+				ret = instance->id;
+				break;
+			}
+		}
+		out->state = GML_TYPE_DOUBLE;
+		out->dVal = ret;
+	}
 	return true;
 }
 

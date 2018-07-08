@@ -124,3 +124,35 @@ bool CollisionCheck(Instance * i1, Instance * i2) {
 	}
 	return false;
 }
+
+bool CollisionPointCheck(Instance* i1, int x, int y) {
+	RefreshInstanceBbox(i1);
+	if (i1->bbox_right < x) return false;
+	if (x < i1->bbox_left) return false;
+	if (i1->bbox_bottom < y) return false;
+	if (y < i1->bbox_top) return false;
+
+	unsigned int spriteIndex = i1->mask_index;
+	if (spriteIndex == -1) spriteIndex = i1->sprite_index;
+	Sprite* spr1 = AMGetSprite(spriteIndex);
+	CollisionMap* map1 = (spr1->separateCollision ? (spr1->collisionMaps + (int)i1->image_index) : spr1->collisionMaps);
+	double a1 = i1->image_angle * PI / 180.0;
+	double s1 = sin(a1);
+	double c1 = cos(a1);
+	int w1 = map1->width;
+
+	double curX = (double)x;
+	double curY = (double)y;
+	rotateAround(&curX, &curY, i1->x, i1->y, s1, c1);
+	curX = spr1->originX + ((curX - i1->x) / i1->image_xscale);
+	curY = spr1->originY + ((curY - i1->y) / i1->image_yscale);
+	int nx = dRound(curX);
+	int ny = dRound(curY);
+
+	if (nx >= (int)map1->left && nx <= (int)map1->right && ny >= (int)map1->top && ny <= (int)map1->bottom) {
+		if (map1->collision[ny * w1 + nx]) {
+			return true;
+		}
+	}
+	return false;
+}
