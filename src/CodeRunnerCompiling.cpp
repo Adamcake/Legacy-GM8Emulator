@@ -1033,6 +1033,7 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 		CRExpressionElement* element = new CRExpressionElement();
 		(*nextElem) = element;
 		nextElem = &(element->next);
+		findFirstNonWhitespace(code, &pos);
 
 		// Read modifiers first - these will be listed in reverse order of application
 		bool mods = true;
