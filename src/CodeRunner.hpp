@@ -379,6 +379,7 @@ class CodeRunner {
 		bool min(unsigned int argc, GMLType* argv, GMLType* out);
 		bool move_wrap(unsigned int argc, GMLType* argv, GMLType* out);
 		bool ord(unsigned int argc, GMLType* argv, GMLType* out);
+		bool place_free(unsigned int argc, GMLType* argv, GMLType* out);
 		bool place_meeting(unsigned int argc, GMLType* argv, GMLType* out);
 		bool point_direction(unsigned int argc, GMLType* argv, GMLType* out);
 		bool power(unsigned int argc, GMLType* argv, GMLType* out);

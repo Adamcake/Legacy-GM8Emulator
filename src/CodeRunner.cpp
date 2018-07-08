@@ -225,6 +225,10 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("ord");
 				_gmlFuncs.push_back(&CodeRunner::ord);
 				break;
+			case PLACE_FREE:
+				_internalFuncNames.push_back("place_free");
+				_gmlFuncs.push_back(&CodeRunner::place_free);
+				break;
 			case PLACE_MEETING:
 				_internalFuncNames.push_back("place_meeting");
 				_gmlFuncs.push_back(&CodeRunner::place_meeting);

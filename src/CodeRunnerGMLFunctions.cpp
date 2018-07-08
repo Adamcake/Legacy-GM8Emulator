@@ -509,6 +509,36 @@ bool CodeRunner::ord(unsigned int argc, GMLType* argv, GMLType* out) {
 	return true;
 }
 
+bool CodeRunner::place_free(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (out) {
+		out->state = GML_TYPE_DOUBLE;
+		out->dVal = 1.0;
+
+		InstanceList::Iterator iter(_instances);
+		Instance* self = _contexts.top().self;
+		double oldX = self->x;
+		double oldY = self->y;
+		self->x = argv[0].dVal;
+		self->y = argv[1].dVal;
+		self->bboxIsStale = true;
+
+		Instance* target;
+		while (target = iter.Next()) {
+			if ((target != self) && target->solid) {
+				if (CollisionCheck(self, target)) {
+					out->dVal = 0.0;
+					break;
+				}
+			}
+		}
+
+		self->x = oldX;
+		self->y = oldY;
+		self->bboxIsStale = true;
+	}
+	return true;
+}
+
 bool CodeRunner::place_meeting(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (out) {
 		out->state = GML_TYPE_DOUBLE;
@@ -522,6 +552,7 @@ bool CodeRunner::place_meeting(unsigned int argc, GMLType* argv, GMLType* out) {
 		double oldY = self->y;
 		self->x = argv[0].dVal;
 		self->y = argv[1].dVal;
+		self->bboxIsStale = true;
 
 		Instance* target;
 		while (target = iter.Next()) {
@@ -535,6 +566,7 @@ bool CodeRunner::place_meeting(unsigned int argc, GMLType* argv, GMLType* out) {
 
 		self->x = oldX;
 		self->y = oldY;
+		self->bboxIsStale = true;
 	}
 	return true;
 }

@@ -125,6 +125,7 @@ enum CRInternalFunction {
 	MIN,
 	MOVE_WRAP,
 	ORD,
+	PLACE_FREE,
 	PLACE_MEETING,
 	POINT_DIRECTION,
 	POWER,
