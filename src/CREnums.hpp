@@ -152,9 +152,11 @@ enum CRInternalFunction {
 	SOUND_PLAY,
 	SOUND_STOP,
 	SOUND_STOP_ALL,
-	STRING,
 	SQR,
 	SQRT,
+	STRING,
+	STRING_HEIGHT,
+	STRING_WIDTH,
 	_INTERNAL_FUNC_COUNT // As long as this one is last, it'll tell us how many internal functions are in this enum. So don't move it.
 };
 

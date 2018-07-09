@@ -838,6 +838,23 @@ bool CodeRunner::sound_stop_all(unsigned int argc, GMLType* argv, GMLType* out) 
 	return true;
 }
 
+bool CodeRunner::sqr(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (out) {
+		out->state = GML_TYPE_DOUBLE;
+		out->dVal = argv[0].dVal * argv[0].dVal;
+	}
+	return true;
+}
+
+bool CodeRunner::sqrt(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (argv[0].dVal < 0) return false;
+	if (out) {
+		out->state = GML_TYPE_DOUBLE;
+		out->dVal = ::sqrt(argv[0].dVal);
+	}
+	return true;
+}
+
 bool CodeRunner::string(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (out) {
 		out->state = GML_TYPE_STRING;
@@ -857,19 +874,67 @@ bool CodeRunner::string(unsigned int argc, GMLType* argv, GMLType* out) {
 	return true;
 }
 
-bool CodeRunner::sqr(unsigned int argc, GMLType* argv, GMLType* out) {
+bool CodeRunner::string_width(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (out) {
 		out->state = GML_TYPE_DOUBLE;
-		out->dVal = argv[0].dVal * argv[0].dVal;
+		if (argv[0].state != GML_TYPE_STRING) {
+			out->dVal = 1.0; // GML default
+			return true;
+		}
+		
+		Font* font = AMGetFont(_drawFont);
+		if (!font->exists) {
+			// Default font not sure what to do here
+			out->dVal = 0.0;
+			return true;
+		}
+
+		unsigned int longestLine = 1;
+		unsigned int curLength = 0;
+		for (const char* pC = argv[0].sVal; (*pC) != '\0'; pC++) {
+			const char c = *pC;
+			if (c == '#' && (pC == argv[0].sVal || *(pC - 1) != '\\')) {
+				if (curLength > longestLine) longestLine = curLength;
+				curLength = 0;
+				continue;
+			}
+			curLength += font->dmap[(c * 6) + 4];
+		}
+
+		if (curLength > longestLine) longestLine = curLength;
+		out->dVal = longestLine;
 	}
 	return true;
 }
 
-bool CodeRunner::sqrt(unsigned int argc, GMLType* argv, GMLType* out) {
-	if (argv[0].dVal < 0) return false;
+bool CodeRunner::string_height(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (out) {
 		out->state = GML_TYPE_DOUBLE;
-		out->dVal = ::sqrt(argv[0].dVal);
+		if (argv[0].state != GML_TYPE_STRING) {
+			out->dVal = 1.0; // GML default
+			return true;
+		}
+
+		Font* font = AMGetFont(_drawFont);
+		if (!font->exists) {
+			// Default font not sure what to do here
+			out->dVal = 0.0;
+			return true;
+		}
+		
+		unsigned tallest = 1;
+		unsigned int lines = 1;
+		for (const char* pC = argv[0].sVal; (*pC) != '\0'; pC++) {
+			const char c = *pC;
+			if (c == '#' && (pC == argv[0].sVal || *(pC - 1) != '\\')) {
+				lines++;
+				continue;
+			}
+			unsigned int h = font->dmap[(c * 6) + 3];
+			if (h > tallest) tallest = h;
+		}
+
+		out->dVal = tallest * lines;
 	}
 	return true;
 }

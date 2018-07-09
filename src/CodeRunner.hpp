@@ -409,6 +409,8 @@ class CodeRunner {
 		bool sqr(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sqrt(unsigned int argc, GMLType* argv, GMLType* out);
 		bool string(unsigned int argc, GMLType* argv, GMLType* out);
+		bool string_width(unsigned int argc, GMLType* argv, GMLType* out);
+		bool string_height(unsigned int argc, GMLType* argv, GMLType* out);
 
 	public:
 		CodeRunner(InstanceList* instances, GlobalValues* globals, CodeActionManager* codeActions);

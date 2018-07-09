@@ -333,10 +333,6 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("sound_stop_all");
 				_gmlFuncs.push_back(&CodeRunner::sound_stop_all);
 				break;
-			case STRING:
-				_internalFuncNames.push_back("string");
-				_gmlFuncs.push_back(&CodeRunner::string);
-				break;
 			case SQR:
 				_internalFuncNames.push_back("sqr");
 				_gmlFuncs.push_back(&CodeRunner::sqr);
@@ -344,6 +340,18 @@ bool CodeRunner::Init() {
 			case SQRT:
 				_internalFuncNames.push_back("sqrt");
 				_gmlFuncs.push_back(&CodeRunner::sqrt);
+				break;
+			case STRING:
+				_internalFuncNames.push_back("string");
+				_gmlFuncs.push_back(&CodeRunner::string);
+				break;
+			case STRING_WIDTH:
+				_internalFuncNames.push_back("string_width");
+				_gmlFuncs.push_back(&CodeRunner::string_width);
+				break;
+			case STRING_HEIGHT:
+				_internalFuncNames.push_back("string_height");
+				_gmlFuncs.push_back(&CodeRunner::string_height);
 				break;
 			default:
 				// There's something in the enum that isn't listed here. Abort
