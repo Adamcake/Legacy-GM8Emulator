@@ -96,7 +96,7 @@ bool GameFrame() {
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
 		Object* o = AMGetObject(instance->object_index);
-		if (!_codeActions->Run(o->evStepBegin, o->evStepBeginActionCount, instance, NULL)) return false;
+		if (!_codeActions->RunInstanceEvent(3, 1, instance, NULL)) return false;
 		if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 	}
 
@@ -105,12 +105,11 @@ bool GameFrame() {
 	// Subtract from alarms and run event if they reach 0
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
-		Object* obj = AMGetObject(instance->object_index);
 		for (auto const& j : instance->alarm) {
 			if (j.second > 0) {
 				instance->alarm[j.first]--;
 				if (instance->alarm[j.first] == 0) {
-					if (!_codeActions->Run(obj->evAlarm[j.first].actions, obj->evAlarm[j.first].actionCount, instance, NULL)) return false;
+					if (!_codeActions->RunInstanceEvent(2, j.first, instance, NULL)) return false;
 					if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 				}
 			}
@@ -130,8 +129,7 @@ bool GameFrame() {
 	// Run "step" event for all instances
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
-		Object* o = AMGetObject(instance->object_index);
-		if (!_codeActions->Run(o->evStep, o->evStepActionCount, instance, NULL)) return false;
+		if (!_codeActions->RunInstanceEvent(3, 0, instance, NULL)) return false;
 		if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 	}
 
@@ -184,7 +182,7 @@ bool GameFrame() {
 			while (target) {
 				if (target != instance) {
 					if (CollisionCheck(instance, target)) {
-						if (!_codeActions->Run(e.second.actions, e.second.actionCount, instance, target)) return false;
+						if (!_codeActions->RunInstanceEvent(4, e.first, instance, target)) return false;
 						if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 					}
 				}
@@ -198,8 +196,7 @@ bool GameFrame() {
 	// Run "end step" event for all instances
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
-		Object* o = AMGetObject(instance->object_index);
-		if (!_codeActions->Run(o->evStepEnd, o->evStepEndActionCount, instance, NULL)) return false;
+		if (!_codeActions->RunInstanceEvent(3, 2, instance, NULL)) return false;
 		if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 	}
 
@@ -241,7 +238,7 @@ bool GameFrame() {
 			Object* obj = AMGetObject(instance->object_index);
 			if (obj->evDraw) {
 				// This object has a custom draw event.
-				if (!_codeActions->Run(obj->evDraw, obj->evDrawActionCount, instance, NULL)) return false;
+				if (!_codeActions->RunInstanceEvent(8, 0, instance, NULL)) return false;
 				if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 			}
 			else {
