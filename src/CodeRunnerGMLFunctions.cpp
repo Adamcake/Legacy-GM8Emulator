@@ -867,8 +867,7 @@ bool CodeRunner::string(unsigned int argc, GMLType* argv, GMLType* out) {
 			ss << std::fixed << argv[0].dVal;
 			const char* c = ss.str().c_str();
 			size_t len = ss.str().size();
-			out->sVal = (char*)malloc(len + 1);
-			memcpy(out->sVal, c, len + 1);
+			out->sVal = _constants[_RegConstantString(c, len)].sVal;
 		}
 	}
 	return true;
