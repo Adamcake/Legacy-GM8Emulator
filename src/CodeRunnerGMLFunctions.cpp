@@ -145,8 +145,8 @@ bool CodeRunner::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
 	std::string st;
 	if (argv[2].state == GML_TYPE_DOUBLE) {
 		std::stringstream ss;
-		if (_round(argv[2].dVal) == argv[2].dVal) ss << argv[2].dVal;
-		else ss << std::fixed << std::setprecision(2) << argv[2].dVal;
+		ss.precision(_round(argv[2].dVal) == argv[2].dVal ? 0 : 2);
+		ss << std::fixed << argv[2].dVal;
 		st = ss.str();
 		str = st.c_str();
 	}
@@ -862,11 +862,11 @@ bool CodeRunner::string(unsigned int argc, GMLType* argv, GMLType* out) {
 			out->sVal = argv[0].sVal;
 		}
 		else {
-			std::stringstream s;
-			if (_round(argv[0].dVal) == argv[0].dVal) s << argv[0].dVal;
-			else s << std::fixed << std::setprecision(2) << argv[0].dVal;
-			const char* c = s.str().c_str();
-			size_t len = s.str().size();
+			std::stringstream ss;
+			ss.precision(_round(argv[0].dVal) == argv[0].dVal ? 0 : 2);
+			ss << std::fixed << argv[0].dVal;
+			const char* c = ss.str().c_str();
+			size_t len = ss.str().size();
 			out->sVal = (char*)malloc(len + 1);
 			memcpy(out->sVal, c, len + 1);
 		}
