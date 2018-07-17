@@ -153,8 +153,8 @@ bool CodeRunner::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
 
 	Font* font = AMGetFont(_drawFont);
 	if (font && font->exists) {
-		int cursorX = argv[0].dVal;
-		int cursorY = argv[1].dVal;
+		int cursorX = _round(argv[0].dVal);
+		int cursorY = _round(argv[1].dVal);
 
 		unsigned tallest = 0;
 		for (const char* pC = str; (*pC) != '\0'; pC++) {
@@ -204,7 +204,7 @@ bool CodeRunner::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
 				recalcX = false;
 			}
 
-			if (font->rangeBegin <= c && font->rangeEnd >= c) {
+			if (font->rangeBegin <= (unsigned int)c && font->rangeEnd >= (unsigned int)c) {
 				unsigned int* dmapPos = font->dmap + (c * 6);
 				unsigned int cX = *(dmapPos);
 				unsigned int cY = *(dmapPos + 1);
@@ -584,7 +584,7 @@ bool CodeRunner::move_contact_solid(unsigned int argc, GMLType* argv, GMLType* o
 	Instance* self = _contexts.top().self;
 	bool moved = false;
 
-	for (unsigned int i = 0; i < maxdist; i++) {
+	for (int i = 0; i < maxdist; i++) {
 		InstanceList::Iterator iter(_instances);
 		bool collision = false;
 		
@@ -867,7 +867,7 @@ bool CodeRunner::string(unsigned int argc, GMLType* argv, GMLType* out) {
 			ss << std::fixed << argv[0].dVal;
 			const char* c = ss.str().c_str();
 			size_t len = ss.str().size();
-			out->sVal = _constants[_RegConstantString(c, len)].sVal;
+			out->sVal = _constants[_RegConstantString(c, (unsigned int)len)].sVal;
 		}
 	}
 	return true;
