@@ -393,7 +393,7 @@ bool CodeActionManager::Compile(CodeAction action) {
 	return _runner->Compile(_actions[action].codeObj);
 }
 
-bool CodeActionManager::Run(CodeAction* actions, unsigned int count, Instance* self, Instance* other) {
+bool CodeActionManager::Run(CodeAction* actions, unsigned int count, Instance* self, Instance* other, int ev, int sub) {
 	unsigned int pos = 0;
 	while (pos < count) {
 		bool run = true;
@@ -410,7 +410,7 @@ bool CodeActionManager::Run(CodeAction* actions, unsigned int count, Instance* s
 		}
 
 		if(run) {
-			if (!_runner->Run(_actions[actions[pos]].codeObj, self, other)) return false;
+			if (!_runner->Run(_actions[actions[pos]].codeObj, self, other, ev, sub)) return false;
 			pos++;
 		}
 		else {
@@ -439,38 +439,38 @@ bool CodeActionManager::RunInstanceEvent(int ev, int sub, Instance* target, Inst
 	Object* o = AMGetObject(target->object_index);
 	switch (ev) {
 		case 0:  // ev_create
-			return Run(o->evCreate, o->evCreateActionCount, target, other);
+			return Run(o->evCreate, o->evCreateActionCount, target, other, ev, sub);
 		case 1:  // ev_destroy
-			return Run(o->evDestroy, o->evDestroyActionCount, target, other);
+			return Run(o->evDestroy, o->evDestroyActionCount, target, other, ev, sub);
 		case 2:  // ev_alarms
-			return o->evAlarm.count(sub) ? Run(o->evAlarm[sub].actions, o->evAlarm[sub].actionCount, target, other) : true;
+			return o->evAlarm.count(sub) ? Run(o->evAlarm[sub].actions, o->evAlarm[sub].actionCount, target, other, ev, sub) : true;
 		case 3:  // ev_step
 			switch (sub) {
 				case 0: // ev_step_normal
-					return Run(o->evStep, o->evStepActionCount, target, other);
+					return Run(o->evStep, o->evStepActionCount, target, other, ev, sub);
 				case 1: // ev_step_begin
-					return Run(o->evStepBegin, o->evStepBeginActionCount, target, other);
+					return Run(o->evStepBegin, o->evStepBeginActionCount, target, other, ev, sub);
 				case 2: // ev_step_end
-					return Run(o->evStepEnd, o->evStepEndActionCount, target, other);
+					return Run(o->evStepEnd, o->evStepEndActionCount, target, other, ev, sub);
 				default:
 					return true;
 			}
 		case 4:  // ev_collision
-			return o->evCollision.count(sub) ? Run(o->evCollision[sub].actions, o->evCollision[sub].actionCount, target, other) : true;
+			return o->evCollision.count(sub) ? Run(o->evCollision[sub].actions, o->evCollision[sub].actionCount, target, other, ev, sub) : true;
 		case 5:  // ev_keyboard
-			return o->evKeyboard.count(sub) ? Run(o->evKeyboard[sub].actions, o->evKeyboard[sub].actionCount, target, other) : true;
+			return o->evKeyboard.count(sub) ? Run(o->evKeyboard[sub].actions, o->evKeyboard[sub].actionCount, target, other, ev, sub) : true;
 		case 6:  // ev_mouse
-			return o->evMouse.count(sub) ? Run(o->evMouse[sub].actions, o->evMouse[sub].actionCount, target, other) : true;
+			return o->evMouse.count(sub) ? Run(o->evMouse[sub].actions, o->evMouse[sub].actionCount, target, other, ev, sub) : true;
 		case 7:  // ev_other
-			return o->evOther.count(sub) ? Run(o->evOther[sub].actions, o->evOther[sub].actionCount, target, other) : true;
+			return o->evOther.count(sub) ? Run(o->evOther[sub].actions, o->evOther[sub].actionCount, target, other, ev, sub) : true;
 		case 8:  // ev_draw
-			return Run(o->evDraw, o->evDrawActionCount, target, other);
+			return Run(o->evDraw, o->evDrawActionCount, target, other, ev, sub);
 		case 9:  // ev_keypress
-			return o->evKeyPress.count(sub) ? Run(o->evKeyPress[sub].actions, o->evKeyPress[sub].actionCount, target, other) : true;
+			return o->evKeyPress.count(sub) ? Run(o->evKeyPress[sub].actions, o->evKeyPress[sub].actionCount, target, other, ev, sub) : true;
 		case 10: // ev_keyrelease
-			return o->evKeyRelease.count(sub) ? Run(o->evKeyRelease[sub].actions, o->evKeyRelease[sub].actionCount, target, other) : true;
+			return o->evKeyRelease.count(sub) ? Run(o->evKeyRelease[sub].actions, o->evKeyRelease[sub].actionCount, target, other, ev, sub) : true;
 		case 11: // ev_trigger
-			return o->evTrigger.count(sub) ? Run(o->evTrigger[sub].actions, o->evTrigger[sub].actionCount, target, other) : true;
+			return o->evTrigger.count(sub) ? Run(o->evTrigger[sub].actions, o->evTrigger[sub].actionCount, target, other, ev, sub) : true;
 		default:
 			return true;
 	}

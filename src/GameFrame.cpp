@@ -24,7 +24,7 @@ bool GameLoadRoom(int id) {
 		// run "room end" event for _instances[i]
 		Object* o = AMGetObject(_instances[i]->object_index);
 		if (o->evOther.count(5)) {
-			if (!_codeActions->Run(o->evOther[5].actions, o->evOther[5].actionCount, _instances[i], NULL)) return false;
+			if (!_codeActions->RunInstanceEvent(7, 5, _instances[i], NULL)) return false;
 		}
 	}
 
@@ -59,22 +59,22 @@ bool GameLoadRoom(int id) {
 				return false;
 			}
 			// run room->instances[i] creation code
-			if (!_runner->Run(room->instances[i].creation, instance, NULL)) return false;
+			if (!_runner->Run(room->instances[i].creation, instance, NULL, 0, 0)) return false; // not sure if it matters what event id and number I pass here?
 			// run instance create event
 			Object* o = AMGetObject(instance->object_index);
-			if (!_codeActions->Run(o->evCreate, o->evCreateActionCount, instance, NULL)) return false;
+			if (!_codeActions->RunInstanceEvent(0, 0, instance, NULL)) return false;
 		}
 	}
 
 	// run room's creation code
-	if (!_runner->Run(room->creationCode, NULL, NULL)) return false;
+	if (!_runner->Run(room->creationCode, NULL, NULL, 0, 0)) return false; // not sure if it matters what event id and number I pass here
 
 	count = _instances.Count();
 	for (unsigned int i = 0; i < count; i++) {
 		// run _instances[i] room start event
 		Object* o = AMGetObject(_instances[i]->object_index);
 		if (o->evOther.count(4)) {
-			if (!_codeActions->Run(o->evOther[4].actions, o->evOther[4].actionCount, _instances[i], NULL)) return false;
+			if (!_codeActions->RunInstanceEvent(7, 4, _instances[i], NULL)) return false;
 		}
 	}
 

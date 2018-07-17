@@ -239,7 +239,7 @@ bool CodeRunner::instance_create(unsigned int argc, GMLType* argv, GMLType* out)
 		out->dVal = (double)_nextInstanceID;
 	}
 	Object* o = AMGetObject(objID);
-	if (!_codeActions->Run(o->evCreate, o->evCreateActionCount, i, NULL)) return false;
+	if (!_codeActions->RunInstanceEvent(0, 0, i, NULL)) return false;
 	_nextInstanceID++;
 	return true;
 }

@@ -27,7 +27,7 @@ class CodeActionManager {
 		bool Compile(CodeAction action);
 
 		// Run a list of actions. Returns true on success, false on error (ie. game should close.)
-		bool Run(CodeAction* actions, unsigned int count, Instance* self, Instance* other);
+		bool Run(CodeAction* actions, unsigned int count, Instance* self, Instance* other, int ev, int sub);
 
 		// Run an event that belongs to a certain instance. This emulates GML's event_perform().
 		// This needs to be the responsibility of the CodeActionManager because sometimes CodeRuner and CodeActionManager

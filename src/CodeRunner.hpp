@@ -262,10 +262,13 @@ class CodeRunner {
 		struct CRContext {
 			Instance* self;
 			Instance* other;
+			int eventId;
+			int eventNumber;
 			unsigned int startpos;
 			InstanceList::Iterator iterator;
 			std::map<unsigned int, GMLType> locals;
 			CRContext(Instance* s, Instance* o) : self(s), other(o), startpos(0), iterator(NULL, 0) {}
+			CRContext(Instance* s, Instance* o, int e, int se) : self(s), other(o), eventId(e), eventNumber(se), startpos(0), iterator(NULL, 0) {}
 			CRContext(Instance* o, unsigned int start, InstanceList* list) : other(o), startpos(start), iterator(list) { self = iterator.Next(); }
 			CRContext(Instance* o, unsigned int start, InstanceList* list, unsigned int id) : other(o), startpos(start), iterator(list, id) { self = iterator.Next(); }
 		};
@@ -437,7 +440,8 @@ class CodeRunner {
 
 		// Run a compiled code object. Returns true on success, false on error (ie. the game should close.)
 		// Most be passed the instance ID of the "self" and "other" instances in this context. (both may be NULL)
-		bool Run(CodeObject code, Instance* self, Instance* other);
+		// ev and sub indicate the event that's being run. For more info, check the "COMPILED OBJECT EVENTS" section of notes.txt
+		bool Run(CodeObject code, Instance* self, Instance* other, int ev, int sub);
 
 		// Run a compiled GML question (boolean expression). Returns true on success, false on error (ie. the game should close.)
 		// The output value is stored in the supplied pointer.
