@@ -24,7 +24,7 @@ bool GameLoadRoom(int id) {
 		// run "room end" event for _instances[i]
 		Object* o = AMGetObject(_instances[i]->object_index);
 		if (o->evOther.count(5)) {
-			if (!_codeActions->RunInstanceEvent(7, 5, _instances[i], NULL)) return false;
+			if (!_codeActions->RunInstanceEvent(7, 5, _instances[i], NULL, _instances[i]->object_index)) return false;
 		}
 	}
 
@@ -59,22 +59,22 @@ bool GameLoadRoom(int id) {
 				return false;
 			}
 			// run room->instances[i] creation code
-			if (!_runner->Run(room->instances[i].creation, instance, NULL, 0, 0)) return false; // not sure if it matters what event id and number I pass here?
+			if (!_runner->Run(room->instances[i].creation, instance, NULL, 0, 0, 0)) return false; // not sure if it matters what event id and number I pass here?
 			// run instance create event
 			Object* o = AMGetObject(instance->object_index);
-			if (!_codeActions->RunInstanceEvent(0, 0, instance, NULL)) return false;
+			if (!_codeActions->RunInstanceEvent(0, 0, instance, NULL, instance->object_index)) return false;
 		}
 	}
 
 	// run room's creation code
-	if (!_runner->Run(room->creationCode, NULL, NULL, 0, 0)) return false; // not sure if it matters what event id and number I pass here
+	if (!_runner->Run(room->creationCode, NULL, NULL, 0, 0, 0)) return false; // not sure if it matters what event id and number I pass here
 
 	count = _instances.Count();
 	for (unsigned int i = 0; i < count; i++) {
 		// run _instances[i] room start event
 		Object* o = AMGetObject(_instances[i]->object_index);
 		if (o->evOther.count(4)) {
-			if (!_codeActions->RunInstanceEvent(7, 4, _instances[i], NULL)) return false;
+			if (!_codeActions->RunInstanceEvent(7, 4, _instances[i], NULL, _instances[i]->object_index)) return false;
 		}
 	}
 
@@ -96,7 +96,7 @@ bool GameFrame() {
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
 		Object* o = AMGetObject(instance->object_index);
-		if (!_codeActions->RunInstanceEvent(3, 1, instance, NULL)) return false;
+		if (!_codeActions->RunInstanceEvent(3, 1, instance, NULL, instance->object_index)) return false;
 		if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 	}
 
@@ -109,7 +109,7 @@ bool GameFrame() {
 			if (j.second > 0) {
 				instance->alarm[j.first]--;
 				if (instance->alarm[j.first] == 0) {
-					if (!_codeActions->RunInstanceEvent(2, j.first, instance, NULL)) return false;
+					if (!_codeActions->RunInstanceEvent(2, j.first, instance, NULL, instance->object_index)) return false;
 					if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 				}
 			}
@@ -129,7 +129,7 @@ bool GameFrame() {
 	// Run "step" event for all instances
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
-		if (!_codeActions->RunInstanceEvent(3, 0, instance, NULL)) return false;
+		if (!_codeActions->RunInstanceEvent(3, 0, instance, NULL, instance->object_index)) return false;
 		if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 	}
 
@@ -182,7 +182,7 @@ bool GameFrame() {
 			while (target) {
 				if (target != instance) {
 					if (CollisionCheck(instance, target)) {
-						if (!_codeActions->RunInstanceEvent(4, e.first, instance, target)) return false;
+						if (!_codeActions->RunInstanceEvent(4, e.first, instance, target, instance->object_index)) return false;
 						if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 					}
 				}
@@ -196,7 +196,7 @@ bool GameFrame() {
 	// Run "end step" event for all instances
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
-		if (!_codeActions->RunInstanceEvent(3, 2, instance, NULL)) return false;
+		if (!_codeActions->RunInstanceEvent(3, 2, instance, NULL, instance->object_index)) return false;
 		if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 	}
 
@@ -238,7 +238,7 @@ bool GameFrame() {
 			Object* obj = AMGetObject(instance->object_index);
 			if (obj->evDraw) {
 				// This object has a custom draw event.
-				if (!_codeActions->RunInstanceEvent(8, 0, instance, NULL)) return false;
+				if (!_codeActions->RunInstanceEvent(8, 0, instance, NULL, instance->object_index)) return false;
 				if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 			}
 			else {

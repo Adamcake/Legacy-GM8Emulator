@@ -153,6 +153,14 @@ bool CodeRunner::Init() {
 				_internalFuncNames.push_back("draw_text");
 				_gmlFuncs.push_back(&CodeRunner::draw_text);
 				break;
+			case EVENT_INHERITED:
+				_internalFuncNames.push_back("event_inherited");
+				_gmlFuncs.push_back(&CodeRunner::event_inherited);
+				break;
+			case EVENT_PERFORM:
+				_internalFuncNames.push_back("event_perform");
+				_gmlFuncs.push_back(&CodeRunner::event_perform);
+				break;
 			case EXECUTE_STRING:
 				_internalFuncNames.push_back("execute_string");
 				_gmlFuncs.push_back(&CodeRunner::execute_string);

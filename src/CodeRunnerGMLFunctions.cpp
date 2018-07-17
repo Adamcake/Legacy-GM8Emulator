@@ -225,6 +225,25 @@ bool CodeRunner::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
 	return true;
 }
 
+bool CodeRunner::event_inherited(unsigned int argc, GMLType* argv, GMLType* out) {
+	Object* o = AMGetObject(_contexts.top().objId);
+	unsigned int id;
+
+	while (o->parentIndex >= 0) {
+		id = o->parentIndex;
+		o = AMGetObject(id);
+
+		if (_codeActions->CheckObjectEvent(_contexts.top().eventId, _contexts.top().eventNumber, o)) {
+			return _codeActions->RunInstanceEvent(_contexts.top().eventId, _contexts.top().eventNumber, _contexts.top().self, _contexts.top().other, id);
+		}
+	}
+	return true;
+}
+
+bool CodeRunner::event_perform(unsigned int argc, GMLType* argv, GMLType* out) {
+	return _codeActions->RunInstanceEvent(_round(argv[0].dVal), _round(argv[1].dVal), _contexts.top().self, _contexts.top().other, _contexts.top().self->object_index);
+}
+
 bool CodeRunner::execute_string(unsigned int argc, GMLType* argv, GMLType* out) {
 	// tbd
 	return false;
@@ -239,7 +258,7 @@ bool CodeRunner::instance_create(unsigned int argc, GMLType* argv, GMLType* out)
 		out->dVal = (double)_nextInstanceID;
 	}
 	Object* o = AMGetObject(objID);
-	if (!_codeActions->RunInstanceEvent(0, 0, i, NULL)) return false;
+	if (!_codeActions->RunInstanceEvent(0, 0, i, NULL, i->object_index)) return false;
 	_nextInstanceID++;
 	return true;
 }

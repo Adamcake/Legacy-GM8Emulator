@@ -922,8 +922,8 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 	return false;
 }
 
-bool CodeRunner::Run(CodeObject code, Instance* self, Instance* other, int ev, int sub) {
-	_contexts.push(CRContext(self, other, ev, sub));
+bool CodeRunner::Run(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId) {
+	_contexts.push(CRContext(self, other, ev, sub, asObjId));
 	GMLType out;
 	bool ret = _runCode(_codeObjects[code].compiled, &out);
 	_contexts.pop();
