@@ -375,11 +375,11 @@ void CRSSwitch::write(CRSOutput* output) const {
 	for (unsigned int off : comp._breaks) {
 		unsigned int jmp = (comp._output.size() - off) - 4;
 		bool longJmp = (jmp > 255);
-		output->_output[off] = (longJmp ? OP_JUMP_LONG : OP_JUMP);
-		output->_output[off + 1] = (jmp & 0xFF);
+		comp._output[off] = (longJmp ? OP_JUMP_LONG : OP_JUMP);
+		comp._output[off + 1] = (jmp & 0xFF);
 		if (longJmp) {
-			output->_output[off + 2] = ((jmp >> 8)  & 0xFF);
-			output->_output[off + 3] = ((jmp >> 16) & 0xFF);
+			comp._output[off + 2] = ((jmp >> 8)  & 0xFF);
+			comp._output[off + 3] = ((jmp >> 16) & 0xFF);
 		}
 	}
 	for (unsigned int off : comp._continues) {
