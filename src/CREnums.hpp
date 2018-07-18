@@ -164,6 +164,7 @@ enum CRInternalFunction {
 
 enum CRGameVar {
 	HEALTH,
+	INSTANCE_COUNT,
 	LIVES,
 	MOUSE_X,
 	MOUSE_Y,

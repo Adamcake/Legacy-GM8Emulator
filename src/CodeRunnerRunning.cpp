@@ -62,6 +62,9 @@ bool CodeRunner::_setGameValue(CRGameVar index, const unsigned char* arrayIndexV
 bool CodeRunner::_getGameValue(CRGameVar index, const unsigned char* arrayIndexVal, GMLType* out) {
 	out->state = GML_TYPE_DOUBLE;
 	switch (index) {
+		case INSTANCE_COUNT:
+			out->dVal = (double)_instances->Count();
+			break;
 		case MOUSE_X:
 			int mx;
 			RGetCursorPos(&mx, NULL);

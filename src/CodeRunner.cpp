@@ -373,6 +373,9 @@ bool CodeRunner::Init() {
 			case HEALTH:
 				_gameValueNames.push_back("health");
 				break;
+			case INSTANCE_COUNT:
+				_gameValueNames.push_back("instance_count");
+				break;
 			case LIVES:
 				_gameValueNames.push_back("lives");
 				break;
