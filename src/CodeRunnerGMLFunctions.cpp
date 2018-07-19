@@ -321,10 +321,10 @@ bool CodeRunner::irandom(unsigned int argc, GMLType* argv, GMLType* out) {
 
 bool CodeRunner::irandom_range(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[0].state == GML_TYPE_STRING || argv[1].state == GML_TYPE_STRING) return false;
-	int rand = RNGIrandom(_round(argv[0].dVal));
+	int rand = RNGIrandom(::abs(_round(argv[1].dVal) - _round(argv[0].dVal)) + 1);
 	if (out) {
 		out->state = GML_TYPE_DOUBLE;
-		out->dVal = (double)rand;
+		out->dVal = (double)rand + std::fmin(argv[0].dVal, argv[1].dVal);
 	}
 	return true;
 }
