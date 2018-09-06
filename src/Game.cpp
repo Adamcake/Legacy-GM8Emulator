@@ -289,7 +289,7 @@ bool GameLoad(const char * pFilename) {
 	fseek(exe, 0, SEEK_SET);
 	unsigned char* buffer = (unsigned char*) malloc(fsize);
 
-	if (buffer == NULL) {
+	if (buffer == nullptr) {
 		// Failed to allocate space to load the file - gm8 games can be huge so it's best to check for this.
 		return false;
 	}
