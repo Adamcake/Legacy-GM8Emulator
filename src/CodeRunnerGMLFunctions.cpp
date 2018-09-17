@@ -241,11 +241,6 @@ bool CodeRunner::event_perform(unsigned int argc, GMLType* argv, GMLType* out) {
 	return _codeActions->RunInstanceEvent(_round(argv[0].dVal), _round(argv[1].dVal), _contexts.top().self, _contexts.top().other, _contexts.top().self->object_index);
 }
 
-bool CodeRunner::execute_string(unsigned int argc, GMLType* argv, GMLType* out) {
-	// tbd
-	return false;
-}
-
 bool CodeRunner::instance_create(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[0].state == GML_TYPE_STRING || argv[1].state == GML_TYPE_STRING || argv[2].state == GML_TYPE_STRING) return false;
 	unsigned int objID = _round(argv[2].dVal);
@@ -829,31 +824,6 @@ bool CodeRunner::sin(unsigned int argc, GMLType* argv, GMLType* out) {
 	return true;
 }
 
-bool CodeRunner::sound_isplaying(unsigned int argc, GMLType* argv, GMLType* out) {
-	// tbd
-	return true;
-}
-
-bool CodeRunner::sound_loop(unsigned int argc, GMLType* argv, GMLType* out) {
-	// tbd
-	return true;
-}
-
-bool CodeRunner::sound_play(unsigned int argc, GMLType* argv, GMLType* out) {
-	// tbd
-	return true;
-}
-
-bool CodeRunner::sound_stop(unsigned int argc, GMLType* argv, GMLType* out) {
-	// tbd
-	return true;
-}
-
-bool CodeRunner::sound_stop_all(unsigned int argc, GMLType* argv, GMLType* out) {
-	// tbd
-	return true;
-}
-
 bool CodeRunner::sqr(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (out) {
 		out->state = GML_TYPE_DOUBLE;
@@ -952,4 +922,15 @@ bool CodeRunner::string_height(unsigned int argc, GMLType* argv, GMLType* out) {
 		out->dVal = tallest * lines;
 	}
 	return true;
+}
+
+bool CodeRunner::unimplemented(unsigned int argc, GMLType * argv, GMLType * out) {
+	if (!CRErrorOnUnimplemented) {
+		if (out) {
+			out->state = GML_TYPE_DOUBLE;
+			out->dVal = 0.0;
+		}
+		return true;
+	}
+	return false;
 }

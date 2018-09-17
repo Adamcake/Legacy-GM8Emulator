@@ -22,6 +22,10 @@ enum CRSetMethod;
 
 #define PI 3.141592654 // Actual value of PI used by the official runner. Please don't make it more accurate.
 
+// if true, calling unimplemented GML functions will cause an error
+// GET THAT 'static' OUT OF MY PROJECT!!
+constexpr bool CRErrorOnUnimplemented = false;
+
 /*
 The runner compiles GML into an instruction format that is based on the format of x86 CPU instructions, except massively cut down. This is (vaguely) documented here, for now.
 
@@ -367,7 +371,6 @@ class CodeRunner {
 		bool draw_text(unsigned int argc, GMLType* argv, GMLType* out);
 		bool event_inherited(unsigned int argc, GMLType* argv, GMLType* out);
 		bool event_perform(unsigned int argc, GMLType* argv, GMLType* out);
-		bool execute_string(unsigned int argc, GMLType* argv, GMLType* out);
 		bool file_bin_open(unsigned int argc, GMLType* argv, GMLType* out);
 		bool file_bin_close(unsigned int argc, GMLType* argv, GMLType* out);
 		bool file_bin_read_byte(unsigned int argc, GMLType* argv, GMLType* out);
@@ -407,16 +410,13 @@ class CodeRunner {
 		bool room_goto_previous(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sign(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sin(unsigned int argc, GMLType* argv, GMLType* out);
-		bool sound_isplaying(unsigned int argc, GMLType* argv, GMLType* out);
-		bool sound_loop(unsigned int argc, GMLType* argv, GMLType* out);
-		bool sound_play(unsigned int argc, GMLType* argv, GMLType* out);
-		bool sound_stop(unsigned int argc, GMLType* argv, GMLType* out);
-		bool sound_stop_all(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sqr(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sqrt(unsigned int argc, GMLType* argv, GMLType* out);
 		bool string(unsigned int argc, GMLType* argv, GMLType* out);
 		bool string_width(unsigned int argc, GMLType* argv, GMLType* out);
 		bool string_height(unsigned int argc, GMLType* argv, GMLType* out);
+
+		bool unimplemented(unsigned int argc, GMLType* argv, GMLType* out);
 
 	public:
 		CodeRunner(InstanceList* instances, GlobalValues* globals, CodeActionManager* codeActions);
