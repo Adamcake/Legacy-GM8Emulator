@@ -44,8 +44,8 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
 	switch (action.actionID) {
 		case 101: {
 			// Start moving in a direction
-			const char* baseGml = "direction=%d;speed=%s;";
-			if (relative) baseGml = "direction=%d;speed+=%s;";
+			const char* baseGml = "direction=%.2f;speed=%s;";
+			if (relative) baseGml = "direction=%.2f;speed+=%s;";
 			double direction = 0.0;
 			unsigned int dirCount = 0;
 			if (args[0][0] == '1') {
@@ -82,7 +82,8 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
 			if(dirCount) direction /= dirCount;
 			gmlLen = (unsigned int)strlen(baseGml) + 20 + lengths[1] - (2 * 2);
 			gml = (char*)malloc(gmlLen + 1);
-			gmlLen = (unsigned int)sprintf_s(gml, gmlLen + 1, baseGml, direction, args[1]);
+			const char* st = args[1];
+			gmlLen = (unsigned int)sprintf_s(gml, gmlLen + 1, baseGml, direction, st);
 			break;
 		}
 		case 102: {
