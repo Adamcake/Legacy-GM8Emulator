@@ -1,11 +1,8 @@
 #include <pch.h>
 #include "CodeRunner.hpp"
 #include "CRInterpretation.hpp"
-#include "CREnums.hpp"
 #include "AssetManager.hpp"
 #include "CRExpression.hpp"
-#include <string>
-#include <sstream>
 
 //Removes all the comments from some code.
 std::string removeComments(std::string input) {

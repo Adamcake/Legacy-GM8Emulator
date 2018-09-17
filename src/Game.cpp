@@ -1,6 +1,4 @@
 #include <pch.h>
-#include <list>
-
 #include "Game.hpp"
 #include "CodeActionManager.hpp"
 #include "StreamUtil.hpp"
@@ -9,7 +7,6 @@
 #include "InputHandler.hpp"
 #include "Instance.hpp"
 #include "GamePrivateGlobals.hpp"
-#include <zlib.h>
 
 #define ZLIB_BUF_START 65536
 

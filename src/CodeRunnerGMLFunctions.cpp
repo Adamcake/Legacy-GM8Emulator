@@ -10,10 +10,6 @@
 #include "Collision.hpp"
 #include "Renderer.hpp"
 
-#include <iomanip> // for string()
-#include <sstream> // for string()
-#include <string>
-
 /*
 All GML functions have this format:
 bool <gml_function_name>(unsigned int argc, GMLType* argv, GMLType* out)

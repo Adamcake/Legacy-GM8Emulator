@@ -1,5 +1,4 @@
 #include <pch.h>
-#include <string.h>
 #include "Assets.hpp"
 #include "CodeActionManager.hpp"
 

@@ -1,7 +1,5 @@
 #include <pch.h>
 #include "CRInterpretation.hpp"
-#include "CREnums.hpp"
-#include <map>
 
 // Write statements to bytecode
 void _CompileStatements(const std::vector<CRStatement*>* const statements, CRSOutput* output) {

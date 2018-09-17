@@ -1,6 +1,5 @@
 #include <pch.h>
 #include "InputHandler.hpp"
-#include <GLFW/glfw3.h>
 
 // As far as I know, the GM8 keycodes go up to 124 (vk_f12)
 #define NUM_KEYS 124

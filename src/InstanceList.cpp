@@ -2,7 +2,6 @@
 #include "InstanceList.hpp"
 #include "Instance.hpp"
 #include "AssetManager.hpp"
-#include <cstring>
 #define INSTANCE_CAPACITY 65536
 
 

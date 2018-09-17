@@ -1,8 +1,6 @@
 #ifndef _GM8_ASSETS_HPP_
 #define _GM8_ASSETS_HPP_
-#include <vector>
-#include <list>
-#include <map>
+#include <pch.h>
 class CodeActionManager;
 typedef unsigned int RImageIndex;
 typedef unsigned int CodeObject;

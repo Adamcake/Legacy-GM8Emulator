@@ -1,9 +1,5 @@
 #include <pch.h>
-#define GLEW_STATIC
 #define PI 3.14159265358979324
-#include <gl/glew.h>
-#include <GLFW/glfw3.h>
-#include <algorithm>
 #include "Renderer.hpp"
 #include "GameSettings.hpp"
 #include "InputHandler.hpp"

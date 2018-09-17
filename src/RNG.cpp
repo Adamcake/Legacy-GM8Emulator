@@ -1,6 +1,5 @@
 #include <pch.h>
 #include "RNG.hpp"
-#include <ctime>
 
 __int32 seed;
 

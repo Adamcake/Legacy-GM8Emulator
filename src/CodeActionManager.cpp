@@ -26,7 +26,7 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
 	int appliesToObject = ReadDword(stream, pos);
 	bool relative = ReadDword(stream, pos);
 
-	(*pos) += 4; // Another version id..
+	(*pos) += 4; // Another version id...
 
 	char** args = new char*[argCount];
 	unsigned int lengths[8];
