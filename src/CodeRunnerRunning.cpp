@@ -822,10 +822,27 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 					pos += 3;
 				}
 				if (!(this->*_gmlFuncs[func])(argc, argv, NULL)) return false;
+				if (argc > ARG_STACK_SIZE) delete argv;
 				break;
 			}
 			case OP_RUN_SCRIPT: { // Run a user script, not caring about the return value
-				// TODO
+				unsigned int scr = bytes[pos + 1] | (bytes[pos + 2] << 8);
+				unsigned int argc = bytes[pos + 3];
+				GMLType* argv = (argc > ARG_STACK_SIZE ? new GMLType[argc] : stack);
+
+				pos += 4;
+				for (unsigned int i = 0; i < argc; i++) {
+					if (!_parseVal(bytes + pos, argv + i)) {
+						if (argc > ARG_STACK_SIZE) delete argv;
+						return false;
+					}
+					pos += 3;
+				}
+
+				Script* script = AMGetScript(scr);
+				if (!script->exists) return false;
+				if (!this->Run(script->codeObj, _contexts.top().self, _contexts.top().other, _contexts.top().eventId, _contexts.top().eventNumber, _contexts.top().objId, argc, argv)) return false;
+				if (argc > ARG_STACK_SIZE) delete argv;
 				break;
 			}
 			case OP_TEST_VAL: { // Test if a VAL evaluates to true
@@ -931,7 +948,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 	return false;
 }
 
-bool CodeRunner::Run(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId) {
+bool CodeRunner::Run(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, unsigned int argc, GMLType* argv) {
 	_contexts.push(CRContext(self, other, ev, sub, asObjId));
 	GMLType out;
 	bool ret = _runCode(_codeObjects[code].compiled, &out);
