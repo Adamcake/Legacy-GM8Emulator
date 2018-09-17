@@ -262,7 +262,7 @@ RImageIndex RMakeImage(unsigned int w, unsigned int h, unsigned int originX, uns
 	aImg.h = h;
 	aImg.originX = originX;
 	aImg.originY = originY;
-	pImg->imgIndex = _atlasImages.size();
+	pImg->imgIndex = static_cast<unsigned int>(_atlasImages.size());
 	_atlasImages.push_back(aImg);
 
 	// Sort pre-image into the linked list by descending pixel count (ie largest first)
