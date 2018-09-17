@@ -1,3 +1,4 @@
+#include <pch.h>
 #include "CRInterpretation.hpp"
 #include "CREnums.hpp"
 #include <map>

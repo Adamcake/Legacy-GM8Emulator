@@ -1,3 +1,4 @@
+#include <pch.h>
 #define CHECK_MEMORY_LEAKS 0
 #define OUTPUT_FRAME_TIME 1
 #include <chrono>

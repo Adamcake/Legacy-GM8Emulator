@@ -1,3 +1,4 @@
+#include <pch.h>
 #include <stdlib.h>
 #include "CodeActionManager.hpp"
 #include "CodeRunner.hpp"

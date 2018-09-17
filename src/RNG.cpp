@@ -1,3 +1,4 @@
+#include <pch.h>
 #include "RNG.hpp"
 #include <ctime>
 

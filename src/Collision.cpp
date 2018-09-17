@@ -1,3 +1,4 @@
+#include <pch.h>
 #include "Collision.hpp"
 #include "Instance.hpp"
 #include "AssetManager.hpp"

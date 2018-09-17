@@ -1,3 +1,4 @@
+#include <pch.h>
 #include "Game.hpp"
 #include "Renderer.hpp"
 #include "Instance.hpp"

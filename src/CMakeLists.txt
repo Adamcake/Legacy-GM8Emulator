@@ -2,12 +2,14 @@
 file(GLOB Source "*.cpp")
 file(GLOB Headers "*.hpp")
 
-add_executable(GM8Emulator ${Source} ${Headers})
+add_executable(GM8Emulator ${Source} ${Headers} "pch.cpp" "pch.h")
+add_precompiled_header(GM8Emulator "pch.h" SOURCE_CXX "pch.cpp")
 source_group("Headers" FILES ${Headers})
 source_group("Source" FILES ${Source})
 
 include_directories("../deps/glfw/include")
 include_directories("../deps/zlib")
+include_directories(.)
 target_link_libraries(GM8Emulator glfw)
 target_link_libraries(GM8Emulator zlibstatic)
 

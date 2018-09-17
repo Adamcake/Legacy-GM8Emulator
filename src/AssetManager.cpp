@@ -1,3 +1,4 @@
+#include <pch.h>
 #include "AssetManager.hpp"
 
 std::vector<Extension> _extensions;
