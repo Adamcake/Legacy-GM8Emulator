@@ -16,8 +16,8 @@ Why not?
 
 ## Building
 - Clone the repository with `git clone --recurse-submodules https://gitlab.com/GM8Emulator/GM8Emulator.git`
-- If you're using Visual Studio, all the dependencies are already part of the repository. Simply run `cmake -G "Visual Studio 15 2017 Win64"` (optionally without `Win64` if you're on a 32-bit OS for some reason)
-- If you aren't using Visual Studio or building it on a non-windows system, the requirements are the glew and zlib packages installed. This is located with [FindGLEW](https://github.com/Kitware/CMake/blob/master/Modules/FindGLEW.cmake) and [FindZLIB](https://github.com/Kitware/CMake/blob/master/Modules/FindZLIB.cmake) respectively.
+- If you're using Visual Studio, all the dependencies are already part of the repository. For a bit. Simply run `cmake -G "Visual Studio 15 2017 Win64"` (optionally without `Win64` if you're on a 32-bit OS for some reason)
+- If you aren't using Visual Studio or building it on a non-windows system, the requirements are the glew package being installed. NOT FOR LONG. This is located with [FindGLEW](https://github.com/Kitware/CMake/blob/master/Modules/FindGLEW.cmake).
 
 ## Contributing
 This project has only been worked on by two people so far. If you would like to help then that's great, we have a lot to do - but I would encourage you to get in touch first before diving in.
