@@ -638,10 +638,34 @@ bool CodeRunner::_InterpretLine(std::string code, unsigned int* pos, std::vector
 				if (array) {
 					v->_code.push_back(OP_SET_ARRAY);
 					unsigned char val[3];
-					if (!_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val)) return false;
-					v->_code.push_back(val[0]);
-					v->_code.push_back(val[1]);
-					v->_code.push_back(val[2]);
+					//v->_code.push_back(val[0]);
+					//v->_code.push_back(val[1]);
+					//v->_code.push_back(val[2]);
+					unsigned int aPos = 0;
+					if (!_getExpression(arrayIndex, &aPos, val)) return false;
+					findFirstNonWhitespace(arrayIndex, &aPos);
+					if (arrayIndex[aPos] == ',') {
+						// 2D array
+						aPos++;
+						findFirstNonWhitespace(arrayIndex, &aPos);
+						unsigned char val2[3];
+						if (!_getExpression(arrayIndex, &aPos, val2)) return false;
+						v->_code.push_back(val[0]);
+						v->_code.push_back(val[1]);
+						v->_code.push_back(val[2]);
+						v->_code.push_back(val2[0]);
+						v->_code.push_back(val2[1]);
+						v->_code.push_back(val2[2]);
+					}
+					else {
+						// 1D array
+						v->_code.push_back(0);
+						v->_code.push_back(0);
+						v->_code.push_back(0);
+						v->_code.push_back(val[0]);
+						v->_code.push_back(val[1]);
+						v->_code.push_back(val[2]);
+					}
 				}
 				else {
 					v->_code.push_back(OP_SET_FIELD);
@@ -1260,13 +1284,23 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 									// It's a "variable get". Now figure out if this word has an array index at the end of it.
 
 									bool array = false;
-									unsigned char val[3];
+									unsigned char val1[3];
+									unsigned char val2[3];
 									findFirstNonWhitespace(code, &pos);
 									if (code[pos] == '[') {
 										array = true;
 										pos++;
-										if (!_getExpression(code, &pos, val)) return false;
+										if (!_getExpression(code, &pos, val1)) return false;
 										findFirstNonWhitespace(code, &pos);
+										if (code[pos] == ',') {
+											pos++;
+											if (!_getExpression(code, &pos, val2)) return false;
+											findFirstNonWhitespace(code, &pos);
+										}
+										else {
+											memcpy(val2, val1, 3);
+											memset(val1, 0, 3);
+										}
 										if (code[pos] != ']') return false;
 										pos++;
 									}
@@ -1280,24 +1314,27 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 										element->var.push_back(index & 0xFF);
 										element->var.push_back((index >> 8) & 0xFF);
 										if (array) {
-											element->var.push_back(val[0]);
-											element->var.push_back(val[1]);
-											element->var.push_back(val[2]);
+											element->var.push_back(val1[0]);
+											element->var.push_back(val1[1]);
+											element->var.push_back(val1[2]);
+											element->var.push_back(val2[0]);
+											element->var.push_back(val2[1]);
+											element->var.push_back(val2[2]);
 										}
 										break;
 									case VARTYPE_GAME:
 										element->var.push_back(EVTYPE_GAME_VALUE);
 										element->var.push_back(index & 0xFF);
-										element->var.push_back(val[0]);
-										element->var.push_back(val[1]);
-										element->var.push_back(val[2]);
+										element->var.push_back(val2[0]);
+										element->var.push_back(val2[1]);
+										element->var.push_back(val2[2]);
 										break;
 									case VARTYPE_INSTANCE:
 										element->var.push_back(EVTYPE_INSTANCEVAR);
 										element->var.push_back(index & 0xFF);
-										element->var.push_back(val[0]);
-										element->var.push_back(val[1]);
-										element->var.push_back(val[2]);
+										element->var.push_back(val2[0]);
+										element->var.push_back(val2[1]);
+										element->var.push_back(val2[2]);
 										break;
 									}
 								}

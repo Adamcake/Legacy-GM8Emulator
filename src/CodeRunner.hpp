@@ -82,10 +82,11 @@ This will set the indicated instance variable of whatever is stored in the deref
 Followed by 6 bytes. The first 2 indicate the field number, the following byte indicates the SET METHOD and the final 3 are a VAL.
 This will set the indicated field of whatever is stored in the dereferencing buffer (default is self.)
 
-05: Set array (eg self.abc[1])
-Followed by 9 bytes. The first 2 indicate the array number, the following 3 are a VAL indicating the array index,
+05: Set array (eg self.abc[1] or self.abc[1,2])
+Followed by 12 bytes. The first 2 indicate the array number, the following two sets of 3 are VALs indicating the 2d array indexes,
 the following byte indicates the SET METHOD and the final 3 are the VAL for what to set it to.
 This will set the indicated array index of whatever is stored in the dereferencing buffer (default is self.)
+NOTE: GML supports 1d and 2d arrays but actually all arrays are 2d. For example, a[3] and a[0,3] access the same value.
 
 06: Bind local vars (eg "var a;")
 Followed by (1+2n) bytes. The first indicates the number of fields to bind.
@@ -205,8 +206,8 @@ Followed by 4 bytes, the first indicates which game value to get and the followi
 Followed by 2 bytes which indicate the field number.
 This will read from the instance in the expression dereference buffer (default is self.)
 
-04: Get array (eg self.abc[1])
-Followed by 5 bytes. The first 2 indicate the array number, the final 3 are a VAL indicating the array index.
+04: Get array (eg self.abc[1,2])
+Followed by 5 bytes. The first 2 indicate the array number, the final two sets of 3 are VALs indicating the 2D array indexes.
 This will read from the instance in the expression dereference buffer (default is self.)
 
 05: Get instance variable (eg sprite_index)
