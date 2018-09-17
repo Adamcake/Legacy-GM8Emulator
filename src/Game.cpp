@@ -8,7 +8,7 @@
 #include "Instance.hpp"
 #include "GamePrivateGlobals.hpp"
 
-#define ZLIB_BUF_START 65536
+constexpr unsigned int ZLIB_BUF_START = 65536;
 
 #pragma region Helper functions for parsing the filestream - no need for these to be member functions.
 

@@ -2,7 +2,7 @@
 #include "InputHandler.hpp"
 
 // As far as I know, the GM8 keycodes go up to 124 (vk_f12)
-#define NUM_KEYS 124
+constexpr size_t NUM_KEYS = 124;
 bool _current[NUM_KEYS];
 bool _pressed[NUM_KEYS];
 bool _released[NUM_KEYS];
