@@ -59,7 +59,7 @@ void CRSWhile::write(CRSOutput* output) const {
 	bool longJumps = comp._output.size() > 247;
 	if (longJumps) {
 		output->_output.push_back(OP_JUMP_LONG);
-		unsigned int dist = comp._output.size() + 4;
+		unsigned int dist = static_cast<unsigned int>(comp._output.size()) + 4;
 		output->_output.push_back((unsigned char)(dist & 0xFF));
 		output->_output.push_back((unsigned char)((dist >> 8) & 0xFF));
 		output->_output.push_back((unsigned char)((dist >> 16) & 0xFF));
@@ -71,7 +71,7 @@ void CRSWhile::write(CRSOutput* output) const {
 
 	for (unsigned int off : comp._continues) {
 		bool longJmp = (comp._output.size() - off) > 251;
-		unsigned int jd = (comp._output.size() - off) - (longJmp ? 4 : 2);
+		unsigned int jd = (static_cast<unsigned int>(comp._output.size()) - off) - (longJmp ? 4 : 2);
 		comp._output[off] = (longJmp ? OP_JUMP_LONG : OP_JUMP);
 		comp._output[off + 1] = (jd & 0xFF);
 		if (longJmp) {
@@ -81,7 +81,7 @@ void CRSWhile::write(CRSOutput* output) const {
 	}
 	for (unsigned int off : comp._breaks) {
 		bool longJmp = (comp._output.size() - off) > 253;
-		unsigned int jd = (comp._output.size() - off) + (longJumps ? 4 : 2) - (longJmp ? 4 : 2);
+		unsigned int jd = (static_cast<unsigned int>(comp._output.size()) - off) + (longJumps ? 4 : 2) - (longJmp ? 4 : 2);
 		comp._output[off] = (longJmp ? OP_JUMP_LONG : OP_JUMP);
 		comp._output[off + 1] = (jd & 0xFF);
 		if (longJmp) {
@@ -94,7 +94,7 @@ void CRSWhile::write(CRSOutput* output) const {
 
 	if (longJumps) {
 		output->_output.push_back(OP_JUMP_BACK_LONG);
-		unsigned int dist = comp._output.size() + 12;
+		unsigned int dist = static_cast<unsigned int>(comp._output.size()) + 12;
 		output->_output.push_back((unsigned char)(dist & 0xFF));
 		output->_output.push_back((unsigned char)((dist >> 8) & 0xFF));
 		output->_output.push_back((unsigned char)((dist >> 16) & 0xFF));
@@ -114,7 +114,7 @@ void CRSDoUntil::write(CRSOutput* output) const {
 
 	for (unsigned int off : comp._continues) {
 		bool longJmp = (comp._output.size() - off) > 251;
-		unsigned int jd = (comp._output.size() - off) - (longJmp ? 4 : 2);
+		unsigned int jd = (static_cast<unsigned int>(comp._output.size()) - off) - (longJmp ? 4 : 2);
 		comp._output[off] = (longJmp ? OP_JUMP_LONG : OP_JUMP);
 		comp._output[off + 1] = (jd & 0xFF);
 		if (longJmp) {
@@ -124,7 +124,7 @@ void CRSDoUntil::write(CRSOutput* output) const {
 	}
 	for (unsigned int off : comp._breaks) {
 		bool longJmp = (comp._output.size() - off) > 253;
-		unsigned int jd = (comp._output.size() - off) + (longJmpEnd ? 4 : 2) - (longJmp ? 4 : 2);
+		unsigned int jd = (static_cast<unsigned int>(comp._output.size()) - off) + (longJmpEnd ? 4 : 2) - (longJmp ? 4 : 2);
 		comp._output[off] = (longJmp ? OP_JUMP_LONG : OP_JUMP);
 		comp._output[off + 1] = (jd & 0xFF);
 		if (longJmp) {
@@ -142,7 +142,7 @@ void CRSDoUntil::write(CRSOutput* output) const {
 
 	if (longJmpEnd) {
 		output->_output.push_back(OP_JUMP_BACK_LONG);
-		unsigned int dist = comp._output.size() + 8;
+		unsigned int dist = static_cast<unsigned int>(comp._output.size()) + 8;
 		output->_output.push_back((unsigned char)(dist & 0xFF));
 		output->_output.push_back((unsigned char)((dist >> 8) & 0xFF));
 		output->_output.push_back((unsigned char)((dist >> 16) & 0xFF));
@@ -173,7 +173,7 @@ void CRSFor::write(CRSOutput* output) const {
 	bool longJumps = (code._output.size() + final._output.size() > 247);
 	if (longJumps) {
 		output->_output.push_back(OP_JUMP_LONG);
-		unsigned int dist = (code._output.size() + final._output.size() + 4);
+		unsigned int dist = (static_cast<unsigned int>(code._output.size()) + static_cast<unsigned int>(final._output.size()) + 4);
 		output->_output.push_back((unsigned char)(dist & 0xFF));
 		output->_output.push_back((unsigned char)((dist >> 8) & 0xFF));
 		output->_output.push_back((unsigned char)((dist >> 16) & 0xFF));
@@ -185,7 +185,7 @@ void CRSFor::write(CRSOutput* output) const {
 
 	for (unsigned int off : code._continues) {
 		bool longJmp = (code._output.size() - off) > 251;
-		unsigned int jd = (code._output.size() - off) - (longJmp ? 4 : 2);
+		unsigned int jd = (static_cast<unsigned int>(code._output.size()) - off) - (longJmp ? 4 : 2);
 		code._output[off] = (longJmp ? OP_JUMP_LONG : OP_JUMP);
 		code._output[off + 1] = (jd & 0xFF);
 		if (longJmp) {
@@ -195,7 +195,7 @@ void CRSFor::write(CRSOutput* output) const {
 	}
 	for (unsigned int off : code._breaks) {
 		bool longJmp = (code._output.size() + final._output.size() - off) > 249;
-		unsigned int jd = (code._output.size() + final._output.size() - off) + (longJumps ? 4 : 2) - (longJmp ? 4 : 2);
+		unsigned int jd = (static_cast<unsigned int>(code._output.size()) + static_cast<unsigned int>(final._output.size()) - off) + (longJumps ? 4 : 2) - (longJmp ? 4 : 2);
 		code._output[off] = (longJmp ? OP_JUMP_LONG : OP_JUMP);
 		code._output[off + 1] = (jd & 0xFF);
 		if (longJmp) {
@@ -209,7 +209,7 @@ void CRSFor::write(CRSOutput* output) const {
 
 	if (longJumps) {
 		output->_output.push_back(OP_JUMP_BACK_LONG);
-		unsigned int dist = (code._output.size() + final._output.size() + 12);
+		unsigned int dist = (static_cast<unsigned int>(code._output.size()) + static_cast<unsigned int>(final._output.size()) + 12);
 		output->_output.push_back((unsigned char)(dist & 0xFF));
 		output->_output.push_back((unsigned char)((dist >> 8) & 0xFF));
 		output->_output.push_back((unsigned char)((dist >> 16) & 0xFF));
@@ -237,7 +237,7 @@ void CRSRepeat::write(CRSOutput* output) const {
 	output->_output.push_back(0);
 	output->_output.push_back(0);
 
-	unsigned int dist = code._output.size() + 8;
+	unsigned int dist = static_cast<unsigned int>(code._output.size()) + 8;
 
 	if (dist > 255) {
 		output->_output.push_back(OP_JUMP_LONG);
@@ -252,7 +252,7 @@ void CRSRepeat::write(CRSOutput* output) const {
 
 	for (unsigned int off : code._continues) {
 		bool longJmp = (code._output.size() - off) > 253;
-		unsigned int jd = (code._output.size() - off) - (longJmp ? 4 : 2);
+		unsigned int jd = (static_cast<unsigned int>(code._output.size()) - off) - (longJmp ? 4 : 2);
 		code._output[off] = (longJmp ? OP_JUMP_LONG : OP_JUMP);
 		code._output[off + 1] = (jd & 0xFF);
 		if (longJmp) {
@@ -262,7 +262,7 @@ void CRSRepeat::write(CRSOutput* output) const {
 	}
 	for (unsigned int off : code._breaks) {
 		bool longJmp = (code._output.size() - off) > 245;
-		unsigned int jd = ((code._output.size() - off) - (longJmp ? 4 : 2)) + 8;
+		unsigned int jd = ((static_cast<unsigned int>(code._output.size()) - off) - (longJmp ? 4 : 2)) + 8;
 		code._output[off] = (longJmp ? OP_JUMP_LONG : OP_JUMP);
 		code._output[off + 1] = (jd & 0xFF);
 		if (longJmp) {
@@ -302,7 +302,7 @@ void CRSIf::write(CRSOutput* output) const {
 	_CompileStatements(&_code, &ifb);
 	if(useElse) _CompileStatements(&_elseCode, &elseb);
 
-	unsigned int dist = ifb._output.size();
+	unsigned int dist = static_cast<unsigned int>(ifb._output.size());
 	if (useElse) dist += (elseb._output.size() > 255 ? 4 : 2);
 
 	if (dist > 255) {
@@ -317,10 +317,10 @@ void CRSIf::write(CRSOutput* output) const {
 	}
 
 	for (unsigned int off : ifb._continues) {
-		output->_continues.push_back(off + output->_output.size());
+		output->_continues.push_back(off + static_cast<unsigned int>(output->_output.size()));
 	}
 	for (unsigned int off : ifb._breaks) {
-		output->_breaks.push_back(off + output->_output.size());
+		output->_breaks.push_back(off + static_cast<unsigned int>(output->_output.size()));
 	}
 
 	output->_output.insert(output->_output.end(), ifb._output.begin(), ifb._output.end());
@@ -339,10 +339,10 @@ void CRSIf::write(CRSOutput* output) const {
 		}
 
 		for (unsigned int off : elseb._continues) {
-			output->_continues.push_back(off + output->_output.size());
+			output->_continues.push_back(off + static_cast<unsigned int>(output->_output.size()));
 		}
 		for (unsigned int off : elseb._breaks) {
-			output->_breaks.push_back(off + output->_output.size());
+			output->_breaks.push_back(off + static_cast<unsigned int>(output->_output.size()));
 		}
 
 		output->_output.insert(output->_output.end(), elseb._output.begin(), elseb._output.end());
@@ -356,12 +356,12 @@ void CRSSwitch::write(CRSOutput* output) const {
 	CRSOutput comp;
 	unsigned int i;
 	for (i = 0; i < _code.size(); i++) {
-		codeOffsets[i] = comp._output.size();
+		codeOffsets[i] = static_cast<unsigned int>(comp._output.size());
 		_code[i]->write(&comp);
 	}
-	codeOffsets[i] = comp._output.size();
+	codeOffsets[i] = static_cast<unsigned int>(comp._output.size());
 
-	unsigned int dist = comp._output.size() + 4;
+	unsigned int dist = static_cast<unsigned int>(comp._output.size()) + 4;
 	if (dist > 251) {
 		output->_output.push_back(OP_JUMP_LONG);
 		output->_output.push_back((unsigned char)(dist & 0xFF));
@@ -374,7 +374,7 @@ void CRSSwitch::write(CRSOutput* output) const {
 	}
 
 	for (unsigned int off : comp._breaks) {
-		unsigned int jmp = (comp._output.size() - off) - 4;
+		unsigned int jmp = (static_cast<unsigned int>(comp._output.size()) - off) - 4;
 		bool longJmp = (jmp > 255);
 		comp._output[off] = (longJmp ? OP_JUMP_LONG : OP_JUMP);
 		comp._output[off + 1] = (jmp & 0xFF);
@@ -384,7 +384,7 @@ void CRSSwitch::write(CRSOutput* output) const {
 		}
 	}
 	for (unsigned int off : comp._continues) {
-		output->_continues.push_back(off + output->_output.size());
+		output->_continues.push_back(off + static_cast<unsigned int>(output->_output.size()));
 	}
 
 	output->_output.insert(output->_output.end(), comp._output.begin(), comp._output.end());
@@ -434,7 +434,7 @@ void CRSSwitch::write(CRSOutput* output) const {
 // BREAK
 
 void CRSBreak::write(CRSOutput* output) const {
-	output->_breaks.push_back(output->_output.size());
+	output->_breaks.push_back(static_cast<unsigned int>(output->_output.size()));
 	output->_output.push_back(OP_NOP);
 	output->_output.push_back(OP_NOP);
 	output->_output.push_back(OP_NOP);
@@ -444,7 +444,7 @@ void CRSBreak::write(CRSOutput* output) const {
 // CONTINUE
 
 void CRSContinue::write(CRSOutput* output) const {
-	output->_continues.push_back(output->_output.size());
+	output->_continues.push_back(static_cast<unsigned int>(output->_output.size()));
 	output->_output.push_back(OP_NOP);
 	output->_output.push_back(OP_NOP);
 	output->_output.push_back(OP_NOP);
