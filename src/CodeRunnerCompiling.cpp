@@ -514,13 +514,17 @@ bool CodeRunner::_InterpretLine(std::string code, unsigned int* pos, std::vector
 					args.push_back(valBuffer[2]);
 					argCount++;
 
+					findFirstNonWhitespace(code, pos);
+					bool didHaveComma = false;
+					if (code[*pos] == ',') {
+						(*pos)++;
+						didHaveComma = true;
+						findFirstNonWhitespace(code, pos);
+					}
 					if (code[*pos] == ')') {
 						break;
 					}
-					else if (code[*pos] == ',') {
-						(*pos)++;
-					}
-					else return false;
+					else if(!didHaveComma) return false;
 				}
 			}
 			(*pos)++;
@@ -638,9 +642,6 @@ bool CodeRunner::_InterpretLine(std::string code, unsigned int* pos, std::vector
 				if (array) {
 					v->_code.push_back(OP_SET_ARRAY);
 					unsigned char val[3];
-					//v->_code.push_back(val[0]);
-					//v->_code.push_back(val[1]);
-					//v->_code.push_back(val[2]);
 					unsigned int aPos = 0;
 					if (!_getExpression(arrayIndex, &aPos, val)) return false;
 					findFirstNonWhitespace(arrayIndex, &aPos);
@@ -1224,13 +1225,16 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 								argCount++;
 
 								findFirstNonWhitespace(code, &pos);
+								bool didHaveComma = false;
+								if (code[pos] == ',') {
+									pos++;
+									findFirstNonWhitespace(code, &pos);
+									didHaveComma = true;
+								}
 								if (code[pos] == ')') {
 									break;
 								}
-								else if (code[pos] == ',') {
-									pos++;
-								}
-								else return false;
+								else if(!didHaveComma) return false;
 							}
 						}
 						element->var[argCPos] = argCount;

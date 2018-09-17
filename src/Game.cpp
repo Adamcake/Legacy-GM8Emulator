@@ -1574,9 +1574,6 @@ bool GameLoad(const char * pFilename) {
 		}
 	}
 	for (unsigned int i = 0; i < objectCount; i++) {
-		if (i == 644) {
-			int aa = 0;
-		}
 		Object* o = AMGetObject(i);
 		if (o->exists) {
 			for(auto const& ev : o->evAlarm) {
