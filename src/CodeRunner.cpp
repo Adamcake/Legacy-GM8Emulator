@@ -4429,6 +4429,9 @@ bool CodeRunner::Init() {
 			case ROOM_HEIGHT:
 				_gameValueNames.push_back("room_height");
 				break;
+			case ROOM_CAPTION:
+				_gameValueNames.push_back("room_caption");
+				break;
 			default:
 				// There's something in the enum that isn't listed here. Abort
 				return false;

@@ -638,63 +638,74 @@ bool CodeRunner::_InterpretLine(std::string code, unsigned int* pos, std::vector
 			unsigned int varIx;
 			CRVarType type = _getVarType(nextWord, &varIx); // Only send the locals if there are no derefs, cause otherwise the variable can't be local
 			switch (type) {
-			case VARTYPE_FIELD:
-				if (array) {
-					v->_code.push_back(OP_SET_ARRAY);
-					unsigned char val[3];
-					unsigned int aPos = 0;
-					if (!_getExpression(arrayIndex, &aPos, val)) return false;
-					findFirstNonWhitespace(arrayIndex, &aPos);
-					if (arrayIndex[aPos] == ',') {
-						// 2D array
-						aPos++;
+				case VARTYPE_FIELD: {
+					if (array) {
+						v->_code.push_back(OP_SET_ARRAY);
+						unsigned char val[3];
+						unsigned int aPos = 0;
+						if (!_getExpression(arrayIndex, &aPos, val)) return false;
 						findFirstNonWhitespace(arrayIndex, &aPos);
-						unsigned char val2[3];
-						if (!_getExpression(arrayIndex, &aPos, val2)) return false;
-						v->_code.push_back(val[0]);
-						v->_code.push_back(val[1]);
-						v->_code.push_back(val[2]);
-						v->_code.push_back(val2[0]);
-						v->_code.push_back(val2[1]);
-						v->_code.push_back(val2[2]);
+						if (arrayIndex[aPos] == ',') {
+							// 2D array
+							aPos++;
+							findFirstNonWhitespace(arrayIndex, &aPos);
+							unsigned char val2[3];
+							if (!_getExpression(arrayIndex, &aPos, val2)) return false;
+							v->_code.push_back(val[0]);
+							v->_code.push_back(val[1]);
+							v->_code.push_back(val[2]);
+							v->_code.push_back(val2[0]);
+							v->_code.push_back(val2[1]);
+							v->_code.push_back(val2[2]);
+						}
+						else {
+							// 1D array
+							v->_code.push_back(0);
+							v->_code.push_back(0);
+							v->_code.push_back(0);
+							v->_code.push_back(val[0]);
+							v->_code.push_back(val[1]);
+							v->_code.push_back(val[2]);
+						}
 					}
 					else {
-						// 1D array
-						v->_code.push_back(0);
-						v->_code.push_back(0);
-						v->_code.push_back(0);
-						v->_code.push_back(val[0]);
-						v->_code.push_back(val[1]);
-						v->_code.push_back(val[2]);
+						v->_code.push_back(OP_SET_FIELD);
 					}
+					v->_code.push_back((unsigned char)(varIx & 0xFF));
+					v->_code.push_back((unsigned char)((varIx >> 8) & 0xFF));
+					break;
 				}
-				else {
-					v->_code.push_back(OP_SET_FIELD);
+				case VARTYPE_INSTANCE: {
+					if (array != (bool)(varIx == IV_ALARM)) { // if instance var is alarm and an array isn't used, OR it's not alarm and an array is used
+						// Invalid instance var
+						return false;
+					}
+					v->_code.push_back(OP_SET_INSTANCE_VAR);
+					v->_code.push_back((unsigned char)(varIx & 0xFF));
+					unsigned char val[3];
+					if (array) {
+						if (!_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val)) return false;
+					}
+					v->_code.push_back(val[0]);
+					v->_code.push_back(val[1]);
+					v->_code.push_back(val[2]);
+					break;
 				}
-				v->_code.push_back((unsigned char)(varIx & 0xFF));
-				v->_code.push_back((unsigned char)((varIx >> 8) & 0xFF));
-				break;
-			case VARTYPE_INSTANCE:
-				if (array != (bool)(varIx == IV_ALARM)) { // if instance var is alarm and an array isn't used, OR it's not alarm and an array is used
-					// Invalid instance var
+				case VARTYPE_GAME: {
+					v->_code.push_back(OP_SET_GAME_VALUE);
+					v->_code.push_back((unsigned char)varIx);
+					unsigned char val[3];
+					if (array) {
+						if (!_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val)) return false;
+					}
+					v->_code.push_back(val[0]);
+					v->_code.push_back(val[1]);
+					v->_code.push_back(val[2]);
+					break;
+				}
+				default: {
 					return false;
 				}
-				v->_code.push_back(OP_SET_INSTANCE_VAR);
-				v->_code.push_back((unsigned char)(varIx & 0xFF));
-				unsigned char val[3];
-				if (array) {
-					if (!_makeVal(arrayIndex.c_str(), (unsigned int)arrayIndex.size(), val)) return false;
-				}
-				v->_code.push_back(val[0]);
-				v->_code.push_back(val[1]);
-				v->_code.push_back(val[2]);
-				break;
-			case VARTYPE_GAME:
-				v->_code.push_back(OP_SET_GAME_VALUE);
-				v->_code.push_back((unsigned char)varIx);
-				break;
-			default:
-				return false;
 			}
 
 			// No matter what OP type we wrote, the rest is the same. Next we need to work out the SET METHOD.

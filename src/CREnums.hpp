@@ -1182,6 +1182,7 @@ enum CRGameVar {
 	ROOM_SPEED,
 	ROOM_HEIGHT,
 	ROOM_WIDTH,
+	ROOM_CAPTION,
 	_GAME_VALUE_COUNT // As long as this one is last, it'll tell us how many things are in this enum. So don't move it.
 };
 

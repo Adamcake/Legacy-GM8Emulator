@@ -53,6 +53,12 @@ bool CodeRunner::_setGameValue(CRGameVar index, const unsigned char* arrayIndexV
 		case ROOM:
 			_globalValues->roomTarget = (unsigned int)_round(value.dVal);
 			break;
+		case ROOM_SPEED:
+			_globalValues->room_speed = (unsigned int)_round(value.dVal);
+			break;
+		case ROOM_CAPTION:
+			// set caption somehow I guess
+			break;
 		default:
 			return false;
 	}
