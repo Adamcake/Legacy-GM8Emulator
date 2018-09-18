@@ -9,6 +9,7 @@
 #include "InputHandler.hpp"
 #include "Collision.hpp"
 #include "Renderer.hpp"
+#include "File.hpp"
 
 /*
 All GML functions have this format:
@@ -328,13 +329,12 @@ bool CodeRunner::file_delete(unsigned int argc, GMLType* argv, GMLType* out) {
 }
 
 bool CodeRunner::file_exists(unsigned int argc, GMLType* argv, GMLType* out) {
-	/*if (argv[0].state != GMLTypeState::String) return false;
+	if (argv[0].state != GMLTypeState::String) return false;
 	if (out) {
-	out->state = GMLTypeState::Double;
-	out->dVal = (stat(argv[0].sVal, NULL) == 0 ? 1.0 : 0.0);
+		out->state = GMLTypeState::Double;
+		out->dVal = (FileExists(argv[0].sVal.c_str()) ? 1.0 : 0.0);
 	}
-	return true;*/
-	return false;
+	return true;
 }
 
 bool CodeRunner::instance_create(unsigned int argc, GMLType* argv, GMLType* out) {
