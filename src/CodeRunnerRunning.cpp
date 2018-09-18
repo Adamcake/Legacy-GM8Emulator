@@ -7,7 +7,7 @@
 #include "GlobalValues.hpp"
 #include "Collision.hpp"
 
-#define ARG_STACK_SIZE 4
+constexpr unsigned int ARG_STACK_SIZE = 4; // SHOUTY
 
 
 Instance global;
@@ -29,11 +29,11 @@ bool CodeRunner::_parseVal(const unsigned char* val, CodeRunner::GMLType* out) {
 
 	switch (type) {
 		case 0:
-			out->state = GML_TYPE_DOUBLE;
+			out->state = GMLTypeState::Double;
 			out->dVal = (double)_stack.top();
 			break;
 		case 1:
-			out->state = GML_TYPE_DOUBLE;
+			out->state = GMLTypeState::Double;
 			out->dVal = (double)index;
 			break;
 		case 2:
@@ -66,7 +66,7 @@ bool CodeRunner::_setGameValue(CRGameVar index, const unsigned char* arrayIndexV
 }
 
 bool CodeRunner::_getGameValue(CRGameVar index, const unsigned char* arrayIndexVal, GMLType* out) {
-	out->state = GML_TYPE_DOUBLE;
+	out->state = GMLTypeState::Double;
 	switch (index) {
 		case INSTANCE_COUNT:
 			out->dVal = (double)_instances->Count();
@@ -103,9 +103,9 @@ bool CodeRunner::_getGameValue(CRGameVar index, const unsigned char* arrayIndexV
 bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const unsigned char * arrayIndexVal, CRSetMethod method, GMLType value) {
 	// No instance vars are strings. In GML if you set an instance var to a string, it gets set to 0.
 	GMLType t;
-	t.state = GML_TYPE_DOUBLE;
-	if (value.state != GML_TYPE_DOUBLE) {
-		value.state = GML_TYPE_DOUBLE;
+	t.state = GMLTypeState::Double;
+	if (value.state != GMLTypeState::Double) {
+		value.state = GMLTypeState::Double;
 		value.dVal = 0;
 	}
 
@@ -114,10 +114,10 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 	switch (index) {
 		case IV_ALARM:
 			if (!_parseVal(arrayIndexVal, &arrayId)) return false;
-			if (arrayId.state != GML_TYPE_DOUBLE) return false;
+			if (arrayId.state != GMLTypeState::Double) return false;
 			roundedAId = _round(arrayId.dVal);
 			if (roundedAId < 0) return false;
-			instance->alarm[(unsigned int)roundedAId] = (int)(value.state == GML_TYPE_DOUBLE ? value.dVal : 0.0);
+			instance->alarm[(unsigned int)roundedAId] = (int)(value.state == GMLTypeState::Double ? value.dVal : 0.0);
 			break;
 		case IV_DIRECTION:
 			t.dVal = instance->direction;
@@ -226,7 +226,7 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 }
 
 bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const unsigned char* arrayIndexVal, GMLType* out) {
-	out->state = GML_TYPE_DOUBLE;
+	out->state = GMLTypeState::Double;
 	switch (index) {
 		case IV_INSTANCE_ID:
 			out->dVal = instance->id;
@@ -308,7 +308,7 @@ bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const 
 }
 
 bool CodeRunner::_isTrue(const CodeRunner::GMLType* value) {
-	return (value->state == GML_TYPE_DOUBLE) && (value->dVal >= 0.5);
+	return (value->state == GMLTypeState::Double) && (value->dVal >= 0.5);
 }
 
 bool CodeRunner::_applySetMethod(CodeRunner::GMLType* lhs, CRSetMethod method, const CodeRunner::GMLType* const rhs) {
@@ -319,18 +319,12 @@ bool CodeRunner::_applySetMethod(CodeRunner::GMLType* lhs, CRSetMethod method, c
 	}
 	else if (method == SM_ADD) {
 		// Only other method that can be used on strings
-		if ((lhs->state == GML_TYPE_STRING) != (rhs->state == GML_TYPE_STRING)) {
+		if ((lhs->state == GMLTypeState::String) != (rhs->state == GMLTypeState::String)) {
 			// Incompatible operands
 			return false;
 		}
-		if (lhs->state == GML_TYPE_STRING) {
-			size_t lLen = strlen(lhs->sVal);
-			size_t rLen = strlen(rhs->sVal);
-			char* c = (char*)malloc(lLen + rLen);
-			memcpy(c, lhs->sVal, lLen);
-			memcpy(c + lLen, rhs->sVal, rLen);
-			(*lhs) = _constants[_RegConstantString(c, (unsigned int)(lLen + rLen))];
-			free(c);
+		if (lhs->state == GMLTypeState::String) {
+			lhs->sVal += rhs->sVal;
 		}
 		else {
 			lhs->dVal += rhs->dVal;
@@ -339,7 +333,7 @@ bool CodeRunner::_applySetMethod(CodeRunner::GMLType* lhs, CRSetMethod method, c
 	}
 	else {
 		// No other set methods can be used with strings, so we can error if either one is a string
-		if ((lhs->state == GML_TYPE_STRING) || (rhs->state == GML_TYPE_STRING)) {
+		if ((lhs->state == GMLTypeState::String) || (rhs->state == GMLTypeState::String)) {
 			return false;
 		}
 		switch (method) {
@@ -425,7 +419,7 @@ bool CodeRunner::_readExpVal(unsigned char* code, unsigned int* pos, Instance* d
 
 	// Get and apply any unary operators
 	while (code[*pos] == EVMOD_NOT || code[*pos] == EVMOD_NEGATIVE || code[*pos] == EVMOD_TILDE) {
-		if (var.state == GML_TYPE_STRING) return false;
+		if (var.state == GMLTypeState::String) return false;
 		if (code[*pos] == EVMOD_NOT) var.dVal = (_isTrue(&var) ? 0.0 : 1.0);
 		else if (code[*pos] == EVMOD_NEGATIVE) var.dVal = -var.dVal;
 		else var.dVal = ~_round(var.dVal);
@@ -448,7 +442,7 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 
 	while (code[pos] == OPERATOR_DEREF) {
 		pos++;
-		if (var.state == GML_TYPE_STRING) return false;
+		if (var.state == GMLTypeState::String) return false;
 		int i = _round(var.dVal);
 		switch (i) {
 			case -1:
@@ -483,7 +477,7 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 		if (var.state != rhs.state) return false;
 
 		while (code[pos] == OPERATOR_DEREF) {
-			if (rhs.state == GML_TYPE_STRING) return false;
+			if (rhs.state == GMLTypeState::String) return false;
 			pos++;
 			int i = _round(rhs.dVal);
 			switch (i) {
@@ -513,119 +507,119 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 				break;
 			}
 			case OPERATOR_SUBTRACT: {
-				if (var.state == GML_TYPE_STRING) return false;
+				if (var.state == GMLTypeState::String) return false;
 				var.dVal -= rhs.dVal;
 				break;
 			}
 			case OPERATOR_MULTIPLY: {
-				if (var.state == GML_TYPE_STRING) return false;
+				if (var.state == GMLTypeState::String) return false;
 				var.dVal *= rhs.dVal;
 				break;
 			}
 			case OPERATOR_DIVIDE: {
-				if (var.state == GML_TYPE_STRING) return false;
+				if (var.state == GMLTypeState::String) return false;
 				var.dVal /= rhs.dVal;
 				break;
 			}
 			case OPERATOR_MOD: {
-				if (var.state == GML_TYPE_STRING) return false;
+				if (var.state == GMLTypeState::String) return false;
 				var.dVal = std::fmod(var.dVal, rhs.dVal);
 				break;
 			}
 			case OPERATOR_DIV: {
-				if (var.state == GML_TYPE_STRING) return false;
+				if (var.state == GMLTypeState::String) return false;
 				var.dVal = ::floor(var.dVal / rhs.dVal);
 				break;
 			}
 			case OPERATOR_LTE: {
-				if (var.state == GML_TYPE_DOUBLE) {
+				if (var.state == GMLTypeState::Double) {
 					var.dVal = (var.dVal <= rhs.dVal ? 1.0 : 0.0);
 				}
 				else {
-					var.dVal = (strlen(var.sVal) <= strlen(rhs.sVal) ? 1.0 : 0.0);
+					var.dVal = (var.sVal.length() <= rhs.sVal.length() ? 1.0 : 0.0);
 				}
-				var.state = GML_TYPE_DOUBLE;
+				var.state = GMLTypeState::Double;
 				break;
 			}
 			case OPERATOR_GTE: {
-				if (var.state == GML_TYPE_DOUBLE) {
+				if (var.state == GMLTypeState::Double) {
 					var.dVal = (var.dVal >= rhs.dVal ? 1.0 : 0.0);
 				}
 				else {
-					var.dVal = (strlen(var.sVal) >= strlen(rhs.sVal) ? 1.0 : 0.0);
+					var.dVal = (var.sVal.length() >= rhs.sVal.length() ? 1.0 : 0.0);
 				}
-				var.state = GML_TYPE_DOUBLE;
+				var.state = GMLTypeState::Double;
 				break;
 			}
 			case OPERATOR_LT: {
-				if (var.state == GML_TYPE_DOUBLE) {
+				if (var.state == GMLTypeState::Double) {
 					var.dVal = (var.dVal < rhs.dVal ? 1.0 : 0.0);
 				}
 				else {
-					var.dVal = (strlen(var.sVal) < strlen(rhs.sVal) ? 1.0 : 0.0);
+					var.dVal = (var.sVal.length() < rhs.sVal.length() ? 1.0 : 0.0);
 				}
-				var.state = GML_TYPE_DOUBLE;
+				var.state = GMLTypeState::Double;
 				break;
 			}
 			case OPERATOR_GT: {
-				if (var.state == GML_TYPE_DOUBLE) {
+				if (var.state == GMLTypeState::Double) {
 					var.dVal = (var.dVal > rhs.dVal ? 1.0 : 0.0);
 				}
 				else {
-					var.dVal = (strlen(var.sVal) > strlen(rhs.sVal) ? 1.0 : 0.0);
+					var.dVal = (var.sVal.length() > rhs.sVal.length() ? 1.0 : 0.0);
 				}
-				var.state = GML_TYPE_DOUBLE;
+				var.state = GMLTypeState::Double;
 				break;
 			}
 			case OPERATOR_EQUALS: {
-				if(var.state == GML_TYPE_DOUBLE) var.dVal = (var.dVal == rhs.dVal ? 1.0 : 0.0);
-				else var.dVal = (strcmp(var.sVal, rhs.sVal) ? 0.0 : 1.0);
-				var.state = GML_TYPE_DOUBLE;
+				if(var.state == GMLTypeState::Double) var.dVal = (var.dVal == rhs.dVal ? 1.0 : 0.0);
+				else var.dVal = (var.sVal.compare(rhs.sVal) ? 0.0 : 1.0);
+				var.state = GMLTypeState::Double;
 				break;
 			}
 			case OPERATOR_NOT_EQUAL: {
-				if (var.state == GML_TYPE_DOUBLE) var.dVal = (var.dVal != rhs.dVal ? 1.0 : 0.0);
-				else var.dVal = (strcmp(var.sVal, rhs.sVal) ? 1.0 : 0.0);
-				var.state = GML_TYPE_DOUBLE;
+				if (var.state == GMLTypeState::Double) var.dVal = (var.dVal != rhs.dVal ? 1.0 : 0.0);
+				else var.dVal = (var.sVal.compare(rhs.sVal) ? 1.0 : 0.0);
+				var.state = GMLTypeState::Double;
 				break;
 			}
 			case OPERATOR_BOOLEAN_AND: {
-				if (var.state == GML_TYPE_STRING) return false;
+				if (var.state == GMLTypeState::String) return false;
 				var.dVal = (_isTrue(&var) && _isTrue(&rhs) ? 1.0 : 0.0);
 				break;
 			}
 			case OPERATOR_BOOLEAN_OR: {
-				if (var.state == GML_TYPE_STRING) return false;
+				if (var.state == GMLTypeState::String) return false;
 				var.dVal = (_isTrue(&var) || _isTrue(&rhs) ? 1.0 : 0.0);
 				break;
 			}
 			case OPERATOR_BOOLEAN_XOR: {
-				if (var.state == GML_TYPE_STRING) return false;
+				if (var.state == GMLTypeState::String) return false;
 				var.dVal = (_isTrue(&var) != _isTrue(&rhs) ? 1.0 : 0.0);
 				break;
 			}
 			case OPERATOR_BITWISE_AND: {
-				if (var.state == GML_TYPE_STRING) return false;
+				if (var.state == GMLTypeState::String) return false;
 				var.dVal = (double)(_round(var.dVal) & _round(rhs.dVal));
 				break;
 			}
 			case OPERATOR_BITWISE_OR: {
-				if (var.state == GML_TYPE_STRING) return false;
+				if (var.state == GMLTypeState::String) return false;
 				var.dVal = (double)(_round(var.dVal) | _round(rhs.dVal));
 				break;
 			}
 			case OPERATOR_BITWISE_XOR: {
-				if (var.state == GML_TYPE_STRING) return false;
+				if (var.state == GMLTypeState::String) return false;
 				var.dVal = (double)(_round(var.dVal) ^ _round(rhs.dVal));
 				break;
 			}
 			case OPERATOR_LSHIFT: {
-				if (var.state == GML_TYPE_STRING) return false;
+				if (var.state == GMLTypeState::String) return false;
 				var.dVal = (double)(_round(var.dVal) << _round(rhs.dVal));
 				break;
 			}
 			case OPERATOR_RSHIFT: {
-				if (var.state == GML_TYPE_STRING) return false;
+				if (var.state == GMLTypeState::String) return false;
 				var.dVal = (double)(_round(var.dVal) >> _round(rhs.dVal));
 				break;
 			}
@@ -705,7 +699,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 			case OP_DEREF: { // Dereference an expression into the deref buffer
 				GMLType val;
 				if (!_parseVal(bytes + pos + 1, &val)) return false;
-				if (val.state != GML_TYPE_DOUBLE) return false;
+				if (val.state != GMLTypeState::Double) return false;
 				pos += 4;
 				_stack.push((int)pos);
 				dereferenced = true;
@@ -768,7 +762,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 			case OP_CHANGE_CONTEXT: { // Push new values onto the context stack
 				GMLType val;
 				if (!_parseVal(bytes + pos + 1, &val)) return false;
-				if (val.state != GML_TYPE_DOUBLE) return false;
+				if (val.state != GMLTypeState::Double) return false;
 				int id = _round(val.dVal);
 				pos += 7;
 
@@ -881,7 +875,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				if (!_parseVal(bytes + pos, &v2)) return false;
 				pos += 3;
 
-				if (!((v1.state == v2.state) && (v1.state == GML_TYPE_DOUBLE ? (v1.dVal == v2.dVal) : (!strcmp(v1.sVal, v2.sVal))))) { // when did LISP get here?
+				if (!((v1.state == v2.state) && (v1.state == GMLTypeState::Double ? (v1.dVal == v2.dVal) : (!v1.sVal.compare(v2.sVal))))) { // when did LISP get here?
 					if (bytes[pos] == OP_JUMP || bytes[pos] == OP_JUMP_BACK)
 						pos += 2;
 					else if (bytes[pos] == OP_JUMP_LONG || bytes[pos] == OP_JUMP_BACK_LONG)

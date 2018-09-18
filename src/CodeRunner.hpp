@@ -251,16 +251,16 @@ class CodeRunner {
 		std::vector<CRCodeObject> _codeObjects;
 
 		// States a GMLType can be in
-		enum GMLTypeState {
-			GML_TYPE_DOUBLE,
-			GML_TYPE_STRING
+		enum struct GMLTypeState {
+			Double,
+			String
 		};
 
 		// The universal data type in GML
 		struct GMLType {
-			GMLTypeState state = GML_TYPE_DOUBLE;
+			GMLTypeState state = GMLTypeState::Double;
 			double dVal = 0.0;
-			char* sVal = NULL;
+			std::string sVal;
 		};
 
 		// Runtime context

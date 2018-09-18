@@ -741,12 +741,12 @@ bool CodeRunner::_InterpretLine(std::string code, unsigned int* pos, std::vector
 unsigned int CodeRunner::_RegConstantDouble(double d) {
 	for (unsigned int i = 0; i < _constants.size(); i++) {
 		GMLType t = _constants[i];
-		if (t.state == GML_TYPE_DOUBLE && t.dVal == d) {
+		if (t.state == GMLTypeState::Double && t.dVal == d) {
 			return i;
 		}
 	}
 	GMLType t;
-	t.state = GML_TYPE_DOUBLE;
+	t.state = GMLTypeState::Double;
 	t.dVal = d;
 	unsigned int ret = (unsigned int)_constants.size();
 	_constants.push_back(t);
@@ -756,15 +756,13 @@ unsigned int CodeRunner::_RegConstantDouble(double d) {
 unsigned int CodeRunner::_RegConstantString(const char* c, unsigned int len) {
 	for (unsigned int i = 0; i < _constants.size(); i++) {
 		GMLType t = _constants[i];
-		if (t.state == GML_TYPE_STRING && strcmp(c, t.sVal) == 0) {
+		if (t.state == GMLTypeState::String && t.sVal.compare(c) == 0) {
 			return i;
 		}
 	}
 	GMLType t;
-	t.state = GML_TYPE_STRING;
-	t.sVal = (char*)malloc(len + 1);
-	memcpy(t.sVal, c, len);
-	t.sVal[len] = '\0';
+	t.state = GMLTypeState::String;
+	t.sVal = c;
 	unsigned int ret = (unsigned int)_constants.size();
 	_constants.push_back(t);
 	return ret;
