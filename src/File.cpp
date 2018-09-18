@@ -1,6 +1,10 @@
 #include <pch.h>
-#include "CodeRunner.hpp"
+#include <fstream>
+#include "File.hpp"
 
 bool FileExists(const char* filename) {
-	return false;
+	std::fstream f(filename);
+	bool r = f.good();
+	f.close();
+	return r;
 }
