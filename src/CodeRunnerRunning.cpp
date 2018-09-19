@@ -379,14 +379,17 @@ bool CodeRunner::_readExpVal(unsigned char* code, unsigned int* pos, Instance* d
 			(*pos) += 4;
 			for (unsigned int i = 0; i < argc; i++) {
 				if (!_parseVal(code + (*pos), argv + i)) {
-					if (argc > ARG_STACK_SIZE) delete argv;
+					if (argc > ARG_STACK_SIZE) delete[] argv;
 					return false;
 				}
 				(*pos) += 3;
 			}
-			if (!(this->*_gmlFuncs[func])(argc, argv, &var)) return false;
+			if (!(this->*_gmlFuncs[func])(argc, argv, &var)) {
+				if (argc > ARG_STACK_SIZE) delete[] argv;
+				return false;
+			}
 
-			if (argc > ARG_STACK_SIZE) delete argv;
+			if (argc > ARG_STACK_SIZE) delete[] argv;
 			break;
 		}
 		case EVTYPE_GAME_VALUE: {
@@ -810,13 +813,13 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				pos += 4;
 				for (unsigned int i = 0; i < argc; i++) {
 					if (!_parseVal(bytes + pos, argv + i)) {
-						if (argc > ARG_STACK_SIZE) delete argv;
+						if (argc > ARG_STACK_SIZE) delete[] argv;
 						return false;
 					}
 					pos += 3;
 				}
 				if (!(this->*_gmlFuncs[func])(argc, argv, NULL)) return false;
-				if (argc > ARG_STACK_SIZE) delete argv;
+				if (argc > ARG_STACK_SIZE) delete[] argv;
 				break;
 			}
 			case OP_RUN_SCRIPT: { // Run a user script, not caring about the return value
@@ -827,7 +830,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				pos += 4;
 				for (unsigned int i = 0; i < argc; i++) {
 					if (!_parseVal(bytes + pos, argv + i)) {
-						if (argc > ARG_STACK_SIZE) delete argv;
+						if (argc > ARG_STACK_SIZE) delete[] argv;
 						return false;
 					}
 					pos += 3;
@@ -836,7 +839,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				Script* script = AMGetScript(scr);
 				if (!script->exists) return false;
 				if (!this->Run(script->codeObj, _contexts.top().self, _contexts.top().other, _contexts.top().eventId, _contexts.top().eventNumber, _contexts.top().objId, argc, argv)) return false;
-				if (argc > ARG_STACK_SIZE) delete argv;
+				if (argc > ARG_STACK_SIZE) delete[] argv;
 				break;
 			}
 			case OP_TEST_VAL: { // Test if a VAL evaluates to true
