@@ -172,7 +172,7 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 			instance->bboxIsStale = true;
 			break;
 		case IV_SOLID:
-			t.dVal = (instance->solid ? 1.0 : 0.0);
+			t.dVal = (instance->solid ? GMLTrue : GMLFalse);
 			if (!_applySetMethod(&t, method, &value)) return false;
 			instance->solid = _isTrue(&t);
 			break;
@@ -238,7 +238,7 @@ bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const 
 			out->dVal = instance->y;
 			break;
 		case IV_SOLID:
-			out->dVal = (instance->solid ? 1.0 : 0.0);
+			out->dVal = (instance->solid ? GMLTrue : GMLFalse);
 			break;
 		case IV_DIRECTION:
 			out->dVal = instance->direction;
@@ -423,7 +423,7 @@ bool CodeRunner::_readExpVal(unsigned char* code, unsigned int* pos, Instance* d
 	// Get and apply any unary operators
 	while (code[*pos] == EVMOD_NOT || code[*pos] == EVMOD_NEGATIVE || code[*pos] == EVMOD_TILDE) {
 		if (var.state == GMLTypeState::String) return false;
-		if (code[*pos] == EVMOD_NOT) var.dVal = (_isTrue(&var) ? 0.0 : 1.0);
+		if (code[*pos] == EVMOD_NOT) var.dVal = (_isTrue(&var) ? GMLFalse : GMLTrue);
 		else if (code[*pos] == EVMOD_NEGATIVE) var.dVal = -var.dVal;
 		else var.dVal = ~_round(var.dVal);
 		(*pos)++;
@@ -536,69 +536,69 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 			}
 			case OPERATOR_LTE: {
 				if (var.state == GMLTypeState::Double) {
-					var.dVal = (var.dVal <= rhs.dVal ? 1.0 : 0.0);
+					var.dVal = (var.dVal <= rhs.dVal ? GMLTrue : GMLFalse);
 				}
 				else {
-					var.dVal = (var.sVal.length() <= rhs.sVal.length() ? 1.0 : 0.0);
+					var.dVal = (var.sVal.length() <= rhs.sVal.length() ? GMLTrue : GMLFalse);
 				}
 				var.state = GMLTypeState::Double;
 				break;
 			}
 			case OPERATOR_GTE: {
 				if (var.state == GMLTypeState::Double) {
-					var.dVal = (var.dVal >= rhs.dVal ? 1.0 : 0.0);
+					var.dVal = (var.dVal >= rhs.dVal ? GMLTrue : GMLFalse);
 				}
 				else {
-					var.dVal = (var.sVal.length() >= rhs.sVal.length() ? 1.0 : 0.0);
+					var.dVal = (var.sVal.length() >= rhs.sVal.length() ? GMLTrue : GMLFalse);
 				}
 				var.state = GMLTypeState::Double;
 				break;
 			}
 			case OPERATOR_LT: {
 				if (var.state == GMLTypeState::Double) {
-					var.dVal = (var.dVal < rhs.dVal ? 1.0 : 0.0);
+					var.dVal = (var.dVal < rhs.dVal ? GMLTrue : GMLFalse);
 				}
 				else {
-					var.dVal = (var.sVal.length() < rhs.sVal.length() ? 1.0 : 0.0);
+					var.dVal = (var.sVal.length() < rhs.sVal.length() ? GMLTrue : GMLFalse);
 				}
 				var.state = GMLTypeState::Double;
 				break;
 			}
 			case OPERATOR_GT: {
 				if (var.state == GMLTypeState::Double) {
-					var.dVal = (var.dVal > rhs.dVal ? 1.0 : 0.0);
+					var.dVal = (var.dVal > rhs.dVal ? GMLTrue : GMLFalse);
 				}
 				else {
-					var.dVal = (var.sVal.length() > rhs.sVal.length() ? 1.0 : 0.0);
+					var.dVal = (var.sVal.length() > rhs.sVal.length() ? GMLTrue : GMLFalse);
 				}
 				var.state = GMLTypeState::Double;
 				break;
 			}
 			case OPERATOR_EQUALS: {
-				if(var.state == GMLTypeState::Double) var.dVal = (var.dVal == rhs.dVal ? 1.0 : 0.0);
-				else var.dVal = (var.sVal.compare(rhs.sVal) ? 0.0 : 1.0);
+				if(var.state == GMLTypeState::Double) var.dVal = (var.dVal == rhs.dVal ? GMLTrue : GMLFalse);
+				else var.dVal = (var.sVal.compare(rhs.sVal) ? GMLFalse : GMLTrue);
 				var.state = GMLTypeState::Double;
 				break;
 			}
 			case OPERATOR_NOT_EQUAL: {
-				if (var.state == GMLTypeState::Double) var.dVal = (var.dVal != rhs.dVal ? 1.0 : 0.0);
-				else var.dVal = (var.sVal.compare(rhs.sVal) ? 1.0 : 0.0);
+				if (var.state == GMLTypeState::Double) var.dVal = (var.dVal != rhs.dVal ? GMLTrue : GMLFalse);
+				else var.dVal = (var.sVal.compare(rhs.sVal) ? GMLTrue : GMLFalse);
 				var.state = GMLTypeState::Double;
 				break;
 			}
 			case OPERATOR_BOOLEAN_AND: {
 				if (var.state == GMLTypeState::String) return false;
-				var.dVal = (_isTrue(&var) && _isTrue(&rhs) ? 1.0 : 0.0);
+				var.dVal = (_isTrue(&var) && _isTrue(&rhs) ? GMLTrue : GMLFalse);
 				break;
 			}
 			case OPERATOR_BOOLEAN_OR: {
 				if (var.state == GMLTypeState::String) return false;
-				var.dVal = (_isTrue(&var) || _isTrue(&rhs) ? 1.0 : 0.0);
+				var.dVal = (_isTrue(&var) || _isTrue(&rhs) ? GMLTrue : GMLFalse);
 				break;
 			}
 			case OPERATOR_BOOLEAN_XOR: {
 				if (var.state == GMLTypeState::String) return false;
-				var.dVal = (_isTrue(&var) != _isTrue(&rhs) ? 1.0 : 0.0);
+				var.dVal = (_isTrue(&var) != _isTrue(&rhs) ? GMLTrue : GMLFalse);
 				break;
 			}
 			case OPERATOR_BITWISE_AND: {

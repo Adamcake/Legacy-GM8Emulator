@@ -39,7 +39,7 @@ bool CodeRunner::choose(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (!argc) {
 		if (out) {
 			out->state = GMLTypeState::Double;
-			out->dVal = 0.0;
+			out->dVal = GMLFalse;
 		}
 		return true;
 	}
@@ -83,8 +83,7 @@ bool CodeRunner::distance_to_object(unsigned int argc, GMLType* argv, GMLType* o
 		if (absSideDiff || absHeightDiff) {
 			absDist = ::sqrt((absSideDiff * absSideDiff) + (absHeightDiff * absHeightDiff));
 			if (absDist < lowestDist) lowestDist = absDist;
-		}
-		else {
+		} else {
 			lowestDist = 0.0;
 			break;
 		}
@@ -92,7 +91,7 @@ bool CodeRunner::distance_to_object(unsigned int argc, GMLType* argv, GMLType* o
 
 	out->state = GMLTypeState::Double;
 	out->dVal = lowestDist;
-
+	
 	return true;
 }
 
@@ -242,54 +241,56 @@ bool CodeRunner::event_perform(unsigned int argc, GMLType* argv, GMLType* out) {
 	return _codeActions->RunInstanceEvent(_round(argv[0].dVal), _round(argv[1].dVal), _contexts.top().self, _contexts.top().other, _contexts.top().self->object_index);
 }
 
+
+// --- FILE ---
+
+
 bool CodeRunner::file_bin_open(unsigned int argc, GMLType* argv, GMLType* out) {
-	//if (argv[0].state != GMLTypeState::String) return false;
-	//int ftype = _round(argv[1].dVal);
-	//FILE* f;
+	if (argv[0].state != GMLTypeState::String) return false;
+	fs::path filePath = fs::path(argv[0].sVal);
+	int fileType = _round(argv[1].dVal);
 
-	//switch (ftype) {
-	//	case 0:
-	//		if (!fopen_s(&f, argv[0].sVal, "rb")) {
-	//			fopen_s(&f, argv[0].sVal, "wb");
-	//			fclose(f);
-	//			fopen_s(&f, argv[0].sVal, "rb");
-	//		}
-	//		break;
-	//	case 1:
-	//		fopen_s(&f, argv[0].sVal, "wb");
-	//		break;
-	//	default:
-	//		fopen_s(&f, argv[0].sVal, "ab"); // Not sure if "ab" is correct for this setting, but I assume so.
-	//		break;
-	//}
+	if (fs::exists(filePath)) {
+		// Stream mode
+		int fileMode;
+		switch (fileType) {
+			case 0: // Read-only
+				fileMode = std::fstream::in | std::fstream::binary; break;
+			case 1: // Write-only
+				fileMode = std::fstream::out | std::fstream::binary; break;
+			case 2: default: // Read & write
+				fileMode = std::fstream::in | std::fstream::out | std::fstream::binary; break;
+		}
 
-	//int i = 0;
-	//for (i = 0; i < 32; i++) {
-	//	if (!_userFiles[i]) {
-	//		_userFiles[i] = f;
-	//	}
-	//}
+		int i = 0;
+		for (; i < maxFilesOpen; i++) {
+			if (!_userFiles[i].is_open()) {
+				_userFiles[i].open(filePath, fileMode);
+			}
+		}
 
-	//if (i == 32) return false;
-	//if (out) {
-	//	out->state = GMLTypeState::Double;
-	//	out->dVal = (double)(i + 1);
-	//}
+		if (i == maxFilesOpen) {
+			return false;
+		} else if (out) {
+			out->state = GMLTypeState::Double;
+			out->dVal = static_cast<double>(i + 1);
+		}
 
-	//return true;
-	return false;
+		return true;
+	} else {
+		return false; // I guess?
+	}
 }
 
 bool CodeRunner::file_bin_close(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[0].state != GMLTypeState::Double) return false;
-	int index = _round(argv[0].dVal) - 1;
-	if (index < 0 || index >= 32) return false;
-	if (!_userFiles[index]) return false;
-
-	fclose(_userFiles[index]);
-	_userFiles[index] = NULL;
-	//return true;
-	return false;
+	int idx = _round(argv[0].dVal);
+	if (_userFiles[idx].is_open()) {
+		_userFiles[idx].close();
+		return true;
+	} else {
+		return false;
+	}
 }
 
 bool CodeRunner::file_bin_read_byte(unsigned int argc, GMLType* argv, GMLType* out) {
@@ -321,21 +322,22 @@ bool CodeRunner::file_bin_write_byte(unsigned int argc, GMLType* argv, GMLType* 
 }
 
 bool CodeRunner::file_delete(unsigned int argc, GMLType* argv, GMLType* out) {
-	/*if (argv[0].state == GMLTypeState::String) {
-	remove(argv[0].sVal);
-	}
-	return true;*/
-	return false;
+	if (argv[0].state != GMLTypeState::String) return false;
+	return std::remove(argv[0].sVal.c_str()) == 0;
 }
 
 bool CodeRunner::file_exists(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[0].state != GMLTypeState::String) return false;
 	if (out) {
 		out->state = GMLTypeState::Double;
-		out->dVal = (fs::exists(fs::path(argv[0].sVal)) ? 1.0 : 0.0);
+		out->dVal = (fs::exists(fs::path(argv[0].sVal)) ? GMLTrue : GMLFalse);
 	}
 	return true;
 }
+
+
+// --- FILE END ---
+
 
 bool CodeRunner::instance_create(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[0].state == GMLTypeState::String || argv[1].state == GMLTypeState::String || argv[2].state == GMLTypeState::String) return false;
@@ -361,7 +363,7 @@ bool CodeRunner::instance_exists(unsigned int argc, GMLType* argv, GMLType* out)
 	int objId = _round(argv[0].dVal);
 	InstanceList::Iterator it(_instances, (unsigned int)objId);
 	out->state = GMLTypeState::Double;
-	out->dVal = (it.Next() ? 1.0 : 0.0);
+	out->dVal = (it.Next() ? GMLTrue : GMLFalse);
 	return true;
 }
 
@@ -443,28 +445,28 @@ bool CodeRunner::game_restart(unsigned int argc, GMLType* argv, GMLType* out) {
 bool CodeRunner::keyboard_check(unsigned int argc, GMLType* argv, GMLType* out) {
 	out->state = GMLTypeState::Double;
 	int gmlKeycode = (argv[0].state == GMLTypeState::Double ? _round(argv[0].dVal) : 0);
-	out->dVal = (InputCheckKey(gmlKeycode) ? 1.0 : 0.0);
+	out->dVal = (InputCheckKey(gmlKeycode) ? GMLTrue : GMLFalse);
 	return true;
 }
 
 bool CodeRunner::keyboard_check_direct(unsigned int argc, GMLType* argv, GMLType* out) {
 	out->state = GMLTypeState::Double;
 	int gmlKeycode = (argv[0].state == GMLTypeState::Double ? _round(argv[0].dVal) : 0);
-	out->dVal = (InputCheckKeyDirect(gmlKeycode) ? 1.0 : 0.0);
+	out->dVal = (InputCheckKeyDirect(gmlKeycode) ? GMLTrue : GMLFalse);
 	return true;
 }
 
 bool CodeRunner::keyboard_check_pressed(unsigned int argc, GMLType* argv, GMLType* out) {
 	out->state = GMLTypeState::Double;
 	int gmlKeycode = (argv[0].state == GMLTypeState::Double ? _round(argv[0].dVal) : 0);
-	out->dVal = (InputCheckKeyPressed(gmlKeycode) ? 1.0 : 0.0);
+	out->dVal = (InputCheckKeyPressed(gmlKeycode) ? GMLTrue : GMLFalse);
 	return true;
 }
 
 bool CodeRunner::keyboard_check_released(unsigned int argc, GMLType* argv, GMLType* out) {
 	out->state = GMLTypeState::Double;
 	int gmlKeycode = (argv[0].state == GMLTypeState::Double ? _round(argv[0].dVal) : 0);
-	out->dVal = (InputCheckKeyReleased(gmlKeycode) ? 1.0 : 0.0);
+	out->dVal = (InputCheckKeyReleased(gmlKeycode) ? GMLTrue : GMLFalse);
 	return true;
 }
 
@@ -674,7 +676,7 @@ bool CodeRunner::ord(unsigned int argc, GMLType* argv, GMLType* out) {
 bool CodeRunner::place_free(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (out) {
 		out->state = GMLTypeState::Double;
-		out->dVal = 1.0;
+		out->dVal = GMLTrue;
 
 		InstanceList::Iterator iter(_instances);
 		Instance* self = _contexts.top().self;
@@ -688,7 +690,7 @@ bool CodeRunner::place_free(unsigned int argc, GMLType* argv, GMLType* out) {
 		while (target = iter.Next()) {
 			if ((target != self) && target->solid) {
 				if (CollisionCheck(self, target)) {
-					out->dVal = 0.0;
+					out->dVal = GMLFalse;
 					break;
 				}
 			}
@@ -704,7 +706,7 @@ bool CodeRunner::place_free(unsigned int argc, GMLType* argv, GMLType* out) {
 bool CodeRunner::place_meeting(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (out) {
 		out->state = GMLTypeState::Double;
-		out->dVal = 0.0;
+		out->dVal = GMLFalse;
 		int obj = _round(argv[2].dVal);
 		InstanceList::Iterator iter(_instances, (unsigned int)obj);
 		if (obj == -3) iter = InstanceList::Iterator(_instances);
@@ -720,7 +722,7 @@ bool CodeRunner::place_meeting(unsigned int argc, GMLType* argv, GMLType* out) {
 		while (target = iter.Next()) {
 			if (target != self) {
 				if (CollisionCheck(self, target)) {
-					out->dVal = 1.0;
+					out->dVal = GMLTrue;
 					break;
 				}
 			}
@@ -870,14 +872,14 @@ bool CodeRunner::string_width(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (out) {
 		out->state = GMLTypeState::Double;
 		if (argv[0].state != GMLTypeState::String) {
-			out->dVal = 1.0; // GML default
+			out->dVal = GMLTrue; // GML default
 			return true;
 		}
 		
 		Font* font = AMGetFont(_drawFont);
 		if (!font->exists) {
 			// Default font not sure what to do here
-			out->dVal = 0.0;
+			out->dVal = GMLFalse;
 			return true;
 		}
 
@@ -903,14 +905,14 @@ bool CodeRunner::string_height(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (out) {
 		out->state = GMLTypeState::Double;
 		if (argv[0].state != GMLTypeState::String) {
-			out->dVal = 1.0; // GML default
+			out->dVal = GMLTrue; // GML default
 			return true;
 		}
 
 		Font* font = AMGetFont(_drawFont);
 		if (!font->exists) {
 			// Default font not sure what to do here
-			out->dVal = 0.0;
+			out->dVal = GMLFalse;
 			return true;
 		}
 		
@@ -935,7 +937,7 @@ bool CodeRunner::unimplemented(unsigned int argc, GMLType * argv, GMLType * out)
 	if (!CRErrorOnUnimplemented) {
 		if (out) {
 			out->state = GMLTypeState::Double;
-			out->dVal = 0.0;
+			out->dVal = GMLFalse;
 		}
 		return true;
 	}

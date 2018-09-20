@@ -259,7 +259,7 @@ class CodeRunner {
 		// The universal data type in GML
 		struct GMLType {
 			GMLTypeState state = GMLTypeState::Double;
-			double dVal = 0.0;
+			double dVal = GMLFalse;
 			std::string sVal;
 		};
 
@@ -283,7 +283,7 @@ class CodeRunner {
 		std::stack<CRContext> _contexts;
 
 		// Structure for user file manipulation
-		FILE* _userFiles[32];
+		std::fstream _userFiles[32];
 
 		// Constants that can be referred to by compiled code
 		std::vector<GMLType> _constants;
