@@ -246,7 +246,7 @@ bool CodeRunner::event_perform(unsigned int argc, GMLType* argv, GMLType* out) {
 
 
 bool CodeRunner::file_bin_open(unsigned int argc, GMLType* argv, GMLType* out) {
-	if (argv[0].state != GMLTypeState::String) return false;
+	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::String)) return false;
 	fs::path filePath = fs::path(argv[0].sVal);
 	int fileType = _round(argv[1].dVal);
 
@@ -283,7 +283,7 @@ bool CodeRunner::file_bin_open(unsigned int argc, GMLType* argv, GMLType* out) {
 }
 
 bool CodeRunner::file_bin_close(unsigned int argc, GMLType* argv, GMLType* out) {
-	if (argv[0].state != GMLTypeState::Double) return false;
+	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
 	int idx = _round(argv[0].dVal);
 	if (_userFiles[idx].is_open()) {
 		_userFiles[idx].close();
@@ -294,31 +294,35 @@ bool CodeRunner::file_bin_close(unsigned int argc, GMLType* argv, GMLType* out) 
 }
 
 bool CodeRunner::file_bin_read_byte(unsigned int argc, GMLType* argv, GMLType* out) {
-	/*if (argv[0].state != GMLTypeState::Double) return false;
-	int index = _round(argv[0].dVal) - 1;
-	if (index < 0 || index >= 32) return false;
-	if (!_userFiles[index]) return false;
+	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+	int idx = _round(argv[0].dVal);
 
-	unsigned char s;
-	fread_s(&s, 1, 1, 1, _userFiles[index]);
-	if (out) {
-	out->state = GMLTypeState::Double;
-	out->dVal = (double)s;
+	if (_userFiles[idx].is_open()) {
+		if (!_userFiles[idx].eof()) {
+			if (out) {
+				out->state == GMLTypeState::Double;
+				out->dVal = static_cast<double>(_userFiles[idx].get());
+			}
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		return false;
 	}
-	return true;*/
-	return false;
 }
 
 bool CodeRunner::file_bin_write_byte(unsigned int argc, GMLType* argv, GMLType* out) {
-	/*if (argv[0].state != GMLTypeState::Double || argv[1].state != GMLTypeState::Double) return false;
-	int index = _round(argv[0].dVal) - 1;
-	if (index < 0 || index >= 32) return false;
-	if (!_userFiles[index]) return false;
+	if (!this->_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
+	int idx = _round(argv[0].dVal);
+	int oByte = _round(argv[1].dVal);
 
-	unsigned char c = _round(argv[1].dVal);
-	fwrite(&c, 1, 1, _userFiles[index]);
-	return true;*/
-	return false;
+	if (_userFiles[idx].is_open()) {
+		_userFiles[idx].put(static_cast<char>(oByte));
+		return true;
+	} else {
+		return false;
+	}
 }
 
 bool CodeRunner::file_delete(unsigned int argc, GMLType* argv, GMLType* out) {

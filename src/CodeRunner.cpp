@@ -4605,3 +4605,24 @@ bool CodeRunner::Init() {
 	return true;
 }
 
+bool CodeRunner::_assertArgs(unsigned int argc, GMLType *argv, unsigned int arge, bool lenient, GMLTypeState args ...) {
+	if (argc != arge)
+		return false;
+
+	va_list vargs;
+	va_start(vargs, args);
+
+	for (size_t i = 0; i < argc; i++) {
+		auto state = va_arg(vargs, GMLTypeState);
+		if (argv[i].state != state) {
+			if (lenient && (argv[i].state == GMLTypeState::String)) {
+				argv[i].state = GMLTypeState::Double;
+				argv[i].dVal = 0.0;
+			} else {
+				return false;
+			}
+		}
+	}
+	va_end(vargs);
+	return true;
+}
