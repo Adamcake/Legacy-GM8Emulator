@@ -300,7 +300,7 @@ bool CodeRunner::file_bin_read_byte(unsigned int argc, GMLType* argv, GMLType* o
 	if (_userFiles[idx].is_open()) {
 		if (!_userFiles[idx].eof()) {
 			if (out) {
-				out->state == GMLTypeState::Double;
+				out->state = GMLTypeState::Double;
 				out->dVal = static_cast<double>(_userFiles[idx].get());
 			}
 			return true;

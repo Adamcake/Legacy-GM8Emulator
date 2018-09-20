@@ -11,7 +11,6 @@ CodeRunner::CodeRunner(InstanceList* instances, GlobalValues* globals, CodeActio
 	_instances = instances;
 	_globalValues = globals;
 	_codeActions = codeActions;
-	memset(_userFiles, 0, sizeof(FILE*));
 	RNGRandomize();
 }
 
@@ -23,9 +22,6 @@ CodeRunner::~CodeRunner() {
 	for (char* c : _fieldNames) {
 		free(c);
 	}
-	/*for (GMLType t : _constants) {
-		free(t.sVal);
-	}*/
 }
 
 CodeObject CodeRunner::Register(char* code, unsigned int len) {

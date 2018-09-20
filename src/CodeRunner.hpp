@@ -13,6 +13,7 @@ enum CRInstanceVar;
 enum CRVarType;
 enum CROperator;
 enum CRSetMethod;
+#include <pch.h>
 #include <vector>
 #include <list>
 #include <map>
