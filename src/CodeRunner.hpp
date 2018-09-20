@@ -259,7 +259,7 @@ class CodeRunner {
 		// The universal data type in GML
 		struct GMLType {
 			GMLTypeState state = GMLTypeState::Double;
-			double dVal = GMLFalse;
+			double dVal = 0.0;
 			std::string sVal;
 		};
 
