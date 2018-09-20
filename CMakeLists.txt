@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.7)
 project(GM8Emulator)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CXX_STANDARD_REQUIRED ON)
+
 include("deps/cmake/cmake-precompiled-header.cmake")
 
 set(AMD64 OFF CACHE BOOL "" FORCE) # zlib

@@ -332,7 +332,7 @@ bool CodeRunner::file_exists(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (argv[0].state != GMLTypeState::String) return false;
 	if (out) {
 		out->state = GMLTypeState::Double;
-		out->dVal = (FileExists(argv[0].sVal.c_str()) ? 1.0 : 0.0);
+		out->dVal = (fs::exists(fs::path(argv[0].sVal)) ? 1.0 : 0.0);
 	}
 	return true;
 }
