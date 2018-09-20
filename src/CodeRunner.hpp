@@ -349,7 +349,7 @@ class CodeRunner {
 		bool _readExpVal(unsigned char* code, unsigned int* pos, Instance* derefBuffer, GMLType* argStack, GMLType* out);
 		bool _isTrue(const GMLType* value);
 		bool _applySetMethod(GMLType* lhs, CRSetMethod method, const GMLType* const rhs);
-		bool _assertArgs(unsigned int argc, GMLType *argv, unsigned int arge, bool lenient, GMLTypeState args ...);
+		bool _assertArgs(unsigned int & argc, GMLType *argv, unsigned int arge, bool lenient, GMLTypeState args ...);
 
 		// "draw" vars
 		unsigned int _drawFont = -1;

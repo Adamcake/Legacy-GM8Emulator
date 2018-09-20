@@ -4605,7 +4605,7 @@ bool CodeRunner::Init() {
 	return true;
 }
 
-bool CodeRunner::_assertArgs(unsigned int argc, GMLType *argv, unsigned int arge, bool lenient, GMLTypeState args ...) {
+bool CodeRunner::_assertArgs(unsigned int & argc, GMLType *argv, unsigned int arge, bool lenient, GMLTypeState args ...) {
 	if (argc != arge)
 		return false;
 
