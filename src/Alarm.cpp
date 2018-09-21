@@ -3,11 +3,11 @@
 std::map<InstanceID, std::map<unsigned int, int>> _alarms;
 
 void AlarmSet(InstanceID instance, unsigned int alarm, int value) {
-	_alarms[0][alarm] = value;
+	_alarms[instance][alarm] = value;
 }
 
 int AlarmGet(InstanceID instance, int alarm) {
-	return _alarms[0][alarm];
+	return _alarms[instance][alarm];
 }
 
 void AlarmUpdateAll() {
