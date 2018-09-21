@@ -7,7 +7,7 @@
 #include "InputHandler.hpp"
 #include "Collision.hpp"
 #include "GamePrivateGlobals.hpp"
-
+#include "Alarm.hpp"
 
 bool GameLoadRoom(int id) {
 	// Check room index is valid
@@ -104,15 +104,14 @@ bool GameFrame() {
 	// TODO: if timeline_running, add timeline_speed to timeline_position and then run any events in that timeline indexed BELOW (not equal to) the current timeline_position
 
 	// Subtract from alarms and run event if they reach 0
+	AlarmUpdateAll();
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
-		for (auto const& j : instance->alarm) {
-			if (j.second > 0) {
-				instance->alarm[j.first]--;
-				if (instance->alarm[j.first] == 0) {
-					if (!_codeActions->RunInstanceEvent(2, j.first, instance, NULL, instance->object_index)) return false;
-					if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
-				}
+		for (const auto j : AlarmGetMap(instance->id)) {
+			if (j.second == 0) {
+				if (!_codeActions->RunInstanceEvent(2, j.first, instance, NULL, instance->object_index)) return false;
+				AlarmDelete(instance->id, j.first);
+				if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 			}
 		}
 	}

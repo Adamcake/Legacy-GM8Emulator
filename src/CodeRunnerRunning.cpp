@@ -6,6 +6,7 @@
 #include "Renderer.hpp"
 #include "GlobalValues.hpp"
 #include "Collision.hpp"
+#include "Alarm.hpp"
 
 constexpr unsigned int ARG_STACK_SIZE = 4; // SHOUTY
 
@@ -112,13 +113,17 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 	GMLType arrayId;
 	int roundedAId;
 	switch (index) {
-		case IV_ALARM:
+		case IV_ALARM: {
 			if (!_parseVal(arrayIndexVal, &arrayId)) return false;
 			if (arrayId.state != GMLTypeState::Double) return false;
 			roundedAId = _round(arrayId.dVal);
 			if (roundedAId < 0) return false;
-			instance->alarm[(unsigned int)roundedAId] = (int)(value.state == GMLTypeState::Double ? value.dVal : 0.0);
+			//instance->alarm[(unsigned int)roundedAId] = (int)(value.state == GMLTypeState::Double ? value.dVal : 0.0);
+			int alarmValue = (int)(value.state == GMLTypeState::Double ? value.dVal : 0.0);
+			if (alarmValue) AlarmSet(instance->id, (unsigned int)roundedAId, alarmValue);
+			else AlarmDelete(instance->id, (unsigned int)roundedAId);
 			break;
+		}
 		case IV_DIRECTION:
 			t.dVal = instance->direction;
 			if (!_applySetMethod(&t, method, &value)) return false;
