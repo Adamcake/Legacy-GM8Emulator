@@ -56,6 +56,20 @@ struct RAtlasImage {
 	unsigned int originY;
 };
 
+// Represents a command to draw a single image
+struct RDrawCommand {
+	GLfloat transform[16];
+	GLfloat alpha;
+	GLfloat blend[3];
+	GLfloat atlasXY[2];
+	GLfloat atlasWH[2];
+
+	unsigned int atlasId;
+	unsigned int imageIndex;
+	GLint atlasGlTex;
+};
+std::vector<RDrawCommand> _drawCommands;
+
 // Atlas structure, can exist without being used
 struct RAtlas {
 	GLuint glTex;
@@ -296,6 +310,8 @@ void RDrawImage(RImageIndex ix, double x, double y, double xscale, double yscale
 }
 
 void RDrawPartialImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha, unsigned int partX, unsigned int partY, unsigned int partW, unsigned int partH) {
+	RDrawCommand command;
+
 	RAtlasImage* aImg = _atlasImages._Myfirst() + ix;
 
 	// Calculate a single matrix for scaling and transforming the sprite
@@ -349,24 +365,39 @@ void RDrawPartialImage(RImageIndex ix, double x, double y, double xscale, double
 
 	RAtlas* atlas = &_atlases[aImg->atlasId];
 
+	// Create draw command
+	memcpy(command.transform, project, 16 * sizeof(GLfloat));
+	command.alpha = (GLfloat)alpha;
+	command.blend[0] = (GLfloat)(blend & 0xFF) / 0xFF;
+	command.blend[1] = (GLfloat)(blend & 0xFF00) / 0xFF00;
+	command.blend[2] = (GLfloat)(blend & 0xFF0000) / 0xFF0000;
+	command.atlasXY[0] = (GLfloat)((double)(aImg->x + partX) / (double)atlas->w);
+	command.atlasXY[1] = (GLfloat)((double)(aImg->y + partY) / (double)atlas->h);
+	command.atlasWH[0] = (GLfloat)((double)(partW) / (double)atlas->w);
+	command.atlasWH[1] = (GLfloat)((double)(partH) / (double)atlas->h);
+	command.imageIndex = ix;
+	command.atlasId = aImg->atlasId;
+	command.atlasGlTex = atlas->glTex;
+	_drawCommands.push_back(command);
+
 	// Bind uniform shader values
-	glUniformMatrix4fv(glGetUniformLocation(_glProgram, "project"), 1, GL_FALSE, project);
-	glUniform1f(glGetUniformLocation(_glProgram, "objAlpha"), (GLfloat)alpha);
-	glUniform3f(glGetUniformLocation(_glProgram, "objBlend"), (GLfloat)(blend & 0xFF) / 0xFF, (GLfloat)(blend & 0xFF00) / 0xFF00, (GLfloat)(blend & 0xFF0000) / 0xFF0000);
-	glUniform2f(glGetUniformLocation(_glProgram, "atlasXY"), (GLfloat)((double)(aImg->x + partX) / (double)atlas->w), (GLfloat)((double)(aImg->y + partY) / (double)atlas->h));
-	glUniform2f(glGetUniformLocation(_glProgram, "atlasWH"), (GLfloat)((double)(partW) / (double)atlas->w), (GLfloat)((double)(partH) / (double)atlas->h));
+	//glUniformMatrix4fv(glGetUniformLocation(_glProgram, "project"), 1, GL_FALSE, project);
+	//glUniform1f(glGetUniformLocation(_glProgram, "objAlpha"), (GLfloat)alpha);
+	//glUniform3f(glGetUniformLocation(_glProgram, "objBlend"), (GLfloat)(blend & 0xFF) / 0xFF, (GLfloat)(blend & 0xFF00) / 0xFF00, (GLfloat)(blend & 0xFF0000) / 0xFF0000);
+	//glUniform2f(glGetUniformLocation(_glProgram, "atlasXY"), (GLfloat)((double)(aImg->x + partX) / (double)atlas->w), (GLfloat)((double)(aImg->y + partY) / (double)atlas->h));
+	//glUniform2f(glGetUniformLocation(_glProgram, "atlasWH"), (GLfloat)((double)(partW) / (double)atlas->w), (GLfloat)((double)(partH) / (double)atlas->h));
 
 	// Do drawing
-	GLint tex = glGetUniformLocation(_glProgram, "tex");
-	GLint vertTexCoord = glGetAttribLocation(_glProgram, "vertTexCoord");
-	glUniform1i(tex, aImg->atlasId);
-	if (boundAtlas != aImg->atlasId) {
-		glActiveTexture(GL_TEXTURE0 + aImg->atlasId);
-		glBindTexture(GL_TEXTURE_2D, atlas->glTex);
-		boundAtlas = aImg->atlasId;
-	}
-	glVertexAttribPointer(vertTexCoord, 2, GL_FLOAT, GL_TRUE, 3 * sizeof(GLfloat), 0);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	//GLint tex = glGetUniformLocation(_glProgram, "tex");
+	//GLint vertTexCoord = glGetAttribLocation(_glProgram, "vertTexCoord");
+	//glUniform1i(tex, aImg->atlasId);
+	//if (boundAtlas != aImg->atlasId) {
+	//	glActiveTexture(GL_TEXTURE0 + aImg->atlasId);
+	//	glBindTexture(GL_TEXTURE_2D, atlas->glTex);
+	//	boundAtlas = aImg->atlasId;
+	//}
+	//glVertexAttribPointer(vertTexCoord, 2, GL_FLOAT, GL_TRUE, 3 * sizeof(GLfloat), 0);
+	//glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
 
@@ -387,11 +418,33 @@ void RStartFrame() {
 
 	GLint vertTexCoord = glGetAttribLocation(_glProgram, "vertTexCoord");
 	glEnableVertexAttribArray(vertTexCoord);
+
+	_drawCommands.clear();
 }
 
 void RRenderFrame() {
 	int actualWinW, actualWinH;
 	glfwGetWindowSize(_window, &actualWinW, &actualWinH);
+
+	for (RDrawCommand command : _drawCommands) {
+		// Bind uniform shader values
+		glUniformMatrix4fv(glGetUniformLocation(_glProgram, "project"), 1, GL_FALSE, command.transform);
+		glUniform1f(glGetUniformLocation(_glProgram, "objAlpha"), command.alpha);
+		glUniform3f(glGetUniformLocation(_glProgram, "objBlend"), command.blend[0], command.blend[1], command.blend[2]);
+		glUniform2f(glGetUniformLocation(_glProgram, "atlasXY"), command.atlasXY[0], command.atlasXY[1]);
+		glUniform2f(glGetUniformLocation(_glProgram, "atlasWH"), command.atlasWH[0], command.atlasWH[1]);
+		glUniform1i(glGetUniformLocation(_glProgram, "tex"), command.atlasId);
+
+		// Do drawing
+		if (boundAtlas != command.atlasId) {
+			glActiveTexture(GL_TEXTURE0 + command.atlasId);
+			glBindTexture(GL_TEXTURE_2D, command.atlasGlTex);
+			boundAtlas = command.atlasId;
+		}
+		glVertexAttribPointer(glGetAttribLocation(_glProgram, "vertTexCoord"), 2, GL_FLOAT, GL_TRUE, 3 * sizeof(GLfloat), 0);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	}
+
 	glViewport(0, 0, actualWinW, actualWinH);
 	glfwSwapBuffers(_window);
 }
