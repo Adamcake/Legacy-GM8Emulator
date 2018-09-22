@@ -22,6 +22,7 @@ void AlarmUpdateAll() {
 
 void AlarmDelete(InstanceID instance, unsigned int alarm) {
 	_alarms[instance].erase(alarm);
+	if (_alarms[instance].size() == 0) _alarms.erase(instance);
 }
 
 const std::map<unsigned int, int> AlarmGetMap(InstanceID instance) {

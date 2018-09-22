@@ -62,6 +62,9 @@ void InstanceList::ClearNonPersistent() {
 				_list[placed] = _list[i];
 			placed++;
 		}
+		else {
+			AlarmRemoveInstance(_list[i].id);
+		}
 	}
 	_size = placed;
 }
@@ -73,6 +76,9 @@ void InstanceList::ClearDeleted() {
 			if(placed != i)
 				_list[placed] = _list[i];
 			placed++;
+		}
+		else {
+			AlarmRemoveInstance(_list[i].id);
 		}
 	}
 	_size = placed;

@@ -107,11 +107,13 @@ bool GameFrame() {
 	AlarmUpdateAll();
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
-		for (const auto j : AlarmGetMap(instance->id)) {
-			if (j.second == 0) {
-				if (!_codeActions->RunInstanceEvent(2, j.first, instance, NULL, instance->object_index)) return false;
-				if(AlarmGet(instance->id, j.first) == 0) AlarmDelete(instance->id, j.first);
-				if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+		if (instance->exists) {
+			for (const auto j : AlarmGetMap(instance->id)) {
+				if (j.second == 0) {
+					if (!_codeActions->RunInstanceEvent(2, j.first, instance, NULL, instance->object_index)) return false;
+					if (AlarmGet(instance->id, j.first) == 0) AlarmDelete(instance->id, j.first);
+					if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+				}
 			}
 		}
 	}
