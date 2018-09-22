@@ -6,10 +6,10 @@
 
 const GLchar* fragmentShaderCode = "#version 330\n"
 "uniform sampler2D tex;\n"
-"uniform float objAlpha;\n"
-"uniform vec3 objBlend;\n"
-"uniform vec2 atlasXY;\n"
-"uniform vec2 atlasWH;\n"
+"in float objAlpha;\n"
+"in vec3 objBlend;\n"
+"in vec2 atlasXY;\n"
+"in vec2 atlasWH;\n"
 "in vec2 fragTexCoord;\n"
 "out vec4 colourOut;\n"
 "void main() {\n"
@@ -20,10 +20,22 @@ const GLchar* fragmentShaderCode = "#version 330\n"
 const GLchar* vertexShaderCode = "#version 330\n"
 "in vec3 vert;\n"
 "in vec2 vertTexCoord;\n"
-"uniform mat4 project;\n"
+"in float vObjAlpha;\n"
+"in vec3 vObjBlend;\n"
+"in vec2 vAtlasXY;\n"
+"in vec2 vAtlasWH;\n"
+"in mat4 project;\n"
+"out float objAlpha;\n"
+"out vec3 objBlend;\n"
+"out vec2 atlasXY;\n"
+"out vec2 atlasWH;\n"
 "out vec2 fragTexCoord;\n"
 "void main() {\n"
 "fragTexCoord = vertTexCoord;\n"
+"objAlpha = vObjAlpha;\n"
+"objBlend = vObjBlend;\n"
+"atlasXY = vAtlasXY;\n"
+"atlasWH = vAtlasWH;\n"
 "gl_Position = project * vec4(vert.x, vert.y, vert.z, 1);\n"
 "}";
 
@@ -416,9 +428,6 @@ void RStartFrame() {
 	glScissor(0, 0, actualWinW, actualWinH);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	GLint vertTexCoord = glGetAttribLocation(_glProgram, "vertTexCoord");
-	glEnableVertexAttribArray(vertTexCoord);
-
 	_drawCommands.clear();
 }
 
@@ -426,23 +435,73 @@ void RRenderFrame() {
 	int actualWinW, actualWinH;
 	glfwGetWindowSize(_window, &actualWinW, &actualWinH);
 
-	for (RDrawCommand command : _drawCommands) {
-		// Bind uniform shader values
-		glUniformMatrix4fv(glGetUniformLocation(_glProgram, "project"), 1, GL_FALSE, command.transform);
-		glUniform1f(glGetUniformLocation(_glProgram, "objAlpha"), command.alpha);
-		glUniform3f(glGetUniformLocation(_glProgram, "objBlend"), command.blend[0], command.blend[1], command.blend[2]);
-		glUniform2f(glGetUniformLocation(_glProgram, "atlasXY"), command.atlasXY[0], command.atlasXY[1]);
-		glUniform2f(glGetUniformLocation(_glProgram, "atlasWH"), command.atlasWH[0], command.atlasWH[1]);
-		glUniform1i(glGetUniformLocation(_glProgram, "tex"), command.atlasId);
-
-		// Do drawing
-		if (boundAtlas != command.atlasId) {
-			glActiveTexture(GL_TEXTURE0 + command.atlasId);
-			glBindTexture(GL_TEXTURE_2D, command.atlasGlTex);
-			boundAtlas = command.atlasId;
+	unsigned int drawn = 0;
+	while (drawn < _drawCommands.size()) {
+		// Calculate how many commands to process in this instanced draw
+		unsigned int toDraw = 0;
+		for (unsigned int i = drawn; i < _drawCommands.size(); i++) {
+			if (_drawCommands[i].atlasId != _drawCommands[drawn].atlasId) {
+				break;
+			}
+			toDraw++;
 		}
+
+		// Buffer all draw commands into VBO
+		GLuint commandsVBO;
+		glGenBuffers(1, &commandsVBO);
+		glBindBuffer(GL_ARRAY_BUFFER, commandsVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(RDrawCommand) * toDraw, &_drawCommands[drawn], GL_STATIC_DRAW);
+
+		// Activate atlas texture
+		if (boundAtlas != _drawCommands[drawn].atlasId) {
+			glActiveTexture(GL_TEXTURE0 + _drawCommands[drawn].atlasId);
+			glBindTexture(GL_TEXTURE_2D, _drawCommands[drawn].atlasGlTex);
+			boundAtlas = _drawCommands[drawn].atlasId;
+		}
+
+		// Bind instanced inputs
+		glUniform1i(glGetUniformLocation(_glProgram, "tex"), _drawCommands[drawn].atlasId);
+
+		GLint shaderAlpha = glGetAttribLocation(_glProgram, "vObjAlpha");
+		GLint shaderBlend = glGetAttribLocation(_glProgram, "vObjBlend");
+		GLint shaderXY = glGetAttribLocation(_glProgram, "vAtlasXY");
+		GLint shaderWH = glGetAttribLocation(_glProgram, "vAtlasWH");
+		GLint shaderProject = glGetAttribLocation(_glProgram, "project");
+
+		glEnableVertexAttribArray(shaderAlpha);
+		glVertexAttribPointer(shaderAlpha, 1, GL_FLOAT, GL_FALSE, sizeof(RDrawCommand), (void*)offsetof(struct RDrawCommand,alpha));
+		glEnableVertexAttribArray(shaderBlend);
+		glVertexAttribPointer(shaderBlend, 3, GL_FLOAT, GL_FALSE, sizeof(RDrawCommand), (void*)offsetof(struct RDrawCommand,blend));
+		glEnableVertexAttribArray(shaderXY);
+		glVertexAttribPointer(shaderXY, 2, GL_FLOAT, GL_FALSE, sizeof(RDrawCommand), (void*)offsetof(struct RDrawCommand,atlasXY));
+		glEnableVertexAttribArray(shaderWH);
+		glVertexAttribPointer(shaderWH, 2, GL_FLOAT, GL_FALSE, sizeof(RDrawCommand), (void*)offsetof(struct RDrawCommand,atlasWH));
+		glEnableVertexAttribArray(shaderProject);
+		glVertexAttribPointer(shaderProject, 4, GL_FLOAT, GL_FALSE, sizeof(RDrawCommand), (void*)offsetof(struct RDrawCommand,transform));
+		glEnableVertexAttribArray(shaderProject + 1);
+		glVertexAttribPointer(shaderProject + 1, 4, GL_FLOAT, GL_FALSE, sizeof(RDrawCommand), (void*)(offsetof(struct RDrawCommand,transform) + (sizeof(GLfloat) * 4)));
+		glEnableVertexAttribArray(shaderProject + 2);
+		glVertexAttribPointer(shaderProject + 2, 4, GL_FLOAT, GL_FALSE, sizeof(RDrawCommand), (void*)(offsetof(struct RDrawCommand,transform) + (sizeof(GLfloat) * 8)));
+		glEnableVertexAttribArray(shaderProject + 3);
+		glVertexAttribPointer(shaderProject + 3, 4, GL_FLOAT, GL_FALSE, sizeof(RDrawCommand), (void*)(offsetof(struct RDrawCommand,transform) + (sizeof(GLfloat) * 12)));
+
+		glVertexAttribDivisor(shaderAlpha, 1);
+		glVertexAttribDivisor(shaderBlend, 1);
+		glVertexAttribDivisor(shaderXY, 1);
+		glVertexAttribDivisor(shaderWH, 1);
+		glVertexAttribDivisor(shaderProject, 1);
+		glVertexAttribDivisor(shaderProject + 1, 1);
+		glVertexAttribDivisor(shaderProject + 2, 1);
+		glVertexAttribDivisor(shaderProject + 3, 1);
+
+		// Do instanced draw
+		glBindBuffer(GL_ARRAY_BUFFER, _vbo);
+		glEnableVertexAttribArray(glGetAttribLocation(_glProgram, "vertTexCoord"));
 		glVertexAttribPointer(glGetAttribLocation(_glProgram, "vertTexCoord"), 2, GL_FLOAT, GL_TRUE, 3 * sizeof(GLfloat), 0);
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, toDraw);
+
+		glDeleteBuffers(1, &commandsVBO);
+		drawn += toDraw;
 	}
 
 	glViewport(0, 0, actualWinW, actualWinH);
