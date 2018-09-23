@@ -111,7 +111,7 @@ bool GameFrame() {
 			for (const auto j : AlarmGetMap(instance->id)) {
 				if (j.second == 0) {
 					if (!_codeActions->RunInstanceEvent(2, j.first, instance, NULL, instance->object_index)) return false;
-					if (AlarmGet(instance->id, j.first) == 0) AlarmDelete(instance->id, j.first);
+					if (AlarmGet(instance->id, j.first) == 0) AlarmDelete(instance->id, j.first); // Only remove entry if it's still 0
 					if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 				}
 			}
@@ -230,33 +230,47 @@ bool GameFrame() {
 		RDrawPartialImage(AMGetBackground(tile.backgroundIndex)->image, tile.x, tile.y, 1, 1, 0, 0xFFFFFFFF, 1, tile.tileX, tile.tileY, tile.width, tile.height);
 	}
 
-	// Run draw event for all instances (TODO: correct depth order)
-	unsigned int icount = _instances.Count();
-	for (unsigned int i = 0; i < icount; i++) {
-		Instance* instance = _instances[i];
-		// Don't run draw event for instances that don't exist or aren't visible.
-		if (instance->exists && instance->visible) {
+	// Run draw event for all instances in depth order
+	int nextDepth = INT_MIN;
+	iter = InstanceList::Iterator(&_instances);
+	while (instance = iter.Next()) {
+		if (instance->depth > nextDepth && instance->exists && instance->visible) nextDepth = instance->depth;
+	}
 
-			Object* obj = AMGetObject(instance->object_index);
-			if (obj->evDraw) {
-				// This object has a custom draw event.
-				if (!_codeActions->RunInstanceEvent(8, 0, instance, NULL, instance->object_index)) return false;
-				if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
-			}
-			else {
-				// This is the default draw action if no draw event is present for this object.
-				if (instance->sprite_index >= 0) {
-					Sprite* sprite = AMGetSprite(instance->sprite_index);
-					if (sprite->exists) {
-						RDrawImage(sprite->frames[((int)instance->image_index) % sprite->frameCount], instance->x, instance->y, instance->image_xscale, instance->image_yscale, instance->image_angle, instance->image_blend, instance->image_alpha);
+	while (true) {
+		int currentDepth = nextDepth;
+		nextDepth = INT_MIN;
+		iter = InstanceList::Iterator(&_instances);
+		while (instance = iter.Next()) {
+			// Don't run draw event for instances that don't exist or aren't visible.
+			if (instance->exists && instance->visible) {
+				if (instance->depth == currentDepth) {
+					Object* obj = AMGetObject(instance->object_index);
+					if (obj->evDraw) {
+						// This object has a custom draw event.
+						if (!_codeActions->RunInstanceEvent(8, 0, instance, NULL, instance->object_index)) return false;
+						if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 					}
 					else {
-						// Tried to draw non-existent sprite
-						return false;
+						// This is the default draw action if no draw event is present for this object.
+						if (instance->sprite_index >= 0) {
+							Sprite* sprite = AMGetSprite(instance->sprite_index);
+							if (sprite->exists) {
+								RDrawImage(sprite->frames[((int)instance->image_index) % sprite->frameCount], instance->x, instance->y, instance->image_xscale, instance->image_yscale, instance->image_angle, instance->image_blend, instance->image_alpha);
+							}
+							else {
+								// Tried to draw non-existent sprite
+								return false;
+							}
+						}
 					}
+				}
+				else {
+					if (instance->depth < currentDepth && instance->depth > nextDepth) nextDepth = instance->depth;
 				}
 			}
 		}
+		if (nextDepth == INT_MIN) break;
 	}
 
 	// Draw room foregrounds
