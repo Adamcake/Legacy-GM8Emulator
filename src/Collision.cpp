@@ -35,6 +35,20 @@ void RefreshInstanceBbox(Instance* i) {
 		double brX = tlX + ((map->right + 1 - map->left) * i->image_xscale) - 1;
 		double brY = tlY + ((map->bottom + 1 - map->top) * i->image_yscale) - 1;
 
+		double tmp;
+		if (i->image_xscale <= 0) {
+			// swap left x and right x
+			tmp = tlX;
+			tlX = brX;
+			brX = tmp;
+		}
+		if (i->image_yscale <= 0) {
+			// swap top y and bottom y
+			tmp = tlY;
+			tlY = brY;
+			brY = tmp;
+		}
+
     	if (i->image_angle) {
 			double trX = brX;
 			double trY = tlY;
