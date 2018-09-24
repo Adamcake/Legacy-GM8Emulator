@@ -757,7 +757,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 			}
 			case OP_SET_GAME_VALUE: { // Set game value
 				GMLType valToSet;
-				if (!_parseVal(bytes + 6, &valToSet)) return false;
+				if (!_parseVal(bytes + pos + 6, &valToSet)) return false;
 				if (!_setGameValue((CRGameVar)bytes[pos + 1], bytes + pos + 2, (CRSetMethod)bytes[pos + 5], valToSet)) return false;
 				pos += 9;
 				break;

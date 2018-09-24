@@ -70,12 +70,13 @@ bool GameLoadRoom(int id) {
 	// run room's creation code
 	if (!_runner->Run(room->creationCode, NULL, NULL, 0, 0, 0)) return false; // not sure if it matters what event id and number I pass here
 
-	count = _instances.Count();
-	for (unsigned int i = 0; i < count; i++) {
-		// run _instances[i] room start event
-		Object* o = AMGetObject(_instances[i]->object_index);
+	InstanceList::Iterator iter(&_instances);
+	Instance* instance;
+	while (instance = iter.Next()) {
+		// run _instance's room start event
+		Object* o = AMGetObject(instance->object_index);
 		if (o->evOther.count(4)) {
-			if (!_codeActions->RunInstanceEvent(7, 4, _instances[i], NULL, _instances[i]->object_index)) return false;
+			if (!_codeActions->RunInstanceEvent(7, 4, instance, NULL, instance->object_index)) return false;
 		}
 	}
 
@@ -130,9 +131,15 @@ bool GameFrame() {
 
 	// Run "step" event for all instances
 	iter = InstanceList::Iterator(&_instances);
+	unsigned int a = 0;
 	while (instance = iter.Next()) {
+		if (a == 119) {
+			Object* oo = AMGetObject(instance->object_index);
+			a = 0;
+		}
 		if (!_codeActions->RunInstanceEvent(3, 0, instance, NULL, instance->object_index)) return false;
 		if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+		a++;
 	}
 
 	// Movement
