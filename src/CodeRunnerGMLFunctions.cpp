@@ -258,7 +258,7 @@ bool CodeRunner::event_perform(unsigned int argc, GMLType* argv, GMLType* out) {
 
 
 bool CodeRunner::file_bin_open(unsigned int argc, GMLType* argv, GMLType* out) {
-	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::String)) return false;
+	if (!this->_assertArgs(argc, argv, 2, true, GMLTypeState::String, GMLTypeState::Double)) return false;
 	fs::path filePath = fs::path(argv[0].sVal);
 	int fileType = _round(argv[1].dVal);
 
