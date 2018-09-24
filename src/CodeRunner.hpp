@@ -207,8 +207,8 @@ Followed by 4 bytes, the first indicates which game value to get and the followi
 Followed by 2 bytes which indicate the field number.
 This will read from the instance in the expression dereference buffer (default is self.)
 
-04: Get array (eg self.abc[1,2])
-Followed by 5 bytes. The first 2 indicate the array number, the final two sets of 3 are VALs indicating the 2D array indexes.
+04: Get array (eg self.abc[2], self.abc[1,2])
+Followed by 8 bytes. The first 2 indicate the array number, the final two sets of 3 are VALs indicating the 2D array indexes.
 This will read from the instance in the expression dereference buffer (default is self.)
 
 05: Get instance variable (eg sprite_index)
@@ -307,6 +307,9 @@ class CodeRunner {
 
 		// Field map
 		std::map<InstanceID, std::map<unsigned int, GMLType>> _fields;
+
+		// Array map (if you're maintaining this: god help you)
+		std::map<InstanceID, std::map<unsigned int, std::map<int, std::map<int, GMLType>>>> _arrays;
 
 		// Iterator stack for runtime
 		std::stack<InstanceList::Iterator> _iterators;

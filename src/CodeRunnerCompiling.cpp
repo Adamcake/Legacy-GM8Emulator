@@ -641,6 +641,9 @@ bool CodeRunner::_InterpretLine(std::string code, unsigned int* pos, std::vector
 				case VARTYPE_FIELD: {
 					if (array) {
 						v->_code.push_back(OP_SET_ARRAY);
+						v->_code.push_back((unsigned char)(varIx & 0xFF));
+						v->_code.push_back((unsigned char)((varIx >> 8) & 0xFF));
+
 						unsigned char val[3];
 						unsigned int aPos = 0;
 						if (!_getExpression(arrayIndex, &aPos, val)) return false;
@@ -660,7 +663,7 @@ bool CodeRunner::_InterpretLine(std::string code, unsigned int* pos, std::vector
 						}
 						else {
 							// 1D array
-							v->_code.push_back(0);
+							v->_code.push_back(0x40);
 							v->_code.push_back(0);
 							v->_code.push_back(0);
 							v->_code.push_back(val[0]);
@@ -670,9 +673,9 @@ bool CodeRunner::_InterpretLine(std::string code, unsigned int* pos, std::vector
 					}
 					else {
 						v->_code.push_back(OP_SET_FIELD);
+						v->_code.push_back((unsigned char)(varIx & 0xFF));
+						v->_code.push_back((unsigned char)((varIx >> 8) & 0xFF));
 					}
-					v->_code.push_back((unsigned char)(varIx & 0xFF));
-					v->_code.push_back((unsigned char)((varIx >> 8) & 0xFF));
 					break;
 				}
 				case VARTYPE_INSTANCE: {
@@ -1312,7 +1315,9 @@ bool CodeRunner::_CompileExpression(const char* str, unsigned char** outHandle, 
 										}
 										else {
 											memcpy(val2, val1, 3);
-											memset(val1, 0, 3);
+											val1[0] = 0x40;
+											val1[1] = 0;
+											val1[2] = 0;
 										}
 										if (code[pos] != ']') return false;
 										pos++;

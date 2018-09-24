@@ -420,6 +420,27 @@ bool CodeRunner::_readExpVal(unsigned char* code, unsigned int* pos, Instance* d
 			(*pos) += 3;
 			break;
 		}
+		case EVTYPE_ARRAY: {
+			unsigned int fieldNum = code[(*pos) + 1] | (code[(*pos) + 2] << 8);
+			GMLType i1, i2;
+			if (!_parseVal(code + (*pos) + 3, &i1)) return false;
+			if (!_parseVal(code + (*pos) + 6, &i2)) return false;
+			(*pos) += 9;
+
+			if ((i1.state != GMLTypeState::Double) || (i2.state != GMLTypeState::Double)) return false;
+			int index1 = _round(i1.dVal);
+			int index2 = _round(i2.dVal);
+			if (index1 < 0 || index2 < 0) return false;
+			if (_contexts.top().locals.count(fieldNum)) {
+				// TODO - This is a local var
+				return false;
+			}
+			else {
+				// This is a normal field
+				var = _arrays[derefBuffer->id][fieldNum][index1][index2];
+			}
+			break;
+		}
 		default: {
 			return false;
 		}
@@ -689,8 +710,27 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				break;
 			}
 			case OP_SET_ARRAY: { // Set a field array (also check if it's bound to a local)
-				// TODO
-				pos += 10;
+				unsigned int fieldNum = bytes[pos + 1] + (bytes[pos + 2] << 8);
+				GMLType i1, i2, val;
+				if (!_parseVal(bytes + pos + 3, &i1)) return false;
+				if (!_parseVal(bytes + pos + 6, &i2)) return false;
+				if (!_parseVal(bytes + pos + 10, &val)) return false;
+				CRSetMethod setMethod = (CRSetMethod)bytes[pos + 9];
+				pos += 13;
+
+				if ((i1.state != GMLTypeState::Double) || (i2.state != GMLTypeState::Double)) return false;
+				int index1 = _round(i1.dVal);
+				int index2 = _round(i2.dVal);
+				if (index1 < 0 || index2 < 0) return false;
+
+				if (_contexts.top().locals.count(fieldNum) && !dereferenced) {
+					// This is a local
+					// TODO
+				}
+				else {
+					// Not a local, so set the actual field
+					if (!_applySetMethod(&_arrays[derefBuffer->id][fieldNum][index1][index2], setMethod, &val)) return false;
+				}
 				break;
 			}
 			case OP_BIND_VARS: { // Bind field numbers to local vars for the rest of the script
