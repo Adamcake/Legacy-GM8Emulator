@@ -28,7 +28,7 @@ void RefreshInstanceBbox(Instance* i) {
 		unsigned int spriteIndex = i->mask_index;
 		if (spriteIndex == -1) spriteIndex = i->sprite_index;
 		Sprite* s = AMGetSprite(spriteIndex);
-		CollisionMap* map = (s->separateCollision ? (s->collisionMaps + (int)i->image_index) : s->collisionMaps);
+		CollisionMap* map = (s->separateCollision ? (s->collisionMaps + ((int)(i->image_index) % s->frameCount)) : s->collisionMaps);
 
 		double tlX = (i->x - (s->originX * i->image_xscale)) + (map->left * i->image_xscale);
 		double tlY = (i->y - (s->originY * i->image_yscale)) + (map->top * i->image_yscale);
@@ -81,11 +81,11 @@ bool CollisionCheck(Instance * i1, Instance * i2) {
 	unsigned int spriteIndex = i1->mask_index;
 	if (spriteIndex == -1) spriteIndex = i1->sprite_index;
 	Sprite* spr1 = AMGetSprite(spriteIndex);
-	CollisionMap* map1 = (spr1->separateCollision ? (spr1->collisionMaps + (int)i1->image_index) : spr1->collisionMaps);
+	CollisionMap* map1 = (spr1->separateCollision ? (spr1->collisionMaps + ((int)(i1->image_index) % spr1->frameCount)) : spr1->collisionMaps);
 	spriteIndex = i2->mask_index;
 	if (spriteIndex == -1) spriteIndex = i2->sprite_index;
 	Sprite* spr2 = AMGetSprite(spriteIndex);
-	CollisionMap* map2 = (spr2->separateCollision ? (spr2->collisionMaps + (int)i2->image_index) : spr2->collisionMaps);
+	CollisionMap* map2 = (spr2->separateCollision ? (spr2->collisionMaps + ((int)(i2->image_index) % spr2->frameCount)) : spr2->collisionMaps);
 
 	double a1 = i1->image_angle * PI / 180.0;
 	double a2 = i2->image_angle * PI / 180.0;
@@ -136,7 +136,7 @@ bool CollisionPointCheck(Instance* i1, int x, int y) {
 	unsigned int spriteIndex = i1->mask_index;
 	if (spriteIndex == -1) spriteIndex = i1->sprite_index;
 	Sprite* spr1 = AMGetSprite(spriteIndex);
-	CollisionMap* map1 = (spr1->separateCollision ? (spr1->collisionMaps + (int)i1->image_index) : spr1->collisionMaps);
+	CollisionMap* map1 = (spr1->separateCollision ? (spr1->collisionMaps + ((int)(i1->image_index) % spr1->frameCount)) : spr1->collisionMaps);
 	double a1 = i1->image_angle * PI / 180.0;
 	double s1 = sin(a1);
 	double c1 = cos(a1);

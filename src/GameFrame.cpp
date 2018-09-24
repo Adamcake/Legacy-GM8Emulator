@@ -180,17 +180,22 @@ bool GameFrame() {
 	while (instance = iter.Next()) {
 		Object* o = AMGetObject(instance->object_index);
 		for (const auto& e : o->evCollision) {
-			InstanceList::Iterator iter(&_instances, e.first);
+			InstanceList::Iterator iter2(&_instances, e.first);
 
-			Instance* target = iter.Next();
+			Instance* target = iter2.Next();
 			while (target) {
 				if (target != instance) {
+
+					if (target->id == 116928 && instance->object_index == 0) {
+						a = 0;
+					}
+
 					if (CollisionCheck(instance, target)) {
 						if (!_codeActions->RunInstanceEvent(4, e.first, instance, target, instance->object_index)) return false;
 						if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 					}
 				}
-				target = iter.Next();
+				target = iter2.Next();
 			}
 		}
 	}
@@ -304,7 +309,7 @@ bool GameFrame() {
 
 		if (instance->sprite_index >= 0) {
 			Sprite* s = AMGetSprite(instance->sprite_index);
-			if (instance->image_index > s->frameCount) {
+			if (instance->image_index >= s->frameCount) {
 				instance->image_index -= s->frameCount;
 			}
 			if (instance->image_speed && s->separateCollision) instance->bboxIsStale = true;
