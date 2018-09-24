@@ -111,14 +111,12 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 	}
 
 	GMLType arrayId;
-	int roundedAId;
 	switch (index) {
 		case IV_ALARM: {
 			if (!_parseVal(arrayIndexVal, &arrayId)) return false;
 			if (arrayId.state != GMLTypeState::Double) return false;
-			roundedAId = _round(arrayId.dVal);
+			int roundedAId = _round(arrayId.dVal);
 			if (roundedAId < 0) return false;
-			//instance->alarm[(unsigned int)roundedAId] = (int)(value.state == GMLTypeState::Double ? value.dVal : 0.0);
 			int alarmValue = (int)(value.state == GMLTypeState::Double ? value.dVal : 0.0);
 			if (alarmValue) AlarmSet(instance->id, (unsigned int)roundedAId, alarmValue);
 			else AlarmDelete(instance->id, (unsigned int)roundedAId);
@@ -142,6 +140,16 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 			t.dVal = instance->friction;
 			if (!_applySetMethod(&t, method, &value)) return false;
 			instance->friction = t.dVal;
+			break;
+		case IV_SPRITE_INDEX:
+			t.dVal = instance->sprite_index;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->sprite_index = _round(t.dVal);
+			break;
+		case IV_MASK_INDEX:
+			t.dVal = instance->mask_index;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->mask_index = _round(t.dVal);
 			break;
 		case IV_IMAGE_BLEND:
 			t.dVal = instance->image_blend;
@@ -181,6 +189,21 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 			if (!_applySetMethod(&t, method, &value)) return false;
 			instance->solid = _isTrue(&t);
 			break;
+		case IV_VISIBLE:
+			t.dVal = (instance->visible ? GMLTrue : GMLFalse);
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->visible = _isTrue(&t);
+			break;
+		case IV_PERSISTENT:
+			t.dVal = (instance->persistent ? GMLTrue : GMLFalse);
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->persistent = _isTrue(&t);
+			break;
+		case IV_DEPTH:
+			t.dVal = instance->depth;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->depth = _round(t.dVal);
+			break;
 		case IV_SPEED:
 			t.dVal = instance->speed;
 			if (!_applySetMethod(&t, method, &value)) return false;
@@ -201,6 +224,7 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 			instance->hspeed = t.dVal;
 			instance->direction = ::atan(-instance->vspeed / instance->hspeed) * 180.0 / PI;
 			instance->speed = ::sqrt(pow(instance->hspeed, 2) + pow(instance->vspeed, 2));
+			break;
 		case IV_GRAVITY:
 			t.dVal = instance->gravity;
 			if (!_applySetMethod(&t, method, &value)) return false;
@@ -223,7 +247,61 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 			instance->y = t.dVal;
 			instance->bboxIsStale = true;
 			break;
-		// more tbd
+		case IV_PATH_INDEX:
+			t.dVal = instance->path_index;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->path_index = _round(t.dVal);
+			break;
+		case IV_PATH_POSITION:
+			t.dVal = instance->path_position;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->path_position = t.dVal;
+			break;
+		case IV_PATH_SPEED:
+			t.dVal = instance->path_speed;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->path_speed = t.dVal;
+			break;
+		case IV_PATH_SCALE:
+			t.dVal = instance->path_scale;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->path_scale = t.dVal;
+			break;
+		case IV_PATH_ORIENTATION:
+			t.dVal = instance->path_orientation;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->path_orientation = t.dVal;
+			break;
+		case IV_PATH_ENDACTION:
+			t.dVal = instance->path_endaction;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->path_endaction = _round(t.dVal);
+			break;
+		case IV_TIMELINE_INDEX:
+			t.dVal = instance->timeline_index;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->timeline_index = _round(t.dVal);
+			break;
+		case IV_TIMELINE_RUNNING:
+			t.dVal = (instance->timeline_running ? GMLTrue : GMLFalse);
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->timeline_running = _isTrue(&t);
+			break;
+		case IV_TIMELINE_LOOP:
+			t.dVal = (instance->timeline_loop ? GMLTrue : GMLFalse);
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->timeline_loop = _isTrue(&t);
+			break;
+		case IV_TIMELINE_SPEED:
+			t.dVal = instance->timeline_speed;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->timeline_speed = t.dVal;
+			break;
+		case IV_TIMELINE_POSITION:
+			t.dVal = instance->timeline_position;
+			if (!_applySetMethod(&t, method, &value)) return false;
+			instance->timeline_position = t.dVal;
+			break;
 		default:
 			return false;
 	}
