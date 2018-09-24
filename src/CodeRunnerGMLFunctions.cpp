@@ -262,7 +262,7 @@ bool CodeRunner::file_bin_open(unsigned int argc, GMLType* argv, GMLType* out) {
 	fs::path filePath = fs::path(argv[0].sVal);
 	int fileType = _round(argv[1].dVal);
 
-	if (fs::exists(filePath)) {
+	if (fs::exists(filePath) || (fileType != 0)) {
 		// Stream mode
 		int fileMode;
 		switch (fileType) {
@@ -278,6 +278,7 @@ bool CodeRunner::file_bin_open(unsigned int argc, GMLType* argv, GMLType* out) {
 		for (; i < maxFilesOpen; i++) {
 			if (!_userFiles[i].is_open()) {
 				_userFiles[i].open(filePath, fileMode);
+				break;
 			}
 		}
 
@@ -297,8 +298,8 @@ bool CodeRunner::file_bin_open(unsigned int argc, GMLType* argv, GMLType* out) {
 bool CodeRunner::file_bin_close(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
 	int idx = _round(argv[0].dVal);
-	if (_userFiles[idx].is_open()) {
-		_userFiles[idx].close();
+	if (_userFiles[idx - 1].is_open()) {
+		_userFiles[idx - 1].close();
 		return true;
 	} else {
 		return false;
@@ -309,11 +310,11 @@ bool CodeRunner::file_bin_read_byte(unsigned int argc, GMLType* argv, GMLType* o
 	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
 	int idx = _round(argv[0].dVal);
 
-	if (_userFiles[idx].is_open()) {
-		if (!_userFiles[idx].eof()) {
+	if (_userFiles[idx - 1].is_open()) {
+		if (!_userFiles[idx - 1].eof()) {
 			if (out) {
 				out->state = GMLTypeState::Double;
-				out->dVal = static_cast<double>(_userFiles[idx].get());
+				out->dVal = static_cast<double>(_userFiles[idx - 1].get());
 			}
 			return true;
 		} else {
@@ -329,8 +330,8 @@ bool CodeRunner::file_bin_write_byte(unsigned int argc, GMLType* argv, GMLType* 
 	int idx = _round(argv[0].dVal);
 	int oByte = _round(argv[1].dVal);
 
-	if (_userFiles[idx].is_open()) {
-		_userFiles[idx].put(static_cast<char>(oByte));
+	if (_userFiles[idx - 1].is_open()) {
+		_userFiles[idx - 1].put(static_cast<char>(oByte));
 		return true;
 	} else {
 		return false;
