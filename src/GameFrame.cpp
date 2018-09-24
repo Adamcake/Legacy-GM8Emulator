@@ -131,6 +131,7 @@ bool GameFrame() {
 
 	// Run "step" event for all instances
 	iter = InstanceList::Iterator(&_instances);
+	unsigned int a = 0;
 	while (instance = iter.Next()) {
 		if (!_codeActions->RunInstanceEvent(3, 0, instance, NULL, instance->object_index)) return false;
 		if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);

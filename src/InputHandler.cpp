@@ -152,8 +152,26 @@ bool InputCheckKey(int code) {
 }
 
 bool InputCheckKeyDirect(int code) {
-	if (code < 0 || code > NUM_KEYS) return false;
-	return glfwGetKey(win, code);
+	//if (code < 0 || code > NUM_KEYS) return false;
+	//return glfwGetKey(win, code);
+	int c = 0;
+	switch (code) {
+		case 37:
+			c = GLFW_KEY_LEFT;
+			break;
+		case 38:
+			c = GLFW_KEY_UP;
+			break;
+		case 39:
+			c = GLFW_KEY_RIGHT;
+			break;
+		case 40:
+			c = GLFW_KEY_DOWN;
+			break;
+		default:
+			return false;
+	}
+	return glfwGetKey(win, c);
 }
 
 bool InputCheckKeyPressed(int code) {

@@ -368,6 +368,12 @@ bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const 
 				out->dVal = (s->exists ? s->height : 0);
 			}
 			break;
+		case IV_IMAGE_XSCALE:
+			out->dVal = instance->image_xscale;
+			break;
+		case IV_IMAGE_YSCALE:
+			out->dVal = instance->image_yscale;
+			break;
 		case IV_BBOX_LEFT:
 			RefreshInstanceBbox(instance);
 			out->dVal = instance->bbox_left;
