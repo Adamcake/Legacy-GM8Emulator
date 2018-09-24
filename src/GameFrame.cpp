@@ -134,7 +134,6 @@ bool GameFrame() {
 	while (instance = iter.Next()) {
 		if (!_codeActions->RunInstanceEvent(3, 0, instance, NULL, instance->object_index)) return false;
 		if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
-		a++;
 	}
 
 	// Movement
