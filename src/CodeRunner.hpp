@@ -343,6 +343,7 @@ class CodeRunner {
 
 		// Helper functions for running
 		int _round(double);
+		bool _equal(double, double);
 		bool _runCode(const unsigned char* code, GMLType* out);
 		bool _parseVal(const unsigned char* val, GMLType* out);
 		bool _setGameValue(CRGameVar index, const unsigned char* arrayIndexVal, CRSetMethod method, GMLType value);

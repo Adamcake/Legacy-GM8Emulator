@@ -23,6 +23,13 @@ int CodeRunner::_round(double d) {
 	return down + (down & 1);
 }
 
+bool CodeRunner::_equal(double d1, double d2) {
+	// I have no idea why GM8 does this, but it does.
+	double difference = fabs(d2 - d1);
+	double cut_digits = ::floor(difference * 1e13) / 1e13;
+	return cut_digits == 0.0;
+}
+
 bool CodeRunner::_parseVal(const unsigned char* val, CodeRunner::GMLType* out) {
 	unsigned char type = val[0] >> 6;
 	unsigned int index;
@@ -646,7 +653,7 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 			}
 			case OPERATOR_LTE: {
 				if (var.state == GMLTypeState::Double) {
-					var.dVal = (var.dVal <= rhs.dVal ? GMLTrue : GMLFalse);
+					var.dVal = ((var.dVal < rhs.dVal || _equal(var.dVal, rhs.dVal)) ? GMLTrue : GMLFalse);
 				}
 				else {
 					var.dVal = (var.sVal.length() <= rhs.sVal.length() ? GMLTrue : GMLFalse);
@@ -656,7 +663,7 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 			}
 			case OPERATOR_GTE: {
 				if (var.state == GMLTypeState::Double) {
-					var.dVal = (var.dVal >= rhs.dVal ? GMLTrue : GMLFalse);
+					var.dVal = ((var.dVal > rhs.dVal || _equal(var.dVal, rhs.dVal)) ? GMLTrue : GMLFalse);
 				}
 				else {
 					var.dVal = (var.sVal.length() >= rhs.sVal.length() ? GMLTrue : GMLFalse);
@@ -685,13 +692,13 @@ bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) 
 				break;
 			}
 			case OPERATOR_EQUALS: {
-				if(var.state == GMLTypeState::Double) var.dVal = (var.dVal == rhs.dVal ? GMLTrue : GMLFalse);
+				if(var.state == GMLTypeState::Double) var.dVal = (_equal(var.dVal, rhs.dVal) ? GMLTrue : GMLFalse);
 				else var.dVal = (var.sVal.compare(rhs.sVal) ? GMLFalse : GMLTrue);
 				var.state = GMLTypeState::Double;
 				break;
 			}
 			case OPERATOR_NOT_EQUAL: {
-				if (var.state == GMLTypeState::Double) var.dVal = (var.dVal != rhs.dVal ? GMLTrue : GMLFalse);
+				if (var.state == GMLTypeState::Double) var.dVal = (_equal(var.dVal, rhs.dVal) ? GMLFalse : GMLTrue);
 				else var.dVal = (var.sVal.compare(rhs.sVal) ? GMLTrue : GMLFalse);
 				var.state = GMLTypeState::Double;
 				break;
