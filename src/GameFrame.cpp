@@ -181,16 +181,17 @@ bool GameFrame() {
 		Object* o = AMGetObject(instance->object_index);
 		for (const auto& e : o->evCollision) {
 			InstanceList::Iterator iter2(&_instances, e.first);
-
+	
 			Instance* target = iter2.Next();
 			while (target) {
 				if (target != instance) {
-
-					if (target->id == 116928 && instance->object_index == 0) {
-						a = 0;
-					}
-
 					if (CollisionCheck(instance, target)) {
+						if (target->solid) {
+							// If the target is solid, we move outside of it
+							instance->x = instance->xprevious;
+							instance->y = instance->yprevious;
+							instance->bboxIsStale = true;
+						}
 						if (!_codeActions->RunInstanceEvent(4, e.first, instance, target, instance->object_index)) return false;
 						if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 					}

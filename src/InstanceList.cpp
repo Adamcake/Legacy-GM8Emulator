@@ -19,7 +19,7 @@ InstanceList::~InstanceList() {
 Instance* InstanceList::AddInstance(unsigned int id, double x, double y, unsigned int objectId) {
 	if (_highestIdAdded > id) {
 		for (unsigned int i = 0; i < _size; i++) {
-			if (_list[i].id < id) {
+			if (_list[i].id > id) {
 				memmove(_list + i + 1, _list + i, sizeof(Instance) * (_size - i));
 				_size++;
 				Instance* ret = _list + i;
@@ -42,7 +42,7 @@ Instance* InstanceList::AddInstance(unsigned int id, double x, double y, unsigne
 void InstanceList::DeleteInstance(unsigned int id) {
 	AlarmRemoveInstance(id);
 	for (unsigned int i = 0; i < _size; i++) {
-		if (_list[i].id < id) {
+		if (_list[i].id > id) {
 			memmove(_list + i, _list + i + 1, sizeof(Instance) * (_size - (i + 1)));
 			_size--;
 			return;
@@ -128,7 +128,6 @@ bool InstanceList::_InitInstance(Instance* instance, unsigned int id, double x, 
 	instance->visible = obj->visible;
 	instance->persistent = obj->persistent;
 	instance->depth = obj->depth;
-	//instance->alarm.clear();
 	instance->sprite_index = obj->spriteIndex;
 	instance->image_alpha = 1;
 	instance->image_blend = 0xFFFFFF;

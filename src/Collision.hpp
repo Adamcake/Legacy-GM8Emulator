@@ -1,6 +1,6 @@
 #ifndef _A_COLLISION_HPP_
 #define _A_COLLISION_HPP_
-struct Instance;
+#include "InstanceList.hpp"
 
 // Should always be called before accessing an instance's bbox variables.
 void RefreshInstanceBbox(Instance* i);

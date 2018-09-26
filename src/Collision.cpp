@@ -1,6 +1,7 @@
 #include <pch.h>
 #include "Collision.hpp"
 #include "Instance.hpp"
+#include "InstanceList.hpp"
 #include "AssetManager.hpp"
 #define PI 3.141592653589793
 

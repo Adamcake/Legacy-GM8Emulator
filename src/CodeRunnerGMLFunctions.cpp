@@ -627,7 +627,7 @@ bool CodeRunner::move_contact_solid(unsigned int argc, GMLType* argv, GMLType* o
 	Instance* self = _contexts.top().self;
 	bool moved = false;
 
-	for (int i = 0; i < maxdist; i++) {
+	for (int i = 0; i <= maxdist; i++) {
 		InstanceList::Iterator iter(_instances);
 		bool collision = false;
 		
@@ -645,14 +645,20 @@ bool CodeRunner::move_contact_solid(unsigned int argc, GMLType* argv, GMLType* o
 			if (moved) {
 				self->x -= hspeed;
 				self->y -= vspeed;
+				self->bboxIsStale = true;
 			}
 			break;
 		}
 		else {
-			self->x += hspeed;
-			self->y += vspeed;
-			self->bboxIsStale = true;
-			moved = true;
+			if (i != maxdist) {
+				self->x += hspeed;
+				self->y += vspeed;
+				self->bboxIsStale = true;
+				moved = true;
+			}
+			else {
+				break;
+			}
 		}
 	}
 	return true;
