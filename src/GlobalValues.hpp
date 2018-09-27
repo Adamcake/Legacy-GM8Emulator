@@ -10,6 +10,7 @@ struct GlobalValues {
 	int lives;
 	int roomTarget; // This is what ACTUALLY gets set when you set the "room" variable.
 	bool changeRoom;
+	std::string room_caption;
 
 	// Read-only - these can be read by GML but can only be set by the Game object
 	unsigned int room;

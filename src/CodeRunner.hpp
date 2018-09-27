@@ -423,7 +423,8 @@ class CodeRunner {
 		bool string(unsigned int argc, GMLType* argv, GMLType* out);
 		bool string_width(unsigned int argc, GMLType* argv, GMLType* out);
 		bool string_height(unsigned int argc, GMLType* argv, GMLType* out);
-
+		bool window_set_caption(unsigned int argc, GMLType *argv, GMLType *out);
+		bool window_get_caption(unsigned int argc, GMLType *argv, GMLType *out);
 		bool unimplemented(unsigned int argc, GMLType* argv, GMLType* out);
 
 	public:

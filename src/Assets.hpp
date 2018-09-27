@@ -33,7 +33,7 @@ struct IndexedEvent {
 struct RoomBackground {
 	bool visible;
 	bool foreground;
-	unsigned int backgroundIndex;
+	int backgroundIndex;
 	unsigned int x;
 	unsigned int y;
 	bool tileHor;

@@ -64,8 +64,11 @@ bool CodeRunner::_setGameValue(CRGameVar index, const unsigned char* arrayIndexV
 		case ROOM_SPEED:
 			_globalValues->room_speed = (unsigned int)_round(value.dVal);
 			break;
-		case ROOM_CAPTION:
-			// set caption somehow I guess
+		case ROOM_CAPTION: {
+			GMLType tCaption{ GMLTypeState::String, 0.0, _globalValues->room_caption };
+			_applySetMethod(&tCaption, method, &value);
+			_globalValues->room_caption = tCaption.sVal;
+		}
 			break;
 		default:
 			return false;

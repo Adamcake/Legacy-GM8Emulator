@@ -4231,7 +4231,7 @@ bool CodeRunner::Init() {
 				break;
 			case WINDOW_GET_CAPTION:
 				_internalFuncNames.push_back("window_get_caption");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+				_gmlFuncs.push_back(&CodeRunner::window_get_caption);
 				break;
 			case WINDOW_GET_COLOR:
 				_internalFuncNames.push_back("window_get_color");
@@ -4311,7 +4311,7 @@ bool CodeRunner::Init() {
 				break;
 			case WINDOW_SET_CAPTION:
 				_internalFuncNames.push_back("window_set_caption");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+				_gmlFuncs.push_back(&CodeRunner::window_set_caption);
 				break;
 			case WINDOW_SET_COLOR:
 				_internalFuncNames.push_back("window_set_color");

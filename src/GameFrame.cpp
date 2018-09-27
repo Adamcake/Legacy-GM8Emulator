@@ -223,18 +223,20 @@ bool GameFrame() {
 	Room* room = AMGetRoom(_globals.room);
 	for (unsigned int i = 0; i < room->backgroundCount; i++) {
 		RoomBackground bg = room->backgrounds[i];
-		if (bg.visible && !bg.foreground) {
+		if (bg.visible && !bg.foreground && bg.backgroundIndex >= 0) {
 			Background* b = AMGetBackground(bg.backgroundIndex);
-			unsigned int stretchedW = (bg.stretch ? room->width : b->width);
-			unsigned int stretchedH = (bg.stretch ? room->height : b->height);
-			double scaleX = (bg.stretch ? ((double)room->width / b->width) : 1);
-			double scaleY = (bg.stretch ? ((double)room->height / b->height) : 1);
+			if (b->exists) {
+				unsigned int stretchedW = (bg.stretch ? room->width : b->width);
+				unsigned int stretchedH = (bg.stretch ? room->height : b->height);
+				double scaleX = (bg.stretch ? ((double)room->width / b->width) : 1);
+				double scaleY = (bg.stretch ? ((double)room->height / b->height) : 1);
 
-			for (int startY = (bg.tileVert ? (bg.y - stretchedH) : 0); startY < (int)room->height; startY += stretchedH) {
-				for (int startX = (bg.tileHor ? (bg.x - stretchedW) : 0); startX < (int)room->width; startX += stretchedW) {
-					RDrawImage(b->image, startX, startY, scaleX, scaleY, 0, 0xFFFFFFFF, 1);
+				for (int startY = (bg.tileVert ? (bg.y - stretchedH) : 0); startY < (int)room->height; startY += stretchedH) {
+					for (int startX = (bg.tileHor ? (bg.x - stretchedW) : 0); startX < (int)room->width; startX += stretchedW) {
+						RDrawImage(b->image, startX, startY, scaleX, scaleY, 0, 0xFFFFFFFF, 1);
+					}
 				}
-			}
+			}			
 		}
 	}
 
@@ -307,6 +309,9 @@ bool GameFrame() {
 
 	// Draw screen
 	RRenderFrame();
+
+	// Update Caption
+	RSetGameWindowTitle(_globals.room_caption.c_str());
 	if (RShouldClose()) return false;
 
 	// Update sprite info

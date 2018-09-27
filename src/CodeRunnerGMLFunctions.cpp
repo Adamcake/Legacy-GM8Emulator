@@ -972,6 +972,21 @@ bool CodeRunner::string_height(unsigned int argc, GMLType* argv, GMLType* out) {
 	return true;
 }
 
+bool CodeRunner::window_set_caption(unsigned int argc, GMLType *argv, GMLType *out) {
+	if(!this->_assertArgs(argc, argv, 1, true, GMLTypeState::String)) return false;
+	RSetGameWindowTitle(argv->sVal.c_str());
+	return true;
+}
+
+bool CodeRunner::window_get_caption(unsigned int argc, GMLType *argv, GMLType *out) {
+	if (argc != 0) return false;
+	if (out) {
+		out->state == GMLTypeState::String;
+		out->sVal = std::string(_globalValues->room_caption);
+	}
+	return true;
+}
+
 bool CodeRunner::unimplemented(unsigned int argc, GMLType * argv, GMLType * out) {
 	if (!CRErrorOnUnimplemented) {
 		if (out) {
