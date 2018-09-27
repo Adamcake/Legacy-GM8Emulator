@@ -981,7 +981,7 @@ bool CodeRunner::window_set_caption(unsigned int argc, GMLType *argv, GMLType *o
 bool CodeRunner::window_get_caption(unsigned int argc, GMLType *argv, GMLType *out) {
 	if (argc != 0) return false;
 	if (out) {
-		out->state == GMLTypeState::String;
+		out->state = GMLTypeState::String;
 		out->sVal = std::string(_globalValues->room_caption);
 	}
 	return true;
