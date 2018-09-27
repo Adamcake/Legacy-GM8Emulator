@@ -1,0 +1,3 @@
+*.bat linguist-vendored
+*.cmd linguist-vendored
+*.sh linguist-vendored
