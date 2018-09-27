@@ -24,7 +24,7 @@ bool GameLoadRoom(int id) {
 	for (unsigned int i = 0; i < count; i++) {
 		// run "room end" event for _instances[i]
 		Object* o = AMGetObject(_instances[i]->object_index);
-		if (o->evOther.count(5)) {
+		if (o->events[7].count(5)) {
 			if (!_codeActions->RunInstanceEvent(7, 5, _instances[i], NULL, _instances[i]->object_index)) return false;
 		}
 	}
@@ -75,7 +75,7 @@ bool GameLoadRoom(int id) {
 	while (instance = iter.Next()) {
 		// run _instance's room start event
 		Object* o = AMGetObject(instance->object_index);
-		if (o->evOther.count(4)) {
+		if (o->events[7].count(4)) {
 			if (!_codeActions->RunInstanceEvent(7, 4, instance, NULL, instance->object_index)) return false;
 		}
 	}
@@ -179,7 +179,7 @@ bool GameFrame() {
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
 		Object* o = AMGetObject(instance->object_index);
-		for (const auto& e : o->evCollision) {
+		for (const auto& e : o->events[4]) {
 			InstanceList::Iterator iter2(&_instances, e.first);
 	
 			Instance* target = iter2.Next();
@@ -262,7 +262,7 @@ bool GameFrame() {
 			if (instance->exists && instance->visible) {
 				if (instance->depth == currentDepth) {
 					Object* obj = AMGetObject(instance->object_index);
-					if (obj->evDraw) {
+					if (obj->events[8].count(0)) {
 						// This object has a custom draw event.
 						if (!_codeActions->RunInstanceEvent(8, 0, instance, NULL, instance->object_index)) return false;
 						if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);

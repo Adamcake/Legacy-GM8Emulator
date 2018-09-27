@@ -172,53 +172,16 @@ Object::Object()
 {
 	name = NULL;
 	exists = true;
-	evCreateActionCount = 0;
-	evCreate = NULL;
-	evDestroyActionCount = 0;
-	evDestroy = NULL;
-	evStepActionCount = 0;
-	evStep = NULL;
-	evStepBeginActionCount = 0;
-	evStepBegin = NULL;
-	evStepEndActionCount = 0;
-	evStepEnd = NULL;
-	evDrawActionCount = 0;
-	evDraw = NULL;
 }
 
 Object::~Object()
 {
 	free(name);
-	delete[] evCreate;
-	delete[] evDestroy;
-	delete[] evStep;
-	delete[] evStepBegin;
-	delete[] evStepEnd;
-	delete[] evDraw;
 
-	for (const auto& i : evAlarm) {
-		delete[] i.second.actions;
-	}
-	for (const auto& i : evCollision) {
-		delete[] i.second.actions;
-	}
-	for (const auto& i : evKeyboard) {
-		delete[] i.second.actions;
-	}
-	for (const auto& i : evKeyPress) {
-		delete[] i.second.actions;
-	}
-	for (const auto& i : evKeyRelease) {
-		delete[] i.second.actions;
-	}
-	for (const auto& i : evMouse) {
-		delete[] i.second.actions;
-	}
-	for (const auto& i : evOther) {
-		delete[] i.second.actions;
-	}
-	for (const auto& i : evTrigger) {
-		delete[] i.second.actions;
+	for (unsigned int i = 0; i < 12; i++) {
+		for (const auto& i : events[i]) {
+			delete[] i.second.actions;
+		}
 	}
 }
 

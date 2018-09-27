@@ -15,7 +15,6 @@ struct Instance {
 	bool visible;
 	bool persistent;
 	int depth;
-	//std::map<unsigned int, int> alarm;
 	int sprite_index;
 	double image_alpha;
 	int image_blend;

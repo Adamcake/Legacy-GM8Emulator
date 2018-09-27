@@ -267,27 +267,28 @@ class Object {
 		int parentIndex;
 		int maskIndex;
 
-		unsigned int evCreateActionCount;
-		CodeAction* evCreate;
-		unsigned int evDestroyActionCount;
-		CodeAction* evDestroy;
-		unsigned int evStepActionCount;
-		CodeAction* evStep;
-		unsigned int evStepBeginActionCount;
-		CodeAction* evStepBegin;
-		unsigned int evStepEndActionCount;
-		CodeAction* evStepEnd;
-		unsigned int evDrawActionCount;
-		CodeAction* evDraw;
-
-		std::map<unsigned int, IndexedEvent> evAlarm;
-		std::map<unsigned int, IndexedEvent> evCollision;
-		std::map<unsigned int, IndexedEvent> evKeyboard;
-		std::map<unsigned int, IndexedEvent> evKeyPress;
-		std::map<unsigned int, IndexedEvent> evKeyRelease;
-		std::map<unsigned int, IndexedEvent> evMouse;
-		std::map<unsigned int, IndexedEvent> evOther;
-		std::map<unsigned int, IndexedEvent> evTrigger;
+		std::map<unsigned int, IndexedEvent> events[12];
+		//unsigned int evCreateActionCount;
+		//CodeAction* evCreate;
+		//unsigned int evDestroyActionCount;
+		//CodeAction* evDestroy;
+		//unsigned int evStepActionCount;
+		//CodeAction* evStep;
+		//unsigned int evStepBeginActionCount;
+		//CodeAction* evStepBegin;
+		//unsigned int evStepEndActionCount;
+		//CodeAction* evStepEnd;
+		//unsigned int evDrawActionCount;
+		//CodeAction* evDraw;
+		//
+		//std::map<unsigned int, IndexedEvent> evAlarm;
+		//std::map<unsigned int, IndexedEvent> evCollision;
+		//std::map<unsigned int, IndexedEvent> evKeyboard;
+		//std::map<unsigned int, IndexedEvent> evKeyPress;
+		//std::map<unsigned int, IndexedEvent> evKeyRelease;
+		//std::map<unsigned int, IndexedEvent> evMouse;
+		//std::map<unsigned int, IndexedEvent> evOther;
+		//std::map<unsigned int, IndexedEvent> evTrigger;
 };
 
 class Room {

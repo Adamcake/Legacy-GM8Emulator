@@ -1059,6 +1059,7 @@ bool GameLoad(const char * pFilename) {
 		IndexedEvent e;
 
 		// Create event
+		/*
 		if ((int)(ReadDword(data, &dataPos)) != -1) {
 			dataPos += 4;
 			object->evCreateActionCount = ReadDword(data, &dataPos);
@@ -1088,28 +1089,30 @@ bool GameLoad(const char * pFilename) {
 				}
 			}
 			dataPos += 4; // Should always be -1, otherwise this object has more than one destroy event.
-		}
+		}*/
 
-		// Alarm events
-		while (true) {
-			unsigned int index = ReadDword(data, &dataPos);
-			if (index == -1) break;
+		// Read each of the 12 event types
+		for (unsigned int i = 0; i < 12; i++) {
+			while (true) {
+				unsigned int index = ReadDword(data, &dataPos);
+				if (index == -1) break;
 
-			dataPos += 4;
-			e.actionCount = ReadDword(data, &dataPos);
-			e.actions = new CodeAction[e.actionCount];
-			for (unsigned int i = 0; i < e.actionCount; i++) {
-				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
-					// Error reading action
-					free(data);
-					free(buffer);
-					return false;
+				dataPos += 4;
+				e.actionCount = ReadDword(data, &dataPos);
+				e.actions = new CodeAction[e.actionCount];
+				for (unsigned int i = 0; i < e.actionCount; i++) {
+					if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
+						// Error reading action
+						free(data);
+						free(buffer);
+						return false;
+					}
 				}
+
+				object->events[i][index] = e;
 			}
-
-			object->evAlarm[index] = e;
 		}
-
+		/*
 		// Step events
 		while (true) {
 			unsigned int index = ReadDword(data, &dataPos);
@@ -1333,7 +1336,7 @@ bool GameLoad(const char * pFilename) {
 			}
 
 			object->evTrigger[index] = e;
-		}
+		}*/
 
 		e.actions = NULL; // Prevents important memory getting destroyed along with this stack memory
 	}
@@ -1558,6 +1561,7 @@ bool GameLoad(const char * pFilename) {
 			}
 		}
 	}
+	// Compile timelines
 	for (unsigned int i = 0; i < timelineCount; i++) {
 		Timeline* t = AMGetTimeline(i);
 		if (t->exists) {
@@ -1576,16 +1580,19 @@ bool GameLoad(const char * pFilename) {
 	for (unsigned int i = 0; i < objectCount; i++) {
 		Object* o = AMGetObject(i);
 		if (o->exists) {
-			for(auto const& ev : o->evAlarm) {
-				for (unsigned int j = 0; j < ev.second.actionCount; j++) {
-					if (!_codeActions->Compile(ev.second.actions[j])) {
-						// Error compiling script
-						free(data);
-						free(buffer);
-						return false;
+			for (unsigned int j = 0; j < 12; j++) {
+				for (auto const& ev : o->events[j]) {
+					for (unsigned int k = 0; k < ev.second.actionCount; k++) {
+						if (!_codeActions->Compile(ev.second.actions[k])) {
+							// Error compiling script
+							free(data);
+							free(buffer);
+							return false;
+						}
 					}
 				}
 			}
+			/*
 			for (auto const& ev : o->evCollision) {
 				for (unsigned int j = 0; j < ev.second.actionCount; j++) {
 					if (!_codeActions->Compile(ev.second.actions[j])) {
@@ -1705,6 +1712,7 @@ bool GameLoad(const char * pFilename) {
 					return false;
 				}
 			}
+			*/
 		}
 	}
 	for (unsigned int i = 0; i < triggerCount; i++) {
