@@ -194,6 +194,12 @@ bool GameFrame() {
 						}
 						if (!_codeActions->RunInstanceEvent(4, e.first, instance, target, instance->object_index)) return false;
 						if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+
+						if (target->solid) {
+							instance->x += instance->hspeed;
+							instance->y += instance->vspeed;
+							instance->bboxIsStale = true;
+						}
 					}
 				}
 				target = iter2.Next();
