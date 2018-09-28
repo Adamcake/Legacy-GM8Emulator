@@ -1,3 +1,5 @@
+*.dat
+
 # CMake
 CMakeCache.txt
 CMakeFiles

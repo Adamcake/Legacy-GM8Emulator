@@ -266,46 +266,47 @@ void GameTerminate() {
 	RTerminate();
 }
 
-bool GameLoad(const char * pFilename) {
+bool GameLoad(const char *pFilename) {
 	// Init the runner
 	if (! _runner->Init()) {
 		return false;
 	}
 
 	// Load the entirety of the file into a memory buffer
-	FILE* exe;
-	int err = fopen_s(&exe, pFilename, "rb");
+	std::ifstream ifs(fs::path(pFilename), std::ios::binary | std::ios::ate);
 
-	if ((exe == NULL) || (err != 0)) {
-		// Error accessing file
+	if (!ifs.is_open() || ifs.bad()) {
+		// This really should be more verbose.
+		// Failed to open file.
 		return false;
 	}
 
-	fseek(exe, 0, SEEK_END);
-	long fsize = ftell(exe);
+	std::streamsize file_size = ifs.tellg();
+	unsigned char *buffer;
 
-	fseek(exe, 0, SEEK_SET);
-	unsigned char* buffer = (unsigned char*) malloc(fsize);
-
-	if (buffer == nullptr) {
-		// Failed to allocate space to load the file - gm8 games can be huge so it's best to check for this.
+	try {
+		buffer = new unsigned char[static_cast<unsigned int>(file_size)];
+	} catch (const std::bad_alloc &) {
+		// This really should be more verbose.
+		// Failed to allocate memory.
 		return false;
 	}
 
-	size_t read = fread(buffer, 1, fsize, exe);
-	fclose(exe);
+	ifs.seekg(std::ios::beg);
+	ifs.read(reinterpret_cast<char *>(buffer), file_size);
+	ifs.close();
 
 	// Check if this is a valid exe
 
-	if (fsize < 0x1B) {
+	if (static_cast<unsigned int>(file_size) < 0x1B) {
 		// Invalid file, too small to be an exe
-		free(buffer);
+		delete [] buffer;
 		return false;
 	}
 
 	if (!(buffer[0] == 'M' && buffer[1] == 'Z')) {
 		// Invalid file, not an exe
-		free(buffer);
+		delete [] buffer;
 		return false;
 	}
 
@@ -328,7 +329,7 @@ bool GameLoad(const char * pFilename) {
 				if ((ReadDword(buffer, &pos) & 0x00FF00FF) == 0x00140067) {
 
 					version = 810;
-					Decrypt81(buffer, fsize, &pos);
+					Decrypt81(buffer, static_cast<unsigned int>(file_size), &pos);
 
 					pos += 16;
 					break;
@@ -342,7 +343,7 @@ bool GameLoad(const char * pFilename) {
 
 	if (!version) {
 		// No game version found
-		free(buffer);
+		delete [] buffer;
 		return false;
 	}
 
@@ -358,7 +359,7 @@ bool GameLoad(const char * pFilename) {
 	if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
 		// Error reading settings block
 		free(data);
-		free(buffer);
+		delete [] buffer;
 		return false;
 	}
 	else {
@@ -399,7 +400,7 @@ bool GameLoad(const char * pFilename) {
 					// Error reading backdata
 					free(loadingData);
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 
@@ -412,7 +413,7 @@ bool GameLoad(const char * pFilename) {
 					// Error reading frontdata
 					free(loadingData);
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 
@@ -433,7 +434,7 @@ bool GameLoad(const char * pFilename) {
 				// Error reading custom load image
 				free(imageData);
 				free(data);
-				free(buffer);
+				delete [] buffer;
 				return false;
 			}
 
@@ -468,7 +469,7 @@ bool GameLoad(const char * pFilename) {
 	if (!DecryptData(buffer, &pos)) {
 		// Error decrypting
 		free(data);
-		free(buffer);
+		delete [] buffer;
 		return false;
 	}
 
@@ -571,7 +572,7 @@ bool GameLoad(const char * pFilename) {
 			if (!InflateBlock(buffer, &dataPos, &data, &dataLength, &outputSize)) {
 				// Error reading file
 				free(data);
-				free(buffer);
+				delete [] buffer;
 				free(charTable);
 				return true;
 			}
@@ -596,7 +597,7 @@ bool GameLoad(const char * pFilename) {
 		if (! InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
 			// Error reading trigger
 			free(data);
-			free(buffer);
+			delete [] buffer;
 			return false;
 		}
 
@@ -641,7 +642,7 @@ bool GameLoad(const char * pFilename) {
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
 			// Error reading sound
 			free(data);
-			free(buffer);
+			delete [] buffer;
 			return false;
 		}
 
@@ -687,7 +688,7 @@ bool GameLoad(const char * pFilename) {
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
 			// Error reading sprite
 			free(data);
-			free(buffer);
+			delete [] buffer;
 			return false;
 		}
 
@@ -721,7 +722,7 @@ bool GameLoad(const char * pFilename) {
 				if (pixelDataLength != (sprite->width * sprite->height * 4)) {
 					// This should never happen
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 
@@ -800,7 +801,7 @@ bool GameLoad(const char * pFilename) {
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
 			// Error reading background
 			free(data);
-			free(buffer);
+			delete [] buffer;
 			return false;
 		}
 
@@ -845,7 +846,7 @@ bool GameLoad(const char * pFilename) {
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
 			// Error reading path
 			free(data);
-			free(buffer);
+			delete [] buffer;
 			return false;
 		}
 
@@ -886,7 +887,7 @@ bool GameLoad(const char * pFilename) {
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
 			// Error reading script
 			free(data);
-			free(buffer);
+			delete [] buffer;
 			return false;
 		}
 
@@ -917,7 +918,7 @@ bool GameLoad(const char * pFilename) {
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
 			// Error reading font
 			free(data);
-			free(buffer);
+			delete [] buffer;
 			return false;
 		}
 
@@ -956,7 +957,7 @@ bool GameLoad(const char * pFilename) {
 		if (w * h != dlen) {
 			// Bad font data
 			free(data);
-			free(buffer);
+			delete [] buffer;
 			return false;
 		}
 
@@ -984,7 +985,7 @@ bool GameLoad(const char * pFilename) {
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
 			// Error reading timeline
 			free(data);
-			free(buffer);
+			delete [] buffer;
 			return false;
 		}
 
@@ -1012,7 +1013,7 @@ bool GameLoad(const char * pFilename) {
 				if(!_codeActions->Read(data, &dataPos, timeline->moments[index].actions + j)) {
 					// Error reading action
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 			}
@@ -1031,7 +1032,7 @@ bool GameLoad(const char * pFilename) {
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
 			// Error reading object
 			free(data);
-			free(buffer);
+			delete [] buffer;
 			return false;
 		}
 
@@ -1068,7 +1069,7 @@ bool GameLoad(const char * pFilename) {
 				if(!_codeActions->Read(data, &dataPos, object->evCreate + i)) {
 					// Error reading action
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 			}
@@ -1084,7 +1085,7 @@ bool GameLoad(const char * pFilename) {
 				if (!_codeActions->Read(data, &dataPos, object->evDestroy + i)) {
 					// Error reading action
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 			}
@@ -1104,7 +1105,7 @@ bool GameLoad(const char * pFilename) {
 					if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
 						// Error reading action
 						free(data);
-						free(buffer);
+						delete [] buffer;
 						return false;
 					}
 				}
@@ -1122,7 +1123,7 @@ bool GameLoad(const char * pFilename) {
 				if (object->evStep != NULL) {
 					// Two step events for this object?
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 
@@ -1133,7 +1134,7 @@ bool GameLoad(const char * pFilename) {
 					if (!_codeActions->Read(data, &dataPos, object->evStep + i)) {
 						// Error reading action
 						free(data);
-						free(buffer);
+						delete [] buffer;
 						return false;
 					}
 				}
@@ -1143,7 +1144,7 @@ bool GameLoad(const char * pFilename) {
 				if (object->evStepBegin != NULL) {
 					// Two begin step events for this object?
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 
@@ -1154,7 +1155,7 @@ bool GameLoad(const char * pFilename) {
 					if (!_codeActions->Read(data, &dataPos, object->evStepBegin + i)) {
 						// Error reading action
 						free(data);
-						free(buffer);
+						delete [] buffer;
 						return false;
 					}
 				}
@@ -1164,7 +1165,7 @@ bool GameLoad(const char * pFilename) {
 				if (object->evStepEnd != NULL) {
 					// Two begin step events for this object?
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 
@@ -1175,7 +1176,7 @@ bool GameLoad(const char * pFilename) {
 					if (!_codeActions->Read(data, &dataPos, object->evStepEnd + i)) {
 						// Error reading action
 						free(data);
-						free(buffer);
+						delete [] buffer;
 						return false;
 					}
 				}
@@ -1194,7 +1195,7 @@ bool GameLoad(const char * pFilename) {
 				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
 					// Error reading action
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 			}
@@ -1214,7 +1215,7 @@ bool GameLoad(const char * pFilename) {
 				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
 					// Error reading action
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 			}
@@ -1234,7 +1235,7 @@ bool GameLoad(const char * pFilename) {
 				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
 					// Error reading action
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 			}
@@ -1254,7 +1255,7 @@ bool GameLoad(const char * pFilename) {
 				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
 					// Error reading action
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 			}
@@ -1271,7 +1272,7 @@ bool GameLoad(const char * pFilename) {
 				if (!_codeActions->Read(data, &dataPos, object->evDraw + i)) {
 					// Error reading action
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 			}
@@ -1290,7 +1291,7 @@ bool GameLoad(const char * pFilename) {
 				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
 					// Error reading action
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 			}
@@ -1310,7 +1311,7 @@ bool GameLoad(const char * pFilename) {
 				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
 					// Error reading action
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 			}
@@ -1330,7 +1331,7 @@ bool GameLoad(const char * pFilename) {
 				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
 					// Error reading action
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 			}
@@ -1355,7 +1356,7 @@ bool GameLoad(const char * pFilename) {
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
 			// Error reading room
 			free(data);
-			free(buffer);
+			delete [] buffer;
 			return false;
 		}
 
@@ -1471,7 +1472,7 @@ bool GameLoad(const char * pFilename) {
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
 			// Error reading whatever this is
 			free(data);
-			free(buffer);
+			delete [] buffer;
 			return false;
 		}
 
@@ -1510,7 +1511,7 @@ bool GameLoad(const char * pFilename) {
 	if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
 		// Error reading game information
 		free(data);
-		free(buffer);
+		delete [] buffer;
 		return false;
 	}
 
@@ -1556,7 +1557,7 @@ bool GameLoad(const char * pFilename) {
 			if (!_runner->Compile(s->codeObj)) {
 				// Error compiling script
 				free(data);
-				free(buffer);
+				delete [] buffer;
 				return false;
 			}
 		}
@@ -1570,7 +1571,7 @@ bool GameLoad(const char * pFilename) {
 					if(!_codeActions->Compile(t->moments[j].actions[k])) {
 						// Error compiling script
 						free(data);
-						free(buffer);
+						delete [] buffer;
 						return false;
 					}
 				}
@@ -1586,7 +1587,7 @@ bool GameLoad(const char * pFilename) {
 						if (!_codeActions->Compile(ev.second.actions[k])) {
 							// Error compiling script
 							free(data);
-							free(buffer);
+							delete [] buffer;
 							return false;
 						}
 					}
@@ -1598,7 +1599,7 @@ bool GameLoad(const char * pFilename) {
 					if (!_codeActions->Compile(ev.second.actions[j])) {
 						// Error compiling script
 						free(data);
-						free(buffer);
+						delete [] buffer;
 						return false;
 					}
 				}
@@ -1608,7 +1609,7 @@ bool GameLoad(const char * pFilename) {
 					if (!_codeActions->Compile(ev.second.actions[j])) {
 						// Error compiling script
 						free(data);
-						free(buffer);
+						delete [] buffer;
 						return false;
 					}
 				}
@@ -1618,7 +1619,7 @@ bool GameLoad(const char * pFilename) {
 					if (!_codeActions->Compile(ev.second.actions[j])) {
 						// Error compiling script
 						free(data);
-						free(buffer);
+						delete [] buffer;
 						return false;
 					}
 				}
@@ -1628,7 +1629,7 @@ bool GameLoad(const char * pFilename) {
 					if (!_codeActions->Compile(ev.second.actions[j])) {
 						// Error compiling script
 						free(data);
-						free(buffer);
+						delete [] buffer;
 						return false;
 					}
 				}
@@ -1638,7 +1639,7 @@ bool GameLoad(const char * pFilename) {
 					if (!_codeActions->Compile(ev.second.actions[j])) {
 						// Error compiling script
 						free(data);
-						free(buffer);
+						delete [] buffer;
 						return false;
 					}
 				}
@@ -1648,7 +1649,7 @@ bool GameLoad(const char * pFilename) {
 					if (!_codeActions->Compile(ev.second.actions[j])) {
 						// Error compiling script
 						free(data);
-						free(buffer);
+						delete [] buffer;
 						return false;
 					}
 				}
@@ -1658,7 +1659,7 @@ bool GameLoad(const char * pFilename) {
 					if (!_codeActions->Compile(ev.second.actions[j])) {
 						// Error compiling script
 						free(data);
-						free(buffer);
+						delete [] buffer;
 						return false;
 					}
 				}
@@ -1668,7 +1669,7 @@ bool GameLoad(const char * pFilename) {
 				if (!_codeActions->Compile(o->evCreate[j])) {
 					// Error compiling script
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 			}
@@ -1676,7 +1677,7 @@ bool GameLoad(const char * pFilename) {
 				if (!_codeActions->Compile(o->evDestroy[j])) {
 					// Error compiling script
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 			}
@@ -1684,7 +1685,7 @@ bool GameLoad(const char * pFilename) {
 				if (!_codeActions->Compile(o->evStep[j])) {
 					// Error compiling script
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 			}
@@ -1692,7 +1693,7 @@ bool GameLoad(const char * pFilename) {
 				if (!_codeActions->Compile(o->evStepBegin[j])) {
 					// Error compiling script
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 			}
@@ -1700,7 +1701,7 @@ bool GameLoad(const char * pFilename) {
 				if (!_codeActions->Compile(o->evStepEnd[j])) {
 					// Error compiling script
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 			}
@@ -1708,7 +1709,7 @@ bool GameLoad(const char * pFilename) {
 				if (!_codeActions->Compile(o->evDraw[j])) {
 					// Error compiling script
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 			}
@@ -1721,7 +1722,7 @@ bool GameLoad(const char * pFilename) {
 			if (!_runner->Compile(t->codeObj)) {
 				// Error compiling script
 				free(data);
-				free(buffer);
+				delete [] buffer;
 				return false;
 			}
 		}
@@ -1732,14 +1733,14 @@ bool GameLoad(const char * pFilename) {
 			if (!_runner->Compile(r->creationCode)) {
 				// Error compiling script
 				free(data);
-				free(buffer);
+				delete [] buffer;
 				return false;
 			}
 			for (unsigned int j = 0; j < r->instanceCount; j++) {
 				if (!_runner->Compile(r->instances[j].creation)) {
 					// Error compiling script
 					free(data);
-					free(buffer);
+					delete [] buffer;
 					return false;
 				}
 			}
@@ -1749,7 +1750,7 @@ bool GameLoad(const char * pFilename) {
 
 	// Cleaning up
 	free(data);
-	free(buffer);
+	delete [] buffer;
 
 	return true;
 }

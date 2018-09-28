@@ -5,6 +5,7 @@
 #include <ctime>
 #include <fstream>
 #include <filesystem>
+#include <new>
 #include <list>
 #include <map>
 #include <string>
