@@ -258,6 +258,14 @@ void GameInit() {
 }
 
 void GameTerminate() {
+	// Run "Game End" events
+	InstanceList::Iterator iter = InstanceList::Iterator(&_instances);
+	Instance* instance;
+	while (instance = iter.Next()) {
+		if (!_codeActions->RunInstanceEvent(7, 3, instance, NULL, instance->object_index)) break;
+	}
+
+	// Clean up
 	free(_info.caption);
 	free(_info.gameInfo);
 	delete _codeActions;
