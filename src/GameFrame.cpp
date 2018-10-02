@@ -103,6 +103,22 @@ bool GameFrame() {
 	}
 
 	// TODO: if timeline_running, add timeline_speed to timeline_position and then run any events in that timeline indexed BELOW (not equal to) the current timeline_position
+	iter = InstanceList::Iterator(&_instances);
+	while (instance = iter.Next()) {
+		if (instance->exists && instance->timeline_running) {
+			Timeline* timeline = AMGetTimeline(instance->timeline_index);
+			if (timeline->exists) {
+				double oldTPos = instance->timeline_position;
+				instance->timeline_position += instance->timeline_speed;
+
+				for (const auto& m : timeline->moments) {
+					if (m.first >= oldTPos && m.first < instance->timeline_position) {
+						if (!_codeActions->Run(m.second.actions, m.second.actionCount, instance, NULL, 0, 0, instance->object_index)) return false;
+					}
+				}
+			}
+		}
+	}
 
 	// Subtract from alarms and run event if they reach 0
 	AlarmUpdateAll();

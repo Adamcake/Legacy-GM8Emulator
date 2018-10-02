@@ -215,7 +215,7 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
 		}
 		case 305: {
 			// Set timeline
-			const char* baseGml = "timeline_index=%s;timeline_position=%s;timeline_running=%s;timeline_loop=%s;";
+			const char* baseGml = "timeline_index=%s;timeline_position=%s;timeline_running=!%s;timeline_loop=%s;";
 			gmlLen = (unsigned int)strlen(baseGml) + lengths[0] + lengths[1] + lengths[2] + lengths[3] - (4*2);
 			gml = (char*)malloc(gmlLen + 1);
 			gmlLen = (unsigned int)sprintf_s(gml, gmlLen + 1, baseGml, args[0], args[1], args[2], args[3]);
