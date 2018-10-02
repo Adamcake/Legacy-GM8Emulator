@@ -179,8 +179,8 @@ bool GameFrame() {
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
 		Object* o = AMGetObject(instance->object_index);
-		for (const auto& e : o->events[4]) {
-			InstanceList::Iterator iter2(&_instances, e.first);
+		for (unsigned int e : o->collisions) {
+			InstanceList::Iterator iter2(&_instances, e);
 	
 			Instance* target = iter2.Next();
 			while (target) {
@@ -192,7 +192,7 @@ bool GameFrame() {
 							instance->y = instance->yprevious;
 							instance->bboxIsStale = true;
 						}
-						if (!_codeActions->RunInstanceEvent(4, e.first, instance, target, instance->object_index)) return false;
+						if (!_codeActions->RunInstanceEvent(4, e, instance, target, instance->object_index)) return false;
 						if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 
 						if (target->solid) {

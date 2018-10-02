@@ -439,6 +439,10 @@ bool CodeActionManager::Run(CodeAction* actions, unsigned int count, Instance* s
 
 bool CodeActionManager::RunInstanceEvent(int ev, int sub, Instance* target, Instance* other, unsigned int asObjId) {
 	Object* o = AMGetObject(asObjId);
+	while (!CheckObjectEvent(ev, sub, o)) {
+		if (o->parentIndex < 0) return true;
+		o = AMGetObject(o->parentIndex);
+	}
 	return o->events[ev].count(sub) ? Run(o->events[ev][sub].actions, o->events[ev][sub].actionCount, target, other, ev, sub, asObjId) : true;
 }
 

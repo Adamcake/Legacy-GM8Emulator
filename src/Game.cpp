@@ -1057,40 +1057,6 @@ bool GameLoad(const char * pFilename) {
 		dataPos += 4; // This skips a counter for the number of event lists. Should always be 11.
 
 		IndexedEvent e;
-
-		// Create event
-		/*
-		if ((int)(ReadDword(data, &dataPos)) != -1) {
-			dataPos += 4;
-			object->evCreateActionCount = ReadDword(data, &dataPos);
-			object->evCreate = new CodeAction[object->evCreateActionCount];
-			for (unsigned int i = 0; i < object->evCreateActionCount; i++) {
-				if(!_codeActions->Read(data, &dataPos, object->evCreate + i)) {
-					// Error reading action
-					free(data);
-					free(buffer);
-					return false;
-				}
-			}
-			dataPos += 4; // Should always be -1, otherwise this object has more than one create event.
-		}
-		
-		// Destroy event
-		if ((int)(ReadDword(data, &dataPos)) != -1) {
-			dataPos += 4;
-			object->evDestroyActionCount = ReadDword(data, &dataPos);
-			object->evDestroy = new CodeAction[object->evDestroyActionCount];
-			for (unsigned int i = 0; i < object->evDestroyActionCount; i++) {
-				if (!_codeActions->Read(data, &dataPos, object->evDestroy + i)) {
-					// Error reading action
-					free(data);
-					free(buffer);
-					return false;
-				}
-			}
-			dataPos += 4; // Should always be -1, otherwise this object has more than one destroy event.
-		}*/
-
 		// Read each of the 12 event types
 		for (unsigned int i = 0; i < 12; i++) {
 			while (true) {
@@ -1112,231 +1078,6 @@ bool GameLoad(const char * pFilename) {
 				object->events[i][index] = e;
 			}
 		}
-		/*
-		// Step events
-		while (true) {
-			unsigned int index = ReadDword(data, &dataPos);
-			if (index == -1) break;
-			else if (index == 0) {
-				// Step
-				if (object->evStep != NULL) {
-					// Two step events for this object?
-					free(data);
-					free(buffer);
-					return false;
-				}
-
-				dataPos += 4;
-				object->evStepActionCount = ReadDword(data, &dataPos);
-				object->evStep = new CodeAction[object->evStepActionCount];
-				for (unsigned int i = 0; i < object->evStepActionCount; i++) {
-					if (!_codeActions->Read(data, &dataPos, object->evStep + i)) {
-						// Error reading action
-						free(data);
-						free(buffer);
-						return false;
-					}
-				}
-			}
-			else if (index == 1) {
-				// Begin Step
-				if (object->evStepBegin != NULL) {
-					// Two begin step events for this object?
-					free(data);
-					free(buffer);
-					return false;
-				}
-
-				dataPos += 4;
-				object->evStepBeginActionCount = ReadDword(data, &dataPos);
-				object->evStepBegin = new CodeAction[object->evStepBeginActionCount];
-				for (unsigned int i = 0; i < object->evStepBeginActionCount; i++) {
-					if (!_codeActions->Read(data, &dataPos, object->evStepBegin + i)) {
-						// Error reading action
-						free(data);
-						free(buffer);
-						return false;
-					}
-				}
-			}
-			else if (index == 2) {
-				// End Step
-				if (object->evStepEnd != NULL) {
-					// Two begin step events for this object?
-					free(data);
-					free(buffer);
-					return false;
-				}
-
-				dataPos += 4;
-				object->evStepEndActionCount = ReadDword(data, &dataPos);
-				object->evStepEnd = new CodeAction[object->evStepEndActionCount];
-				for (unsigned int i = 0; i < object->evStepEndActionCount; i++) {
-					if (!_codeActions->Read(data, &dataPos, object->evStepEnd + i)) {
-						// Error reading action
-						free(data);
-						free(buffer);
-						return false;
-					}
-				}
-			}
-		}
-
-		// Collision events
-		while (true) {
-			unsigned int index = ReadDword(data, &dataPos);
-			if (index == -1) break;
-
-			dataPos += 4;
-			e.actionCount = ReadDword(data, &dataPos);
-			e.actions = new CodeAction[e.actionCount];
-			for (unsigned int i = 0; i < e.actionCount; i++) {
-				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
-					// Error reading action
-					free(data);
-					free(buffer);
-					return false;
-				}
-			}
-
-			object->evCollision[index] = e;
-		}
-
-		// Keyboard events
-		while (true) {
-			unsigned int index = ReadDword(data, &dataPos);
-			if (index == -1) break;
-
-			dataPos += 4;
-			e.actionCount = ReadDword(data, &dataPos);
-			e.actions = new CodeAction[e.actionCount];
-			for (unsigned int i = 0; i < e.actionCount; i++) {
-				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
-					// Error reading action
-					free(data);
-					free(buffer);
-					return false;
-				}
-			}
-
-			object->evKeyboard[index] = e;
-		}
-
-		// Mouse events
-		while (true) {
-			unsigned int index = ReadDword(data, &dataPos);
-			if (index == -1) break;
-
-			dataPos += 4;
-			e.actionCount = ReadDword(data, &dataPos);
-			e.actions = new CodeAction[e.actionCount];
-			for (unsigned int i = 0; i < e.actionCount; i++) {
-				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
-					// Error reading action
-					free(data);
-					free(buffer);
-					return false;
-				}
-			}
-
-			object->evMouse[index] = e;
-		}
-
-		// Other events
-		while (true) {
-			unsigned int index = ReadDword(data, &dataPos);
-			if (index == -1) break;
-
-			dataPos += 4;
-			e.actionCount = ReadDword(data, &dataPos);
-			e.actions = new CodeAction[e.actionCount];
-			for (unsigned int i = 0; i < e.actionCount; i++) {
-				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
-					// Error reading action
-					free(data);
-					free(buffer);
-					return false;
-				}
-			}
-
-			object->evOther[index] = e;
-		}
-
-		// Draw event
-		if ((int)(ReadDword(data, &dataPos)) != -1) {
-			dataPos += 4;
-			object->evDrawActionCount = ReadDword(data, &dataPos);
-			object->evDraw = new CodeAction[object->evDrawActionCount];
-			for (unsigned int i = 0; i < object->evDrawActionCount; i++) {
-				if (!_codeActions->Read(data, &dataPos, object->evDraw + i)) {
-					// Error reading action
-					free(data);
-					free(buffer);
-					return false;
-				}
-			}
-			dataPos += 4; // Should always be -1, otherwise this object has more than one draw event.
-		}
-
-		// Key press events
-		while (true) {
-			unsigned int index = ReadDword(data, &dataPos);
-			if (index == -1) break;
-
-			dataPos += 4;
-			e.actionCount = ReadDword(data, &dataPos);
-			e.actions = new CodeAction[e.actionCount];
-			for (unsigned int i = 0; i < e.actionCount; i++) {
-				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
-					// Error reading action
-					free(data);
-					free(buffer);
-					return false;
-				}
-			}
-
-			object->evKeyPress[index] = e;
-		}
-
-		// Key release events
-		while (true) {
-			unsigned int index = ReadDword(data, &dataPos);
-			if (index == -1) break;
-
-			dataPos += 4;
-			e.actionCount = ReadDword(data, &dataPos);
-			e.actions = new CodeAction[e.actionCount];
-			for (unsigned int i = 0; i < e.actionCount; i++) {
-				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
-					// Error reading action
-					free(data);
-					free(buffer);
-					return false;
-				}
-			}
-
-			object->evKeyRelease[index] = e;
-		}
-
-		// Trigger events
-		while (true) {
-			unsigned int index = ReadDword(data, &dataPos);
-			if (index == -1) break;
-
-			dataPos += 4;
-			e.actionCount = ReadDword(data, &dataPos);
-			e.actions = new CodeAction[e.actionCount];
-			for (unsigned int i = 0; i < e.actionCount; i++) {
-				if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
-					// Error reading action
-					free(data);
-					free(buffer);
-					return false;
-				}
-			}
-
-			object->evTrigger[index] = e;
-		}*/
 
 		e.actions = NULL; // Prevents important memory getting destroyed along with this stack memory
 	}
@@ -1549,6 +1290,23 @@ bool GameLoad(const char * pFilename) {
 	// Update runner with end of static instance id range
 	_runner->SetNextInstanceID(nextInstanceId);
 
+	// Compile object collision lists
+	for (unsigned int i = 0; i < objectCount; i++) {
+		Object* obj = AMGetObject(i);
+		if (!obj->exists) continue;
+		Object* o = obj;
+		while (true) {
+			for (const auto& e : o->events[4]) {
+				if (std::find(obj->collisions.begin(), obj->collisions.end(), e.first) == obj->collisions.end()) {
+					obj->collisions.push_back(e.first);
+				}
+			}
+			if (o->parentIndex < 0) break;
+			o = AMGetObject(o->parentIndex);
+		}
+		std::sort(obj->collisions.begin(), obj->collisions.end());
+	}
+
 	// Compile scripts
 	for (unsigned int i = 0; i < scriptCount; i++) {
 		Script* s = AMGetScript(i);
@@ -1577,6 +1335,7 @@ bool GameLoad(const char * pFilename) {
 			}
 		}
 	}
+	// Compile object events
 	for (unsigned int i = 0; i < objectCount; i++) {
 		Object* o = AMGetObject(i);
 		if (o->exists) {
@@ -1592,129 +1351,9 @@ bool GameLoad(const char * pFilename) {
 					}
 				}
 			}
-			/*
-			for (auto const& ev : o->evCollision) {
-				for (unsigned int j = 0; j < ev.second.actionCount; j++) {
-					if (!_codeActions->Compile(ev.second.actions[j])) {
-						// Error compiling script
-						free(data);
-						free(buffer);
-						return false;
-					}
-				}
-			}
-			for (auto const& ev : o->evKeyboard) {
-				for (unsigned int j = 0; j < ev.second.actionCount; j++) {
-					if (!_codeActions->Compile(ev.second.actions[j])) {
-						// Error compiling script
-						free(data);
-						free(buffer);
-						return false;
-					}
-				}
-			}
-			for (auto const& ev : o->evKeyPress) {
-				for (unsigned int j = 0; j < ev.second.actionCount; j++) {
-					if (!_codeActions->Compile(ev.second.actions[j])) {
-						// Error compiling script
-						free(data);
-						free(buffer);
-						return false;
-					}
-				}
-			}
-			for (auto const& ev : o->evKeyRelease) {
-				for (unsigned int j = 0; j < ev.second.actionCount; j++) {
-					if (!_codeActions->Compile(ev.second.actions[j])) {
-						// Error compiling script
-						free(data);
-						free(buffer);
-						return false;
-					}
-				}
-			}
-			for (auto const& ev : o->evMouse) {
-				for (unsigned int j = 0; j < ev.second.actionCount; j++) {
-					if (!_codeActions->Compile(ev.second.actions[j])) {
-						// Error compiling script
-						free(data);
-						free(buffer);
-						return false;
-					}
-				}
-			}
-			for (auto const& ev : o->evOther) {
-				for (unsigned int j = 0; j < ev.second.actionCount; j++) {
-					if (!_codeActions->Compile(ev.second.actions[j])) {
-						// Error compiling script
-						free(data);
-						free(buffer);
-						return false;
-					}
-				}
-			}
-			for (auto const& ev : o->evTrigger) {
-				for (unsigned int j = 0; j < ev.second.actionCount; j++) {
-					if (!_codeActions->Compile(ev.second.actions[j])) {
-						// Error compiling script
-						free(data);
-						free(buffer);
-						return false;
-					}
-				}
-			}
-
-			for (unsigned int j = 0; j < o->evCreateActionCount; j++) {
-				if (!_codeActions->Compile(o->evCreate[j])) {
-					// Error compiling script
-					free(data);
-					free(buffer);
-					return false;
-				}
-			}
-			for (unsigned int j = 0; j < o->evDestroyActionCount; j++) {
-				if (!_codeActions->Compile(o->evDestroy[j])) {
-					// Error compiling script
-					free(data);
-					free(buffer);
-					return false;
-				}
-			}
-			for (unsigned int j = 0; j < o->evStepActionCount; j++) {
-				if (!_codeActions->Compile(o->evStep[j])) {
-					// Error compiling script
-					free(data);
-					free(buffer);
-					return false;
-				}
-			}
-			for (unsigned int j = 0; j < o->evStepBeginActionCount; j++) {
-				if (!_codeActions->Compile(o->evStepBegin[j])) {
-					// Error compiling script
-					free(data);
-					free(buffer);
-					return false;
-				}
-			}
-			for (unsigned int j = 0; j < o->evStepEndActionCount; j++) {
-				if (!_codeActions->Compile(o->evStepEnd[j])) {
-					// Error compiling script
-					free(data);
-					free(buffer);
-					return false;
-				}
-			}
-			for (unsigned int j = 0; j < o->evDrawActionCount; j++) {
-				if (!_codeActions->Compile(o->evDraw[j])) {
-					// Error compiling script
-					free(data);
-					free(buffer);
-					return false;
-				}
-			}
-			*/
 		}
 	}
+	// Compile triggers
 	for (unsigned int i = 0; i < triggerCount; i++) {
 		Trigger* t = AMGetTrigger(i);
 		if (t->exists) {
@@ -1726,6 +1365,7 @@ bool GameLoad(const char * pFilename) {
 			}
 		}
 	}
+	// Compile room creation code (includes creation code of room-instances)
 	for (unsigned int i = 0; i < roomCount; i++) {
 		Room* r = AMGetRoom(i);
 		if (r->exists) {
