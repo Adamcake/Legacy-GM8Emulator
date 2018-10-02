@@ -78,7 +78,96 @@ bool CodeRunner::_setGameValue(CRGameVar index, const unsigned char* arrayIndexV
 
 bool CodeRunner::_getGameValue(CRGameVar index, const unsigned char* arrayIndexVal, GMLType* out) {
 	out->state = GMLTypeState::Double;
+	GMLType arr;
+	int aIndex;
 	switch (index) {
+		case ARGUMENT:
+			if (!_parseVal(arrayIndexVal, &arr)) return false;
+			aIndex = _round(arr.dVal);
+			if (_contexts.top().argc > aIndex) {
+				(*out) = _contexts.top().argv[aIndex];
+			}
+			break;
+		case ARGUMENT0:
+			if (_contexts.top().argc > 0) {
+				(*out) = _contexts.top().argv[0];
+			}
+			break;
+		case ARGUMENT1:
+			if (_contexts.top().argc > 1) {
+				(*out) = _contexts.top().argv[1];
+			}
+			break;
+		case ARGUMENT2:
+			if (_contexts.top().argc > 2) {
+				(*out) = _contexts.top().argv[2];
+			}
+			break;
+		case ARGUMENT3:
+			if (_contexts.top().argc > 3) {
+				(*out) = _contexts.top().argv[3];
+			}
+			break;
+		case ARGUMENT4:
+			if (_contexts.top().argc > 4) {
+				(*out) = _contexts.top().argv[4];
+			}
+			break;
+		case ARGUMENT5:
+			if (_contexts.top().argc > 5) {
+				(*out) = _contexts.top().argv[5];
+			}
+			break;
+		case ARGUMENT6:
+			if (_contexts.top().argc > 6) {
+				(*out) = _contexts.top().argv[6];
+			}
+			break;
+		case ARGUMENT7:
+			if (_contexts.top().argc > 7) {
+				(*out) = _contexts.top().argv[7];
+			}
+			break;
+		case ARGUMENT8:
+			if (_contexts.top().argc > 8) {
+				(*out) = _contexts.top().argv[8];
+			}
+			break;
+		case ARGUMENT9:
+			if (_contexts.top().argc > 9) {
+				(*out) = _contexts.top().argv[9];
+			}
+			break;
+		case ARGUMENT10:
+			if (_contexts.top().argc > 10) {
+				(*out) = _contexts.top().argv[10];
+			}
+			break;
+		case ARGUMENT11:
+			if (_contexts.top().argc > 11) {
+				(*out) = _contexts.top().argv[11];
+			}
+			break;
+		case ARGUMENT12:
+			if (_contexts.top().argc > 12) {
+				(*out) = _contexts.top().argv[12];
+			}
+			break;
+		case ARGUMENT13:
+			if (_contexts.top().argc > 13) {
+				(*out) = _contexts.top().argv[13];
+			}
+			break;
+		case ARGUMENT14:
+			if (_contexts.top().argc > 14) {
+				(*out) = _contexts.top().argv[14];
+			}
+			break;
+		case ARGUMENT15:
+			if (_contexts.top().argc > 15) {
+				(*out) = _contexts.top().argv[15];
+			}
+			break;
 		case INSTANCE_COUNT:
 			out->dVal = (double)_instances->Count();
 			break;
@@ -1085,7 +1174,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 }
 
 bool CodeRunner::Run(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, unsigned int argc, GMLType* argv) {
-	_contexts.push(CRContext(self, other, ev, sub, asObjId));
+	_contexts.push(CRContext(self, other, ev, sub, asObjId, argc, argv));
 	GMLType out;
 	bool ret = _runCode(_codeObjects[code].compiled, &out);
 	_contexts.pop();

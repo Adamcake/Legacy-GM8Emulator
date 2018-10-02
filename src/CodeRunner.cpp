@@ -4398,6 +4398,57 @@ bool CodeRunner::Init() {
 	_gameValueNames.reserve(_GAME_VALUE_COUNT);
 	for (unsigned int var = 0; var < _GAME_VALUE_COUNT; var++) {
 		switch (var) {
+			case ARGUMENT:
+				_gameValueNames.push_back("argument");
+				break;
+			case ARGUMENT0:
+				_gameValueNames.push_back("argument0");
+				break;
+			case ARGUMENT1:
+				_gameValueNames.push_back("argument1");
+				break;
+			case ARGUMENT2:
+				_gameValueNames.push_back("argument2");
+				break;
+			case ARGUMENT3:
+				_gameValueNames.push_back("argument3");
+				break;
+			case ARGUMENT4:
+				_gameValueNames.push_back("argument4");
+				break;
+			case ARGUMENT5:
+				_gameValueNames.push_back("argument5");
+				break;
+			case ARGUMENT6:
+				_gameValueNames.push_back("argument6");
+				break;
+			case ARGUMENT7:
+				_gameValueNames.push_back("argument7");
+				break;
+			case ARGUMENT8:
+				_gameValueNames.push_back("argument8");
+				break;
+			case ARGUMENT9:
+				_gameValueNames.push_back("argument9");
+				break;
+			case ARGUMENT10:
+				_gameValueNames.push_back("argument10");
+				break;
+			case ARGUMENT11:
+				_gameValueNames.push_back("argument11");
+				break;
+			case ARGUMENT12:
+				_gameValueNames.push_back("argument12");
+				break;
+			case ARGUMENT13:
+				_gameValueNames.push_back("argument13");
+				break;
+			case ARGUMENT14:
+				_gameValueNames.push_back("argument14");
+				break;
+			case ARGUMENT15:
+				_gameValueNames.push_back("argument15");
+				break;
 			case HEALTH:
 				_gameValueNames.push_back("health");
 				break;
