@@ -107,15 +107,15 @@ bool CodeRunner::Init() {
 				break;
 			case ARCCOS:
 				_internalFuncNames.push_back("arccos");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+				_gmlFuncs.push_back(&CodeRunner::arccos);
 				break;
 			case ARCSIN:
 				_internalFuncNames.push_back("arcsin");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+				_gmlFuncs.push_back(&CodeRunner::arcsin);
 				break;
 			case ARCTAN:
 				_internalFuncNames.push_back("arctan");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+				_gmlFuncs.push_back(&CodeRunner::arctan);
 				break;
 			case ARCTAN2:
 				_internalFuncNames.push_back("arctan2");
@@ -267,7 +267,7 @@ bool CodeRunner::Init() {
 				break;
 			case CEIL:
 				_internalFuncNames.push_back("ceil");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+				_gmlFuncs.push_back(&CodeRunner::ceil);
 				break;
 			case CHOOSE:
 				_internalFuncNames.push_back("choose");
@@ -827,7 +827,7 @@ bool CodeRunner::Init() {
 				break;
 			case DEGTORAD:
 				_internalFuncNames.push_back("degtorad");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+				_gmlFuncs.push_back(&CodeRunner::degtorad);
 				break;
 			case DIRECTORY_CREATE:
 				_internalFuncNames.push_back("directory_create");
@@ -2135,11 +2135,11 @@ bool CodeRunner::Init() {
 				break;
 			case IS_REAL:
 				_internalFuncNames.push_back("is_real");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+				_gmlFuncs.push_back(&CodeRunner::is_real);
 				break;
 			case IS_STRING:
 				_internalFuncNames.push_back("is_string");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+				_gmlFuncs.push_back(&CodeRunner::is_string);
 				break;
 			case JOYSTICK_AXES:
 				_internalFuncNames.push_back("joystick_axes");
@@ -2259,7 +2259,7 @@ bool CodeRunner::Init() {
 				break;
 			case LN:
 				_internalFuncNames.push_back("ln");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+				_gmlFuncs.push_back(&CodeRunner::ln);
 				break;
 			case LOAD_INFO:
 				_internalFuncNames.push_back("load_info");
@@ -2267,15 +2267,15 @@ bool CodeRunner::Init() {
 				break;
 			case LOG10:
 				_internalFuncNames.push_back("log10");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+				_gmlFuncs.push_back(&CodeRunner::log10);
 				break;
 			case LOG2:
 				_internalFuncNames.push_back("log2");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+				_gmlFuncs.push_back(&CodeRunner::log2);
 				break;
 			case LOGN:
 				_internalFuncNames.push_back("logn");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+				_gmlFuncs.push_back(&CodeRunner::logn);
 				break;
 			case MAKE_COLOR_HSV:
 				_internalFuncNames.push_back("make_color_hsv");
@@ -3215,7 +3215,7 @@ bool CodeRunner::Init() {
 				break;
 			case RADTODEG:
 				_internalFuncNames.push_back("radtodeg");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+				_gmlFuncs.push_back(&CodeRunner::radtodeg);
 				break;
 			case RANDOM:
 				_internalFuncNames.push_back("random");
@@ -3387,7 +3387,7 @@ bool CodeRunner::Init() {
 				break;
 			case ROUND:
 				_internalFuncNames.push_back("round");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+				_gmlFuncs.push_back(&CodeRunner::round);
 				break;
 			case SCREEN_REDRAW:
 				_internalFuncNames.push_back("screen_redraw");
@@ -3975,7 +3975,7 @@ bool CodeRunner::Init() {
 				break;
 			case TAN:
 				_internalFuncNames.push_back("tan");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+				_gmlFuncs.push_back(&CodeRunner::tan);
 				break;
 			case TEXTURE_GET_HEIGHT:
 				_internalFuncNames.push_back("texture_get_height");

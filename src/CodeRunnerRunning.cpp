@@ -998,21 +998,23 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				pos += 7;
 
 				if (id >= 0) {
-					_contexts.push(CRContext(_contexts.top().self, pos, _instances, id));
+					_contexts.push(CRContext(_contexts.top().self, pos, _instances, id, _contexts.top().argc, _contexts.top().argv));
 				}
 				else if (id == -1) {
-					_contexts.push(CRContext(_contexts.top().self, pos, _instances, _contexts.top().self->id));
+					_contexts.push(CRContext(_contexts.top().self, pos, _instances, _contexts.top().self->id, _contexts.top().argc, _contexts.top().argv));
 				}
 				else if (id == -2) {
-					_contexts.push(CRContext(_contexts.top().self, pos, _instances, _contexts.top().other->id));
+					_contexts.push(CRContext(_contexts.top().self, pos, _instances, _contexts.top().other->id, _contexts.top().argc, _contexts.top().argv));
 				}
 				else if (id == -3) {
-					_contexts.push(CRContext(_contexts.top().self, pos, _instances));
-					return false;
+					_contexts.push(CRContext(_contexts.top().self, pos, _instances, _contexts.top().argc, _contexts.top().argv));
+					//return false;
 				}
 				else {
 					pos += bytes[pos - 3] + ((unsigned int)bytes[pos - 2] << 8) + ((unsigned int)bytes[pos - 1] << 16);
 				}
+
+				derefBuffer = _contexts.top().self;
 
 				if (_contexts.top().self == NULL) {
 					// No instances to use in this context
@@ -1031,6 +1033,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 					_contexts.pop();
 					pos++;
 				}
+				derefBuffer = _contexts.top().self;
 				break;
 			}
 			case OP_RUN_INTERNAL_FUNC: { // Run an internal function, not caring about the return value

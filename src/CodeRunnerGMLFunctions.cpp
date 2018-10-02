@@ -36,6 +36,42 @@ bool CodeRunner::abs(unsigned int argc, GMLType* argv, GMLType* out) {
 	return true;
 }
 
+bool CodeRunner::arcsin(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+	if (out) {
+		out->state = GMLTypeState::Double;
+		out->dVal = ::asin(argv[0].dVal);
+	}
+	return true;
+}
+
+bool CodeRunner::arccos(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+	if (out) {
+		out->state = GMLTypeState::Double;
+		out->dVal = ::acos(argv[0].dVal);
+	}
+	return true;
+}
+
+bool CodeRunner::arctan(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+	if (out) {
+		out->state = GMLTypeState::Double;
+		out->dVal = ::atan(argv[0].dVal);
+	}
+	return true;
+}
+
+bool CodeRunner::ceil(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+	if (out) {
+		out->state = GMLTypeState::Double;
+		out->dVal = ::ceil(argv[0].dVal);
+	}
+	return true;
+}
+
 bool CodeRunner::choose(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (!argc) {
 		if (out) {
@@ -55,6 +91,15 @@ bool CodeRunner::cos(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (out) {
 		out->state = GMLTypeState::Double;
 		out->dVal = ::cos(argv[0].dVal);
+	}
+	return true;
+}
+
+bool CodeRunner::degtorad(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+	if (out) {
+		out->state = GMLTypeState::Double;
+		out->dVal = (PI * argv[0].dVal) / 180.0;
 	}
 	return true;
 }
@@ -437,6 +482,22 @@ bool CodeRunner::irandom_range(unsigned int argc, GMLType* argv, GMLType* out) {
 	return true;
 }
 
+bool CodeRunner::is_real(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (out) {
+		out->state = GMLTypeState::Double;
+		out->dVal = (argv[0].state == GMLTypeState::Double) ? GMLTrue : GMLFalse;
+	}
+	return true;
+}
+
+bool CodeRunner::is_string(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (out) {
+		out->state = GMLTypeState::Double;
+		out->dVal = (argv[0].state == GMLTypeState::String) ? GMLTrue : GMLFalse;
+	}
+	return true;
+}
+
 bool CodeRunner::floor(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
 	if (out) {
@@ -490,6 +551,42 @@ bool CodeRunner::keyboard_check_released(unsigned int argc, GMLType* argv, GMLTy
 	out->state = GMLTypeState::Double;
 	int gmlKeycode = _round(argv[0].dVal);
 	out->dVal = (InputCheckKeyReleased(gmlKeycode) ? GMLTrue : GMLFalse);
+	return true;
+}
+
+bool CodeRunner::log2(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+	if (out) {
+		out->state = GMLTypeState::Double;
+		out->dVal = ::log2(argv[0].dVal);
+	}
+	return true;
+}
+
+bool CodeRunner::log10(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+	if (out) {
+		out->state = GMLTypeState::Double;
+		out->dVal = ::log10(argv[0].dVal);
+	}
+	return true;
+}
+
+bool CodeRunner::logn(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (!this->_assertArgs(argc, argv, 2, true, GMLTypeState::Double)) return false;
+	if (out) {
+		out->state = GMLTypeState::Double;
+		out->dVal = ::log(argv[1].dVal) / ::log(argv[0].dVal);
+	}
+	return true;
+}
+
+bool CodeRunner::ln(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+	if (out) {
+		out->state = GMLTypeState::Double;
+		out->dVal = ::log(argv[0].dVal);
+	}
 	return true;
 }
 
@@ -785,6 +882,15 @@ bool CodeRunner::power(unsigned int argc, GMLType* argv, GMLType* out) {
 	return true;
 }
 
+bool CodeRunner::radtodeg(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+	if (out) {
+		out->state = GMLTypeState::Double;
+		out->dVal = (180.0 * argv[0].dVal) / PI;
+	}
+	return true;
+}
+
 bool CodeRunner::random(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (!this->_assertArgs(argc, argv, 1, false, GMLTypeState::Double)) return false;
 	double rand = RNGRandom(argv[0].dVal);
@@ -849,6 +955,15 @@ bool CodeRunner::room_goto_previous(unsigned int argc, GMLType* argv, GMLType* o
 		}
 	}
 	return false;
+}
+
+bool CodeRunner::round(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+	if (out) {
+		out->state = GMLTypeState::Double;
+		out->dVal = _round(argv[0].dVal);
+	}
+	return true;
 }
 
 bool CodeRunner::sign(unsigned int argc, GMLType* argv, GMLType* out) {
@@ -968,6 +1083,15 @@ bool CodeRunner::string_height(unsigned int argc, GMLType* argv, GMLType* out) {
 		}
 
 		out->dVal = tallest * lines;
+	}
+	return true;
+}
+
+bool CodeRunner::tan(unsigned int argc, GMLType* argv, GMLType* out) {
+	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+	if (out) {
+		out->state = GMLTypeState::Double;
+		out->dVal = ::tan(argv[0].dVal);
 	}
 	return true;
 }

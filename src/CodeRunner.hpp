@@ -278,8 +278,8 @@ class CodeRunner {
 			std::map<unsigned int, GMLType> locals;
 			CRContext(Instance* s, Instance* o) : self(s), other(o), startpos(0), iterator(NULL, 0) {}
 			CRContext(Instance* s, Instance* o, int e, int se, unsigned int oid, unsigned int ac = 0, GMLType* av = NULL) : self(s), other(o), eventId(e), eventNumber(se), startpos(0), objId(oid), argc(ac), argv(av), iterator(NULL, 0) {}
-			CRContext(Instance* o, unsigned int start, InstanceList* list) : other(o), startpos(start), iterator(list) { self = iterator.Next(); }
-			CRContext(Instance* o, unsigned int start, InstanceList* list, unsigned int id) : other(o), startpos(start), iterator(list, id) { self = iterator.Next(); }
+			CRContext(Instance* o, unsigned int start, InstanceList* list, unsigned int ac = 0, GMLType* av = NULL) : other(o), startpos(start), iterator(list), argc(ac), argv(av) { self = iterator.Next(); }
+			CRContext(Instance* o, unsigned int start, InstanceList* list, unsigned int id, unsigned int ac = 0, GMLType* av = NULL) : other(o), startpos(start), iterator(list, id), argc(ac), argv(av) { self = iterator.Next(); }
 		};
 		std::stack<CRContext> _contexts;
 
@@ -365,8 +365,13 @@ class CodeRunner {
 
 		// GML internal functions
 		bool abs(unsigned int argc, GMLType* argv, GMLType* out);
+		bool arcsin(unsigned int argc, GMLType* argv, GMLType* out);
+		bool arccos(unsigned int argc, GMLType* argv, GMLType* out);
+		bool arctan(unsigned int argc, GMLType* argv, GMLType* out);
+		bool ceil(unsigned int argc, GMLType* argv, GMLType* out);
 		bool choose(unsigned int argc, GMLType* argv, GMLType* out);
 		bool cos(unsigned int argc, GMLType* argv, GMLType* out);
+		bool degtorad(unsigned int argc, GMLType* argv, GMLType* out);
 		bool distance_to_object(unsigned int argc, GMLType* argv, GMLType* out);
 		bool draw_rectangle(unsigned int argc, GMLType* argv, GMLType* out);
 		bool draw_set_alpha(unsigned int argc, GMLType* argv, GMLType* out);
@@ -395,10 +400,16 @@ class CodeRunner {
 		bool instance_position(unsigned int argc, GMLType* argv, GMLType* out);
 		bool irandom(unsigned int argc, GMLType* argv, GMLType* out);
 		bool irandom_range(unsigned int argc, GMLType* argv, GMLType* out);
+		bool is_real(unsigned int argc, GMLType* argv, GMLType* out);
+		bool is_string(unsigned int argc, GMLType* argv, GMLType* out);
 		bool keyboard_check(unsigned int argc, GMLType* argv, GMLType* out);
 		bool keyboard_check_direct(unsigned int argc, GMLType* argv, GMLType* out);
 		bool keyboard_check_pressed(unsigned int argc, GMLType* argv, GMLType* out);
 		bool keyboard_check_released(unsigned int argc, GMLType* argv, GMLType* out);
+		bool ln(unsigned int argc, GMLType* argv, GMLType* out);
+		bool log2(unsigned int argc, GMLType* argv, GMLType* out);
+		bool log10(unsigned int argc, GMLType* argv, GMLType* out);
+		bool logn(unsigned int argc, GMLType* argv, GMLType* out);
 		bool make_color_hsv(unsigned int argc, GMLType* argv, GMLType* out);
 		bool max(unsigned int argc, GMLType* argv, GMLType* out);
 		bool min(unsigned int argc, GMLType* argv, GMLType* out);
@@ -413,9 +424,11 @@ class CodeRunner {
 		bool random_range(unsigned int argc, GMLType* argv, GMLType* out);
 		bool random_get_seed(unsigned int argc, GMLType* argv, GMLType* out);
 		bool random_set_seed(unsigned int argc, GMLType* argv, GMLType* out);
+		bool radtodeg(unsigned int argc, GMLType* argv, GMLType* out);
 		bool room_goto(unsigned int argc, GMLType* argv, GMLType* out);
 		bool room_goto_next(unsigned int argc, GMLType* argv, GMLType* out);
 		bool room_goto_previous(unsigned int argc, GMLType* argv, GMLType* out);
+		bool round(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sign(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sin(unsigned int argc, GMLType* argv, GMLType* out);
 		bool sqr(unsigned int argc, GMLType* argv, GMLType* out);
@@ -423,6 +436,7 @@ class CodeRunner {
 		bool string(unsigned int argc, GMLType* argv, GMLType* out);
 		bool string_width(unsigned int argc, GMLType* argv, GMLType* out);
 		bool string_height(unsigned int argc, GMLType* argv, GMLType* out);
+		bool tan(unsigned int argc, GMLType* argv, GMLType* out);
 		bool window_set_caption(unsigned int argc, GMLType *argv, GMLType *out);
 		bool window_get_caption(unsigned int argc, GMLType *argv, GMLType *out);
 		bool unimplemented(unsigned int argc, GMLType* argv, GMLType* out);
