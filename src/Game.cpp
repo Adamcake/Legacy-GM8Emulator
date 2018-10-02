@@ -1298,10 +1298,12 @@ bool GameLoad(const char * pFilename) {
 	// Update runner with end of static instance id range
 	_runner->SetNextInstanceID(nextInstanceId);
 
-	// Compile object parented event lists
+	// Compile object parented event lists and identities
 	for (unsigned int i = 0; i < objectCount; i++) {
 		Object* obj = AMGetObject(i);
 		if (!obj->exists) continue;
+
+		// event lists
 		for (unsigned int j = 0; j < 12; j++) {
 			Object* o = obj;
 			while (true) {
@@ -1314,6 +1316,14 @@ bool GameLoad(const char * pFilename) {
 				o = AMGetObject(o->parentIndex);
 			}
 			std::sort(obj->evList[j].begin(), obj->evList[j].end());
+		}
+
+		// identities
+		obj->identities.insert(i);
+		Object* o = obj;
+		while (o->parentIndex >= 0) {
+			obj->identities.insert(o->parentIndex);
+			o = AMGetObject(o->parentIndex);
 		}
 	}
 

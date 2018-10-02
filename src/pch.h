@@ -10,6 +10,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <set>
 namespace fs = std::filesystem; // comfy alias
 
 // GM8Emulator

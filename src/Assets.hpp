@@ -269,6 +269,7 @@ class Object {
 
 		std::map<unsigned int, IndexedEvent> events[12];
 		std::vector<unsigned int> evList[12];
+		std::set<unsigned int> identities;
 };
 
 class Room {

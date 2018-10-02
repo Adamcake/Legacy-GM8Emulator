@@ -100,7 +100,8 @@ Instance * InstanceList::GetInstanceByNumber(unsigned int num, unsigned int star
 	else {
 		// Object ID
 		for (unsigned int i = startPos; i < _size; i++) {
-			if (_list[i].object_index == num && _list[i].exists) {
+			Object* o = AMGetObject(_list[i].object_index);
+			if (o->identities.count(num) && _list[i].exists) {
 				if (endPos) (*endPos) = i;
 				return _list + i;
 			}
