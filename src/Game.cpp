@@ -1298,21 +1298,23 @@ bool GameLoad(const char * pFilename) {
 	// Update runner with end of static instance id range
 	_runner->SetNextInstanceID(nextInstanceId);
 
-	// Compile object collision lists
+	// Compile object parented event lists
 	for (unsigned int i = 0; i < objectCount; i++) {
 		Object* obj = AMGetObject(i);
 		if (!obj->exists) continue;
-		Object* o = obj;
-		while (true) {
-			for (const auto& e : o->events[4]) {
-				if (std::find(obj->collisions.begin(), obj->collisions.end(), e.first) == obj->collisions.end()) {
-					obj->collisions.push_back(e.first);
+		for (unsigned int j = 0; j < 12; j++) {
+			Object* o = obj;
+			while (true) {
+				for (const auto& e : o->events[j]) {
+					if (std::find(obj->evList[j].begin(), obj->evList[j].end(), e.first) == obj->evList[j].end()) {
+						obj->evList[j].push_back(e.first);
+					}
 				}
+				if (o->parentIndex < 0) break;
+				o = AMGetObject(o->parentIndex);
 			}
-			if (o->parentIndex < 0) break;
-			o = AMGetObject(o->parentIndex);
+			std::sort(obj->evList[j].begin(), obj->evList[j].end());
 		}
-		std::sort(obj->collisions.begin(), obj->collisions.end());
 	}
 
 	// Compile scripts

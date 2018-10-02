@@ -268,7 +268,7 @@ class Object {
 		int maskIndex;
 
 		std::map<unsigned int, IndexedEvent> events[12];
-		std::vector<unsigned int> collisions;
+		std::vector<unsigned int> evList[12];
 };
 
 class Room {

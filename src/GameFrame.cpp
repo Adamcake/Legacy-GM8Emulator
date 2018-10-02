@@ -179,7 +179,7 @@ bool GameFrame() {
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
 		Object* o = AMGetObject(instance->object_index);
-		for (unsigned int e : o->collisions) {
+		for (unsigned int e : o->evList[4]) {
 			InstanceList::Iterator iter2(&_instances, e);
 	
 			Instance* target = iter2.Next();
