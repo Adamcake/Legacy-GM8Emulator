@@ -323,6 +323,7 @@ bool GameFrame() {
 			Sprite* s = AMGetSprite(instance->sprite_index);
 			if (instance->image_index >= s->frameCount) {
 				instance->image_index -= s->frameCount;
+				if (!_codeActions->RunInstanceEvent(7, 7, instance, NULL, instance->object_index)) return false; // Animation End event
 			}
 			if (instance->image_speed && s->separateCollision) instance->bboxIsStale = true;
 		}
