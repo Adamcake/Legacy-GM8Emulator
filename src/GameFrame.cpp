@@ -119,13 +119,49 @@ bool GameFrame() {
 		}
 	}
 
-	// TODO: keyboard events
+	// Key events
+	iter = InstanceList::Iterator(&_instances);
+	while (instance = iter.Next()) {
+		if (instance->exists) {
+			Object* o = AMGetObject(instance->object_index);
+			for (unsigned int e : o->evList[5]) {
+				if (InputCheckKey(e)) {
+					if (!_codeActions->RunInstanceEvent(5, e, instance, NULL, instance->object_index)) return false; // Animation End event
+					if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+				}
+			}
+		}
+	}
 
 	// TODO: mouse events
 
-	// TODO: key press events
+	// Key press events
+	iter = InstanceList::Iterator(&_instances);
+	while (instance = iter.Next()) {
+		if (instance->exists) {
+			Object* o = AMGetObject(instance->object_index);
+			for (unsigned int e : o->evList[9]) {
+				if (InputCheckKeyPressed(e)) {
+					if (!_codeActions->RunInstanceEvent(9, e, instance, NULL, instance->object_index)) return false; // Animation End event
+					if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+				}
+			}
+		}
+	}
 
-	// TODO: key release events
+	// Key release events
+	iter = InstanceList::Iterator(&_instances);
+	while (instance = iter.Next()) {
+		if (instance->exists) {
+			Object* o = AMGetObject(instance->object_index);
+			for (unsigned int e : o->evList[10]) {
+				if (InputCheckKey(e)) {
+					if (!_codeActions->RunInstanceEvent(10, e, instance, NULL, instance->object_index)) return false; // Animation End event
+					if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+				}
+			}
+		}
+	}
 
 	// TODO: "normal step" trigger events
 
@@ -324,6 +360,7 @@ bool GameFrame() {
 			if (instance->image_index >= s->frameCount) {
 				instance->image_index -= s->frameCount;
 				if (!_codeActions->RunInstanceEvent(7, 7, instance, NULL, instance->object_index)) return false; // Animation End event
+				if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 			}
 			if (instance->image_speed && s->separateCollision) instance->bboxIsStale = true;
 		}
