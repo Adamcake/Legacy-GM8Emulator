@@ -1333,9 +1333,9 @@ bool GameLoad(const char * pFilename) {
 	for (unsigned int i = 0; i < timelineCount; i++) {
 		Timeline* t = AMGetTimeline(i);
 		if (t->exists) {
-			for (unsigned int j = 0; j < t->momentCount; j++) {
-				for (unsigned int k = 0; k < t->moments[j].actionCount; k++) {
-					if(!_codeActions->Compile(t->moments[j].actions[k])) {
+			for (const auto& j : t->moments) {
+				for (unsigned int k = 0; k < j.second.actionCount; k++) {
+					if(!_codeActions->Compile(j.second.actions[k])) {
 						// Error compiling script
 						free(data);
 						free(buffer);
