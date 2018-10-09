@@ -4,3 +4,6 @@
 [submodule "deps/zlib"]
 	path = deps/zlib
 	url = https://github.com/madler/zlib
+[submodule "deps/rectpack2D"]
+	path = deps/rectpack2D
+	url = https://github.com/TeamHypersomnia/rectpack2D.git

@@ -8,6 +8,7 @@ source_group("Headers" FILES ${Headers})
 source_group("Source" FILES ${Source})
 
 include_directories("../deps/glfw/include")
+include_directories("../deps/rectpack2D/src")
 include_directories("../deps/zlib")
 include_directories(.)
 target_link_libraries(GM8Emulator glfw)
