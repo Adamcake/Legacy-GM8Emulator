@@ -586,7 +586,9 @@ bool CodeRunner::_readExpVal(unsigned char* code, unsigned int* pos, Instance* d
 			break;
 		}
 		case EVTYPE_INSTANCEVAR: {
-			if (!_getInstanceVar(derefBuffer, (CRInstanceVar)code[(*pos) + 1], code + (*pos) + 2, &var)) return false;
+			if (derefBuffer) {
+				if (!_getInstanceVar(derefBuffer, (CRInstanceVar)code[(*pos) + 1], code + (*pos) + 2, &var)) return false;
+			}
 			(*pos) += 5;
 			break;
 		}
@@ -598,7 +600,9 @@ bool CodeRunner::_readExpVal(unsigned char* code, unsigned int* pos, Instance* d
 			}
 			else {
 				// This is a normal field
-				var = _fields[derefBuffer->id][fieldNum];
+				if (derefBuffer) {
+					var = _fields[derefBuffer->id][fieldNum];
+				}
 			}
 			(*pos) += 3;
 			break;
@@ -620,7 +624,9 @@ bool CodeRunner::_readExpVal(unsigned char* code, unsigned int* pos, Instance* d
 			}
 			else {
 				// This is a normal field
-				var = _arrays[derefBuffer->id][fieldNum][index1][index2];
+				if (derefBuffer) {
+					var = _arrays[derefBuffer->id][fieldNum][index1][index2];
+				}
 			}
 			break;
 		}
