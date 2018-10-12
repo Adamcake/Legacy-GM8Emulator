@@ -84,131 +84,131 @@ void AMReserveIncludeFiles(unsigned int count) {
 
 Extension * AMAddExtension() {
 	_extensions.push_back(Extension());
-	return _extensions._Mylast() - 1;
+	return _extensions.data() + (_extensions.size() - 1);
 }
 
 Trigger * AMAddTrigger() {
 	_triggers.push_back(Trigger());
-	return _triggers._Mylast() - 1;
+	return _triggers.data() + (_triggers.size() - 1);
 }
 
 Constant * AMAddConstant() {
 	_constants.push_back(Constant());
-	return _constants._Mylast() - 1;
+	return _constants.data() + (_constants.size() - 1);
 }
 
 Sound * AMAddSound() {
 	_sounds.push_back(Sound());
-	return _sounds._Mylast() - 1;
+	return _sounds.data() + (_sounds.size() - 1);
 }
 
 Sprite * AMAddSprite() {
 	_sprites.push_back(Sprite());
-	return _sprites._Mylast() - 1;
+	return _sprites.data() + (_sprites.size() - 1);
 }
 
 Background * AMAddBackground() {
 	_backgrounds.push_back(Background());
-	return _backgrounds._Mylast() - 1;
+	return _backgrounds.data() + (_backgrounds.size() - 1);
 }
 
 Path * AMAddPath() {
 	_paths.push_back(Path());
-	return _paths._Mylast() - 1;
+	return _paths.data() + (_paths.size() - 1);
 }
 
 Script * AMAddScript() {
 	_scripts.push_back(Script());
-	return _scripts._Mylast() - 1;
+	return _scripts.data() + (_scripts.size() - 1);
 }
 
 Font * AMAddFont() {
 	_fonts.push_back(Font());
-	return _fonts._Mylast() - 1;
+	return _fonts.data() + (_fonts.size() - 1);
 }
 
 Timeline * AMAddTimeline() {
 	_timelines.push_back(Timeline());
-	return _timelines._Mylast() - 1;
+	return _timelines.data() + (_timelines.size() - 1);
 }
 
 Object * AMAddObject() {
 	_objects.push_back(Object());
-	return _objects._Mylast() - 1;
+	return _objects.data() + (_objects.size() - 1);
 }
 
 Room * AMAddRoom() {
 	_rooms.push_back(Room());
-	return _rooms._Mylast() - 1;
+	return _rooms.data() + (_rooms.size() - 1);
 }
 
 IncludeFile * AMAddIncludeFile() {
 	_includeFiles.push_back(IncludeFile());
-	return _includeFiles._Mylast() - 1;
+	return _includeFiles.data() + (_includeFiles.size() - 1);
 }
 
 Extension * AMGetExtension(unsigned int index) {
-	return _extensions._Myfirst() + index;
+	return _extensions.data() + index;
 }
 
 Trigger * AMGetTrigger(unsigned int index)
 {
-	return _triggers._Myfirst() + index;
+	return _triggers.data() + index;
 }
 
 Constant * AMGetConstant(unsigned int index)
 {
-	return _constants._Myfirst() + index;
+	return _constants.data() + index;
 }
 
 Sound * AMGetSound(unsigned int index)
 {
-	return _sounds._Myfirst() + index;
+	return _sounds.data() + index;
 }
 
 Sprite * AMGetSprite(unsigned int index)
 {
-	return _sprites._Myfirst() + index;
+	return _sprites.data() + index;
 }
 
 Background * AMGetBackground(unsigned int index)
 {
-	return _backgrounds._Myfirst() + index;
+	return _backgrounds.data() + index;
 }
 
 Path * AMGetPath(unsigned int index)
 {
-	return _paths._Myfirst() + index;
+	return _paths.data() + index;
 }
 
 Script * AMGetScript(unsigned int index)
 {
-	return _scripts._Myfirst() + index;
+	return _scripts.data() + index;
 }
 
 Font * AMGetFont(unsigned int index)
 {
-	return _fonts._Myfirst() + index;
+	return _fonts.data() + index;
 }
 
 Timeline * AMGetTimeline(unsigned int index)
 {
-	return _timelines._Myfirst() + index;
+	return _timelines.data() + index;
 }
 
 Object * AMGetObject(unsigned int index)
 {
-	return _objects._Myfirst() + index;
+	return _objects.data() + index;
 }
 
 Room * AMGetRoom(unsigned int index)
 {
-	return _rooms._Myfirst() + index;
+	return _rooms.data() + index;
 }
 
 IncludeFile * AMGetIncludeFile(unsigned int index)
 {
-	return _includeFiles._Myfirst() + index;
+	return _includeFiles.data() + index;
 }
 
 

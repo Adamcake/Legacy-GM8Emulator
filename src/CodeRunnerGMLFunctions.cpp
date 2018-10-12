@@ -300,14 +300,20 @@ bool CodeRunner::event_perform(unsigned int argc, GMLType* argv, GMLType* out) {
 
 
 // --- FILE ---
-
+ // removed filesystem for now because mingw is a broken piece of shit
+bool fsExists(std::string &path) {
+    std::ifstream ifs (path);
+    return ifs.good() && ifs.is_open();
+}
 
 bool CodeRunner::file_bin_open(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (!this->_assertArgs(argc, argv, 2, true, GMLTypeState::String, GMLTypeState::Double)) return false;
-	fs::path filePath = fs::path(argv[0].sVal);
+	// fs::path filePath = fs::path(argv[0].sVal);
+
+    ::std::string filePath = argv[0].sVal;
 	int fileType = _round(argv[1].dVal);
 
-	if (fs::exists(filePath) || (fileType != 0)) {
+	if (fsExists(filePath) || (fileType != 0)) {
 		// Stream mode
 		int fileMode;
 		switch (fileType) {
@@ -322,7 +328,7 @@ bool CodeRunner::file_bin_open(unsigned int argc, GMLType* argv, GMLType* out) {
 		int i = 0;
 		for (; i < maxFilesOpen; i++) {
 			if (!_userFiles[i].is_open()) {
-				_userFiles[i].open(filePath, fileMode);
+				_userFiles[i].open(filePath, static_cast<std::ios_base::openmode>(fileMode));
 				break;
 			}
 		}
@@ -392,7 +398,8 @@ bool CodeRunner::file_exists(unsigned int argc, GMLType* argv, GMLType* out) {
 	if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::String)) return false;
 	if (out) {
 		out->state = GMLTypeState::Double;
-		out->dVal = (fs::exists(fs::path(argv[0].sVal)) ? GMLTrue : GMLFalse);
+        // (fs::exists(fs::path(argv[0].sVal))
+		out->dVal = (fsExists(argv[0].sVal) ? GMLTrue : GMLFalse);
 	}
 	return true;
 }

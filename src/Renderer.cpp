@@ -163,10 +163,8 @@ bool RMakeGameWindow(GameSettings* settings, unsigned int w, unsigned int h) {
 	glfwMakeContextCurrent(_window);
 	_contextSet = true;
 
-	// Init GLEW - must be done after context creation
-	glewExperimental = GL_TRUE;
-	if (glewInit()) {
-		// Failed to init GLEW
+    // Load OpenGL Stuff
+    if (!gladLoadGL()) {
 		return false;
 	}
 
@@ -317,14 +315,14 @@ RImageIndex RMakeImage(unsigned int w, unsigned int h, unsigned int originX, uns
 }
 
 void RDrawImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha) {
-	RAtlasImage* r = _atlasImages._Myfirst() + ix;
+	RAtlasImage* r = _atlasImages.data() + ix;
 	RDrawPartialImage(ix, x, y, xscale, yscale, rot, blend, alpha, 0, 0, r->w, r->h);
 }
 
 void RDrawPartialImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha, unsigned int partX, unsigned int partY, unsigned int partW, unsigned int partH) {
 	RDrawCommand command;
 
-	RAtlasImage* aImg = _atlasImages._Myfirst() + ix;
+	RAtlasImage* aImg = _atlasImages.data() + ix;
 
 	// Calculate a single matrix for scaling and transforming the sprite
 	double dRot = rot * PI / 180;
@@ -725,8 +723,8 @@ bool _Compile(unsigned int firstAtlas) {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexImage2D(GL_TEXTURE_2D, NULL, GL_RGBA, usedWidth, usedHeight, NULL, GL_RGBA, GL_UNSIGNED_BYTE, pixelData);
-		glBindTexture(GL_TEXTURE_2D, NULL);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, usedWidth, usedHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, static_cast<void *>(pixelData));
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	else {
 		success = false;

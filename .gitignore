@@ -1,4 +1,6 @@
 *.dat
+.vscode/
+build/
 
 # CMake
 CMakeCache.txt

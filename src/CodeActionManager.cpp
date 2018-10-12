@@ -36,7 +36,7 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
 	}
 
 	(*pos) += ((8 - i) * 5); // Skip unused arg strings. These should all be 1-length strings that say "0".
-	bool not = ReadDword(stream, pos);
+	bool _not = ReadDword(stream, pos);
 
 	// Now we have to generate some GML and register this with the code runner.
 	char* gml = NULL;
@@ -244,16 +244,16 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
 			gmlLen = (unsigned int)strlen(baseGml) + lengths[0] + 2 + lengths[1] - (3*2);
 			gml = (char*)malloc(gmlLen + 1);
 
-			char* op = "";
+			const char *op;
 			switch (args[2][0]) {
 				case '0':
-					op = not? "!=" : "==";
+					op = _not? "!=" : "==";
 					break;
 				case '1':
-					op = not? ">=" : "<";
+					op = _not? ">=" : "<";
 					break;
 				case '2':
-					op = not? "<=" : ">";
+					op = _not? "<=" : ">";
 					break;
 			}
 			gmlLen = (unsigned int)sprintf_s(gml, gmlLen + 1, baseGml, args[0], op, args[1]);
@@ -332,16 +332,16 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
 			gmlLen = (unsigned int)lengths[0] + 2 + lengths[1];
 			gml = (char*)malloc(gmlLen + 1);
 
-			char* op = "";
+			const char *op;
 			switch (args[2][0]) {
 			case '0':
-				op = not? "!=" : "==";
+				op = _not? "!=" : "==";
 				break;
 			case '1':
-				op = not? ">=" : "<";
+				op = _not? ">=" : "<";
 				break;
 			case '2':
-				op = not? "<=" : ">";
+				op = _not? "<=" : ">";
 				break;
 			}
 			sprintf_s(gml, gmlLen + 1, baseGml, args[0], op, args[1]);

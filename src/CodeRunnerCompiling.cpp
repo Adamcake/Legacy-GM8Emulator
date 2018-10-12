@@ -1598,7 +1598,7 @@ bool CodeRunner::_compileExpStruct(CRExpressionElement* exp, unsigned char** out
 	unsigned int outpos = 0;
 	element = exp;
 	while (true) {
-		memcpy((*out) + outpos, element->var._Myfirst(), element->var.size());
+		memcpy((*out) + outpos, element->var.data(), element->var.size());
 		outpos += (unsigned int)element->var.size();
 		for (int i = (int)element->mods.size() - 1; i >= 0; i--) {
 			(*out)[outpos] = element->mods[i];

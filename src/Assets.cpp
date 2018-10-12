@@ -190,7 +190,7 @@ Room::Room()
 	name = NULL;
 	exists = true;
 	caption = NULL;
-	creationCode = NULL;
+	creationCode = 0;
 	backgroundCount = 0;
 	backgrounds = NULL;
 	viewCount = 0;

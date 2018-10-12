@@ -74,7 +74,7 @@ bool CodeRunner::Compile(CodeObject object) {
 		out._output.push_back(OP_EXIT);
 
 		_codeObjects[object].compiled = (unsigned char*)malloc(out._output.size());
-		memcpy(_codeObjects[object].compiled, out._output._Myfirst(), out._output.size());
+		memcpy(_codeObjects[object].compiled, out._output.data(), out._output.size());
 
 		for (CRStatement* s : lex) {
 			delete s;

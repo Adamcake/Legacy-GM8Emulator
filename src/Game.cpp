@@ -281,7 +281,8 @@ bool GameLoad(const char *pFilename) {
 	}
 
 	// Load the entirety of the file into a memory buffer
-	std::ifstream ifs(fs::path(pFilename), std::ios::binary | std::ios::ate);
+    // fs::path(pFilename)
+	std::ifstream ifs(pFilename, std::ios::binary | std::ios::ate);
 
 	if (!ifs.is_open() || ifs.bad()) {
 		// This really should be more verbose.
