@@ -11,7 +11,7 @@
 constexpr unsigned int ARG_STACK_SIZE = 4; // SHOUTY
 
 
-Instance global;
+Instance global{ true, -5 };
 
 
 int CodeRunner::_round(double d) {

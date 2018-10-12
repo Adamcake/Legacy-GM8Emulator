@@ -51,6 +51,7 @@ void InstanceList::DeleteInstance(unsigned int id) {
 }
 
 void InstanceList::ClearAll() {
+	// TODO: this doesn't clear instance variables or alarms
 	_size = 0;
 }
 

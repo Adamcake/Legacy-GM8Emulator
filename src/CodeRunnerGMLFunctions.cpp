@@ -416,9 +416,8 @@ bool CodeRunner::instance_create(unsigned int argc, GMLType* argv, GMLType* out)
 		out->state = GMLTypeState::Double;
 		out->dVal = (double)_nextInstanceID;
 	}
-	Object* o = AMGetObject(objID);
-	if (!_codeActions->RunInstanceEvent(0, 0, i, NULL, i->object_index)) return false;
 	_nextInstanceID++;
+	if (!_codeActions->RunInstanceEvent(0, 0, i, NULL, i->object_index)) return false;
 	return true;
 }
 
