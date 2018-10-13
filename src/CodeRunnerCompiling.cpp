@@ -1550,9 +1550,6 @@ bool CodeRunner::_compileExpStruct(CRExpressionElement* exp, unsigned char** out
 						case OPERATOR_MULTIPLY:
 							tot = ((exp->var[2] << 8) + exp->var[3]) * ((exp->next->var[2] << 8) + exp->next->var[3]);
 							break;
-						case OPERATOR_DIVIDE:
-							tot = ((exp->var[2] << 8) + exp->var[3]) / ((exp->next->var[2] << 8) + exp->next->var[3]);
-							break;
 						case OPERATOR_MOD:
 							tot = ((exp->var[2] << 8) + exp->var[3]) % ((exp->next->var[2] << 8) + exp->next->var[3]);
 							break;
