@@ -6,6 +6,8 @@ struct CRStatement;
 struct GlobalValues;
 struct Instance;
 struct CRExpressionElement;
+struct GMLType;
+enum struct GMLTypeState;
 typedef unsigned int CodeObject;
 typedef unsigned int InstanceID;
 enum CRGameVar;
@@ -20,11 +22,11 @@ enum CRSetMethod;
 #include <stack>
 #include <string>
 #include "InstanceList.hpp"
+#include "CRGMLType.hpp" // todo: make it so I don't have to put this here
 
 #define PI 3.141592654 // Actual value of PI used by the official runner. Please don't make it more accurate.
 
 // if true, calling unimplemented GML functions will cause an error
-// GET THAT 'static' OUT OF MY PROJECT!!
 constexpr bool CRErrorOnUnimplemented = false;
 
 /*
@@ -251,19 +253,6 @@ class CodeRunner {
 		};
 		std::vector<CRCodeObject> _codeObjects;
 
-		// States a GMLType can be in
-		enum struct GMLTypeState {
-			Double,
-			String
-		};
-
-		// The universal data type in GML
-		struct GMLType {
-			GMLTypeState state = GMLTypeState::Double;
-			double dVal = 0.0;
-			std::string sVal;
-		};
-
 		// Runtime context
 		struct CRContext {
 			Instance* self;
@@ -300,16 +289,6 @@ class CodeRunner {
 		std::map<const char*, CROperator> _operators;
 		std::map<const char*, CROperator> _ANOperators; //AlphaNumeric
 		std::vector<bool(CodeRunner::*)(unsigned int,GMLType*,GMLType*)> _gmlFuncs;
-
-		// Internal registers used for loops and such
-		std::stack<int> _stack;
-		std::stack<GMLType> _varstack;
-
-		// Field map
-		std::map<InstanceID, std::map<unsigned int, GMLType>> _fields;
-
-		// Array map (if you're maintaining this: god help you)
-		std::map<InstanceID, std::map<unsigned int, std::map<int, std::map<int, GMLType>>>> _arrays;
 
 		// Iterator stack for runtime
 		std::stack<InstanceList::Iterator> _iterators;

@@ -3,7 +3,20 @@
 #include "Instance.hpp"
 #include "AssetManager.hpp"
 #include "Alarm.hpp"
+#include "CRGMLType.hpp"
 #define INSTANCE_CAPACITY 65536
+
+// Field map
+std::map<InstanceID, std::map<unsigned int, GMLType>> _fields;
+
+// Array map (if you're maintaining this: god help you)
+std::map<InstanceID, std::map<unsigned int, std::map<int, std::map<int, GMLType>>>> _arrays;
+
+void _handleDeletedInstance(InstanceID instance) {
+	AlarmRemoveInstance(instance);
+	_fields.erase(instance);
+	_arrays.erase(instance);
+}
 
 
 InstanceList::InstanceList() {
@@ -51,7 +64,9 @@ void InstanceList::DeleteInstance(unsigned int id) {
 }
 
 void InstanceList::ClearAll() {
-	// TODO: this doesn't clear instance variables or alarms
+	AlarmDeleteAll();
+	_fields.clear();
+	_arrays.clear();
 	_size = 0;
 }
 
@@ -64,7 +79,7 @@ void InstanceList::ClearNonPersistent() {
 			placed++;
 		}
 		else {
-			AlarmRemoveInstance(_list[i].id);
+			_handleDeletedInstance(_list[i].id);
 		}
 	}
 	_size = placed;
@@ -79,7 +94,7 @@ void InstanceList::ClearDeleted() {
 			placed++;
 		}
 		else {
-			AlarmRemoveInstance(_list[i].id);
+			_handleDeletedInstance(_list[i].id);
 		}
 	}
 	_size = placed;
@@ -188,4 +203,20 @@ Instance* InstanceList::Iterator::Next() {
 		}
 		return ret;
 	}
+}
+
+GMLType* InstanceList::GetField(InstanceID instance, unsigned int field) {
+	return &_fields[instance][field];
+}
+
+void InstanceList::SetField(InstanceID instance, unsigned int field, const GMLType* value) {
+	_fields[instance][field] = *value;
+}
+
+GMLType* InstanceList::GetArray(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2) {
+	return &_arrays[instance][field][array1][array2];
+}
+
+void InstanceList::SetArray(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2, const GMLType* value) {
+	_arrays[instance][field][array1][array2] = *value;
 }

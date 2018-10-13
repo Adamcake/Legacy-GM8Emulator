@@ -1,6 +1,8 @@
 #ifndef _A_INSTANCELIST_HPP_
 #define _A_INSTANCELIST_HPP_
+struct GMLType;
 struct Instance;
+typedef unsigned int InstanceID;
 
 // This is like an std::vector of Instance objects. The list will ALWAYS be in order of instance id.
 class InstanceList {
@@ -55,6 +57,12 @@ class InstanceList {
 
 		// Get the Instance from the specified position in _list (like with std::vector)
 		Instance* operator[](unsigned int index);
+
+		// Getters and setters for instance fields
+		GMLType* GetField(InstanceID instance, unsigned int field);
+		void SetField(InstanceID instance, unsigned int field, const GMLType* value);
+		GMLType* GetArray(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2);
+		void SetArray(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2, const GMLType* value);
 };
 
 #endif

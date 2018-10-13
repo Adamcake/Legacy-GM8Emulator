@@ -1,4 +1,5 @@
 #include <pch.h>
+#include "CRGMLType.hpp"
 #include "CodeRunner.hpp"
 #include "CRInterpretation.hpp"
 #include "AssetManager.hpp"
