@@ -1,4 +1,5 @@
 #include <pch.h>
+#include "CRGMLType.hpp"
 #include "CodeRunner.hpp"
 #include "CRInterpretation.hpp"
 #include "AssetManager.hpp"
@@ -1548,9 +1549,6 @@ bool CodeRunner::_compileExpStruct(CRExpressionElement* exp, unsigned char** out
 							break;
 						case OPERATOR_MULTIPLY:
 							tot = ((exp->var[2] << 8) + exp->var[3]) * ((exp->next->var[2] << 8) + exp->next->var[3]);
-							break;
-						case OPERATOR_DIVIDE:
-							tot = ((exp->var[2] << 8) + exp->var[3]) / ((exp->next->var[2] << 8) + exp->next->var[3]);
 							break;
 						case OPERATOR_MOD:
 							tot = ((exp->var[2] << 8) + exp->var[3]) % ((exp->next->var[2] << 8) + exp->next->var[3]);

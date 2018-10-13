@@ -1,4 +1,5 @@
 #include <pch.h>
+#include "CRGMLType.hpp"
 #include "CodeRunner.hpp"
 #include "Instance.hpp"
 #include "InstanceList.hpp"
@@ -10,9 +11,11 @@
 
 constexpr unsigned int ARG_STACK_SIZE = 4; // SHOUTY
 
-
 Instance global{ true, -5 };
 
+// Internal registers used for loops and such
+std::stack<int> _stack;
+std::stack<GMLType> _varstack;
 
 int CodeRunner::_round(double d) {
 	// This mimics the x86_32 "FISTP" operator which is commonly used in the GM8 runner.
@@ -30,7 +33,7 @@ bool CodeRunner::_equal(double d1, double d2) {
 	return cut_digits == 0.0;
 }
 
-bool CodeRunner::_parseVal(const unsigned char* val, CodeRunner::GMLType* out) {
+bool CodeRunner::_parseVal(const unsigned char* val, GMLType* out) {
 	unsigned char type = val[0] >> 6;
 	unsigned int index;
 	if(type) index = ((val[0] & 0x3F) << 16) + (val[1] << 8) + val[2]; // Index is discarded if type is 0
@@ -473,6 +476,27 @@ bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const 
 		case IV_IMAGE_YSCALE:
 			out->dVal = instance->image_yscale;
 			break;
+        case IV_IMAGE_ANGLE:
+            out->dVal = instance->image_angle;
+            break;
+        case IV_IMAGE_BLEND:
+            out->dVal = (double)instance->image_blend;
+            break;
+		case IV_TIMELINE_INDEX:
+            out->dVal = (double)instance->timeline_index;
+            break;
+        case IV_TIMELINE_RUNNING:
+            out->dVal = instance->timeline_running ? GMLTrue : GMLFalse;
+            break;
+        case IV_TIMELINE_LOOP:
+            out->dVal = instance->timeline_loop ? GMLTrue : GMLFalse;
+            break;
+        case IV_TIMELINE_SPEED:
+            out->dVal = instance->timeline_speed;
+            break;
+        case IV_TIMELINE_POSITION:
+            out->dVal = instance->timeline_position;
+            break;
 		case IV_BBOX_LEFT:
 			RefreshInstanceBbox(instance);
 			out->dVal = instance->bbox_left;
@@ -495,11 +519,11 @@ bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const 
 	return true;
 }
 
-bool CodeRunner::_isTrue(const CodeRunner::GMLType* value) {
+bool CodeRunner::_isTrue(const GMLType* value) {
 	return (value->state == GMLTypeState::Double) && (value->dVal >= 0.5);
 }
 
-bool CodeRunner::_applySetMethod(CodeRunner::GMLType* lhs, CRSetMethod method, const CodeRunner::GMLType* const rhs) {
+bool CodeRunner::_applySetMethod(GMLType* lhs, CRSetMethod method, const GMLType* const rhs) {
 	if (method == SM_ASSIGN) {
 		// Easiest method
 		(*lhs) = (*rhs);
@@ -601,7 +625,7 @@ bool CodeRunner::_readExpVal(unsigned char* code, unsigned int* pos, Instance* d
 			else {
 				// This is a normal field
 				if (derefBuffer) {
-					var = _fields[derefBuffer->id][fieldNum];
+					var = *(_instances->GetField(derefBuffer->id, fieldNum));
 				}
 			}
 			(*pos) += 3;
@@ -625,7 +649,7 @@ bool CodeRunner::_readExpVal(unsigned char* code, unsigned int* pos, Instance* d
 			else {
 				// This is a normal field
 				if (derefBuffer) {
-					var = _arrays[derefBuffer->id][fieldNum][index1][index2];
+					var = *(_instances->GetArray(derefBuffer->id, fieldNum, index1, index2));
 				}
 			}
 			break;
@@ -648,7 +672,7 @@ bool CodeRunner::_readExpVal(unsigned char* code, unsigned int* pos, Instance* d
 	return true;
 }
 
-bool CodeRunner::_evalExpression(unsigned char* code, CodeRunner::GMLType* out) {
+bool CodeRunner::_evalExpression(unsigned char* code, GMLType* out) {
 	Instance* derefBuffer = _contexts.top().self;
 	unsigned int pos = 0;
 	GMLType stack[ARG_STACK_SIZE];
@@ -893,7 +917,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				}
 				else {
 					// Not a local, so set the actual field
-					if (!_applySetMethod(&_fields[derefBuffer->id][fieldNum], setMethod, &val)) return false;
+					if (!_applySetMethod(_instances->GetField(derefBuffer->id, fieldNum), setMethod, &val)) return false;
 				}
 
 				break;
@@ -918,7 +942,7 @@ bool CodeRunner::_runCode(const unsigned char* bytes, GMLType* out) {
 				}
 				else {
 					// Not a local, so set the actual field
-					if (!_applySetMethod(&_arrays[derefBuffer->id][fieldNum][index1][index2], setMethod, &val)) return false;
+					if (!_applySetMethod(_instances->GetArray(derefBuffer->id, fieldNum, index1, index2), setMethod, &val)) return false;
 				}
 				break;
 			}
