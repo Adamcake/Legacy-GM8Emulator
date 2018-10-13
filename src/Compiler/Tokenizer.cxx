@@ -64,7 +64,12 @@ GM8Emulator::Compiler::TokenList GM8Emulator::Compiler::Tokenize(::std::string &
                     break; // Invalid character in ID - Stop reading!
 
                 else {
-                    // bad
+                    buffer += *i; // For logging!
+
+                    ::std::ostringstream err;
+                    err << "Unrecognized character " << *i << " in real literal " << buffer
+                        << " at position " << static_cast<size_t>(i - gml.begin());
+                    throw ::std::runtime_error(err.str());
                 }
             }
 
@@ -467,6 +472,9 @@ GM8Emulator::Compiler::TokenList GM8Emulator::Compiler::Tokenize(::std::string &
                             if ((i + 1) != end) i++; // Increment past newline
                             continue;                // Break out!
                         }
+                        else {
+                            ExcUnrecognizedOperatorCombo(*(i - 1), *i, gml.begin(), i);
+                        }
                     } break;
 
                     // Multi-line Comment
@@ -488,6 +496,9 @@ GM8Emulator::Compiler::TokenList GM8Emulator::Compiler::Tokenize(::std::string &
                             i++;                     // Increment past */
                             if ((i + 1) != end) i++; //
                             continue;                // Break out!
+                        }
+                        else {
+                            ExcUnrecognizedOperatorCombo(*(i - 1), *i, gml.begin(), i);
                         }
                     } break;
 
@@ -634,166 +645,207 @@ GM8Emulator::Compiler::TokenList GM8Emulator::Compiler::Tokenize(::std::string &
 
 ::std::string GM8Emulator::Compiler::Token::toGMLEquivalent() noexcept
 {
-    switch (Type) {
-        case TokenType::Identifier:
-            return ::std::get<::std::string>(Value);
+    try {
+        switch (Type) {
+            case TokenType::Identifier:
+                return ::std::get<::std::string>(Value);
 
-        case TokenType::LiteralReal:
-            return ::std::to_string(std::get<double>(Value));
+            case TokenType::LiteralReal:
+                return ::std::to_string(std::get<double>(Value));
 
-        case TokenType::LiteralString: {
-            ::std::string stringValue = std::get<::std::string>(Value);
-            char quote = Constants::DoubleQuote;
+            case TokenType::LiteralString: {
+                ::std::string stringValue = std::get<::std::string>(Value);
+                char quote = Constants::DoubleQuote;
 
-            if (stringValue.find(Constants::DoubleQuote) != stringValue.npos) {
-                quote = Constants::SingleQuote;
+                if (stringValue.find(Constants::DoubleQuote) != stringValue.npos) {
+                    quote = Constants::SingleQuote;
+                }
+
+                stringValue = quote + stringValue + quote;
+                return stringValue;
             }
 
-            stringValue = quote + stringValue + quote;
-            return stringValue;
+            case TokenType::Keyword: {
+                switch (::std::get<KeywordType>(Value)) {
+                    case KeywordType::Var:
+                        return Constants::KVar;
+                    case KeywordType::If:
+                        return Constants::KIf;
+                    case KeywordType::Else:
+                        return Constants::KElse;
+                    case KeywordType::With:
+                        return Constants::KWith;
+                    case KeywordType::Repeat:
+                        return Constants::KRepeat;
+                    case KeywordType::Do:
+                        return Constants::KDo;
+                    case KeywordType::Until:
+                        return Constants::KUntil;
+                    case KeywordType::While:
+                        return Constants::KWhile;
+                    case KeywordType::For:
+                        return Constants::KFor;
+                    case KeywordType::Switch:
+                        return Constants::KSwitch;
+                    case KeywordType::Case:
+                        return Constants::KCase;
+                    case KeywordType::Default:
+                        return Constants::KDefault;
+                    case KeywordType::Break:
+                        return Constants::KBreak;
+                    case KeywordType::Continue:
+                        return Constants::KContinue;
+                    case KeywordType::Return:
+                        return Constants::KReturn;
+                    case KeywordType::None:
+                    default:
+                        break;
+                }
+            }
+
+            case TokenType::Operator:
+                switch (::std::get<OperatorType>(Value)) {
+                    case OperatorType::Add:
+                        return Constants::OPAdd;
+                    case OperatorType::Subtract:
+                        return Constants::OPSubtract;
+                    case OperatorType::Multiply:
+                        return Constants::OPMultiply;
+                    case OperatorType::Divide:
+                        return Constants::OPDivide;
+                    case OperatorType::DivideAndFloor:
+                        return Constants::OPDivideAndFloor;
+                    case OperatorType::Modulo:
+                        return Constants::OPModulo;
+                    case OperatorType::Assign:
+                        return Constants::OPAssign;
+                    case OperatorType::AssignAdd:
+                        return Constants::OPAssignAdd;
+                    case OperatorType::AssignSubtract:
+                        return Constants::OPAssignSubtract;
+                    case OperatorType::AssignMultiply:
+                        return Constants::OPAssignMultiply;
+                    case OperatorType::AssignDivide:
+                        return Constants::OPAssignDivide;
+                    case OperatorType::AssignBinaryAnd:
+                        return Constants::OPAssignBinaryAnd;
+                    case OperatorType::AssignBinaryOr:
+                        return Constants::OPAssignBinaryOr;
+                    case OperatorType::AssignBinaryXor:
+                        return Constants::OPAssignBinaryXor;
+                    case OperatorType::Equal:
+                        return Constants::OPEqual;
+                    case OperatorType::NotEqual:
+                        return Constants::OPNotEqual;
+                    case OperatorType::And:
+                        return Constants::OPAnd;
+                    case OperatorType::Or:
+                        return Constants::OPOr;
+                    case OperatorType::Xor:
+                        return Constants::OPXor;
+                    case OperatorType::LessThan:
+                        return Constants::OPLessThan;
+                    case OperatorType::LessThanOrEquals:
+                        return Constants::OPLessThanOrEquals;
+                    case OperatorType::GreaterThan:
+                        return Constants::OPGreaterThan;
+                    case OperatorType::GreaterThanOrEquals:
+                        return Constants::OPGreaterThanOrEquals;
+                    case OperatorType::BinaryAnd:
+                        return Constants::OPBinaryAnd;
+                    case OperatorType::BinaryOr:
+                        return Constants::OPBinaryOr;
+                    case OperatorType::BinaryXor:
+                        return Constants::OPBinaryXor;
+                    case OperatorType::BinaryShiftLeft:
+                        return Constants::OPBinaryShiftLeft;
+                    case OperatorType::BinaryShiftRight:
+                        return Constants::OPBinaryShiftRight;
+                    case OperatorType::Not:
+                        return Constants::OPNot;
+                    case OperatorType::Complement:
+                        return Constants::OPComplement;
+
+                    case OperatorType::None:
+                    default:
+                        break;
+                }
+                break; // todo
+
+            case TokenType::Separator:
+                switch (::std::get<SeparatorType>(Value)) {
+                    case SeparatorType::ParenLeft:
+                        return Constants::SepParenLeft;
+                    case SeparatorType::ParenRight:
+                        return Constants::SepParenRight;
+                    case SeparatorType::BraceLeft:
+                        return Constants::SepBraceLeft;
+                    case SeparatorType::BraceRight:
+                        return Constants::SepBraceRight;
+                    case SeparatorType::Semicolon:
+                        return Constants::SepSemicolon;
+                    case SeparatorType::Colon:
+                        return Constants::SepColon;
+                    case SeparatorType::Comma:
+                        return Constants::SepComma;
+                    case SeparatorType::Period:
+                        return Constants::SepPeriod;
+                    case SeparatorType::PascalThen:
+                        return Constants::SepPascalThen;
+
+                    case SeparatorType::None:
+                    default:
+                        break;
+                }
+                break;
+
+            case TokenType::None:
+            default:
+                break;
         }
+    }
 
-        case TokenType::Keyword: {
-            switch (::std::get<KeywordType>(Value)) {
-                case KeywordType::Var:
-                    return Constants::KVar;
-                case KeywordType::If:
-                    return Constants::KIf;
-                case KeywordType::Else:
-                    return Constants::KElse;
-                case KeywordType::With:
-                    return Constants::KWith;
-                case KeywordType::Repeat:
-                    return Constants::KRepeat;
-                case KeywordType::Do:
-                    return Constants::KDo;
-                case KeywordType::Until:
-                    return Constants::KUntil;
-                case KeywordType::While:
-                    return Constants::KWhile;
-                case KeywordType::For:
-                    return Constants::KFor;
-                case KeywordType::Switch:
-                    return Constants::KSwitch;
-                case KeywordType::Case:
-                    return Constants::KCase;
-                case KeywordType::Default:
-                    return Constants::KDefault;
-                case KeywordType::Break:
-                    return Constants::KBreak;
-                case KeywordType::Continue:
-                    return Constants::KContinue;
-                case KeywordType::Return:
-                    return Constants::KReturn;
-                case KeywordType::None:
-                default:
-                    break;
-            }
-        }
-
-        case TokenType::Operator:
-            switch (::std::get<OperatorType>(Value)) {
-                case OperatorType::Add:
-                    return Constants::OPAdd;
-                case OperatorType::Subtract:
-                    return Constants::OPSubtract;
-                case OperatorType::Multiply:
-                    return Constants::OPMultiply;
-                case OperatorType::Divide:
-                    return Constants::OPDivide;
-                case OperatorType::DivideAndFloor:
-                    return Constants::OPDivideAndFloor;
-                case OperatorType::Modulo:
-                    return Constants::OPModulo;
-                case OperatorType::Assign:
-                    return Constants::OPAssign;
-                case OperatorType::AssignAdd:
-                    return Constants::OPAssignAdd;
-                case OperatorType::AssignSubtract:
-                    return Constants::OPAssignSubtract;
-                case OperatorType::AssignMultiply:
-                    return Constants::OPAssignMultiply;
-                case OperatorType::AssignDivide:
-                    return Constants::OPAssignDivide;
-                case OperatorType::AssignBinaryAnd:
-                    return Constants::OPAssignBinaryAnd;
-                case OperatorType::AssignBinaryOr:
-                    return Constants::OPAssignBinaryOr;
-                case OperatorType::AssignBinaryXor:
-                    return Constants::OPAssignBinaryXor;
-                case OperatorType::Equal:
-                    return Constants::OPEqual;
-                case OperatorType::NotEqual:
-                    return Constants::OPNotEqual;
-                case OperatorType::And:
-                    return Constants::OPAnd;
-                case OperatorType::Or:
-                    return Constants::OPOr;
-                case OperatorType::Xor:
-                    return Constants::OPXor;
-                case OperatorType::LessThan:
-                    return Constants::OPLessThan;
-                case OperatorType::LessThanOrEquals:
-                    return Constants::OPLessThanOrEquals;
-                case OperatorType::GreaterThan:
-                    return Constants::OPGreaterThan;
-                case OperatorType::GreaterThanOrEquals:
-                    return Constants::OPGreaterThanOrEquals;
-                case OperatorType::BinaryAnd:
-                    return Constants::OPBinaryAnd;
-                case OperatorType::BinaryOr:
-                    return Constants::OPBinaryOr;
-                case OperatorType::BinaryXor:
-                    return Constants::OPBinaryXor;
-                case OperatorType::BinaryShiftLeft:
-                    return Constants::OPBinaryShiftLeft;
-                case OperatorType::BinaryShiftRight:
-                    return Constants::OPBinaryShiftRight;
-                case OperatorType::Not:
-                    return Constants::OPNot;
-                case OperatorType::Complement:
-                    return Constants::OPComplement;
-
-                case OperatorType::None:
-                default:
-                    break;
-            }
-            break; // todo
-
-        case TokenType::Separator:
-            switch (::std::get<SeparatorType>(Value)) {
-                case SeparatorType::ParenLeft:
-                    return Constants::SepParenLeft;
-                case SeparatorType::ParenRight:
-                    return Constants::SepParenRight;
-                case SeparatorType::BraceLeft:
-                    return Constants::SepBraceLeft;
-                case SeparatorType::BraceRight:
-                    return Constants::SepBraceRight;
-                case SeparatorType::Semicolon:
-                    return Constants::SepSemicolon;
-                case SeparatorType::Colon:
-                    return Constants::SepColon;
-                case SeparatorType::Comma:
-                    return Constants::SepComma;
-                case SeparatorType::Period:
-                    return Constants::SepPeriod;
-                case SeparatorType::PascalThen:
-                    return Constants::SepPascalThen;
-
-                case SeparatorType::None:
-                default:
-                    break;
-            }
-            break; // todo
-
-        case TokenType::None:
-        default:
-            break;
+    catch (const ::std::bad_variant_access &) {
+        return "<< Malformed Value >>";
     }
 
     // If it got up to here something's definitely wrong.
     return "<< Malformed Token >>";
+}
+
+::std::string GM8Emulator::Compiler::Token::toTypedIdentifier() noexcept
+{
+    ::std::ostringstream out;
+    switch (Type) {
+        case Compiler::TokenType::Identifier:
+            out << "id ";
+            break;
+
+        case Compiler::TokenType::Keyword:
+            out << "keyword ";
+            break;
+
+        case Compiler::TokenType::LiteralReal:
+        case Compiler::TokenType::LiteralString:
+            out << "literal ";
+            break;
+
+        case Compiler::TokenType::Operator:
+            out << "op ";
+            break;
+
+        case Compiler::TokenType::Separator:
+            out << "separator ";
+            break;
+        
+        default:
+            out << "unknown ";
+            break;
+    }
+
+    out << toGMLEquivalent();
+
+    return out.str();
 }
 
 void GM8Emulator::Compiler::UnitTest(::std::ostream &out)
