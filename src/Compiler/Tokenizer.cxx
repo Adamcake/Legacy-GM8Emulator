@@ -817,27 +817,28 @@ GM8Emulator::Compiler::TokenList GM8Emulator::Compiler::Tokenize(::std::string &
 {
     ::std::ostringstream out;
     switch (Type) {
-        case Compiler::TokenType::Identifier:
+        case TokenType::Identifier:
             out << "id ";
             break;
 
-        case Compiler::TokenType::Keyword:
+        case TokenType::Keyword:
             out << "keyword ";
             break;
 
-        case Compiler::TokenType::LiteralReal:
-        case Compiler::TokenType::LiteralString:
+        case TokenType::LiteralReal:
+        case TokenType::LiteralString:
             out << "literal ";
             break;
 
-        case Compiler::TokenType::Operator:
+        case TokenType::Operator:
             out << "op ";
             break;
 
-        case Compiler::TokenType::Separator:
+        case TokenType::Separator:
             out << "separator ";
             break;
         
+        case TokenType::None:
         default:
             out << "unknown ";
             break;
