@@ -15,9 +15,13 @@ Strictly speaking, "emulator" is not a correct term. In computing, an emulator i
 Why not?
 
 ## Building
-- Clone the repository with `git clone --recurse-submodules https://gitlab.com/GM8Emulator/GM8Emulator.git`
-- If you're using Visual Studio, all the dependencies are already part of the repository. For a bit. Simply run `cmake -G "Visual Studio 15 2017 Win64"` (optionally without `Win64` if you're on a 32-bit OS for some reason)
-- If you aren't using Visual Studio or building it on a non-windows system, the requirements are the glew package being installed. NOT FOR LONG. This is located with [FindGLEW](https://github.com/Kitware/CMake/blob/master/Modules/FindGLEW.cmake).
+- Clone the repository, make sure to grab submodules along with it (`--recurse-submodules` or `submodule update --init --recursive`)
+- If you want to use CMake, run the CMakeLists file in the repository root, that's all the setup needed
+- For building with plain GCC/MinGW/MinGW-w64:
+  - Sources: `./src/*.cpp` `./deps/glad/src/glad.c`
+  - Include: `./src/` `./deps/glfw/include/` `./deps/zlib/` `./deps/rectpack2D/src/` `./deps/glad/include/`
+  - Libraries: `-lz` `-lglfw3` (and `-lgdi32` `-lopengl32` if you're on Windows, should come with MinGW)
+  - Make sure to build with `--std=c++17` and `-Ofast`
 
 ## Contributing
 This project has only been worked on by two people so far. If you would like to help then that's great, we have a lot to do - but I would encourage you to get in touch first before diving in.
