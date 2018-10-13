@@ -476,6 +476,27 @@ bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const 
 		case IV_IMAGE_YSCALE:
 			out->dVal = instance->image_yscale;
 			break;
+        case IV_IMAGE_ANGLE:
+            out->dVal = instance->image_angle;
+            break;
+        case IV_IMAGE_BLEND:
+            out->dVal = (double)instance->image_blend;
+            break;
+		case IV_TIMELINE_INDEX:
+            out->dVal = (double)instance->timeline_index;
+            break;
+        case IV_TIMELINE_RUNNING:
+            out->dVal = instance->timeline_running ? GMLTrue : GMLFalse;
+            break;
+        case IV_TIMELINE_LOOP:
+            out->dVal = instance->timeline_loop ? GMLTrue : GMLFalse;
+            break;
+        case IV_TIMELINE_SPEED:
+            out->dVal = instance->timeline_speed;
+            break;
+        case IV_TIMELINE_POSITION:
+            out->dVal = instance->timeline_position;
+            break;
 		case IV_BBOX_LEFT:
 			RefreshInstanceBbox(instance);
 			out->dVal = instance->bbox_left;

@@ -187,7 +187,8 @@ bool CodeRunner::draw_set_valign(unsigned int argc, GMLType* argv, GMLType* out)
 bool CodeRunner::draw_sprite(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!this->_assertArgs(argc, argv, 4, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
     Sprite* spr = AMGetSprite(_round(argv[0].dVal));
-    RDrawImage(spr->frames[_round(argv[1].dVal) % spr->frameCount], argv[2].dVal, argv[3].dVal, 1.0, 1.0, 0, 0xFFFFFFFF, 1.0);
+    Instance* self = _contexts.top().self;
+    RDrawImage(spr->frames[_round(argv[1].dVal) % spr->frameCount], argv[2].dVal, argv[3].dVal, self->image_xscale, self->image_yscale, self->image_angle, self->image_blend, self->image_alpha);
     return true;
 }
 
@@ -805,6 +806,7 @@ bool CodeRunner::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* ou
 
 		self->x = startx;
         self->y = starty;
+        self->bboxIsStale = true;
 
 		return true;
 	}
