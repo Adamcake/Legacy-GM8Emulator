@@ -2363,7 +2363,7 @@ bool CodeRunner::Init() {
 				break;
 			case MOTION_SET:
 				_internalFuncNames.push_back("motion_set");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+                _gmlFuncs.push_back(&CodeRunner::motion_set);
 				break;
 			case MOUSE_CHECK_BUTTON:
 				_internalFuncNames.push_back("mouse_check_button");
@@ -2399,7 +2399,7 @@ bool CodeRunner::Init() {
 				break;
 			case MOVE_BOUNCE_SOLID:
 				_internalFuncNames.push_back("move_bounce_solid");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+                _gmlFuncs.push_back(&CodeRunner::move_bounce_solid);
 				break;
 			case MOVE_CONTACT_ALL:
 				_internalFuncNames.push_back("move_contact_all");
@@ -3187,7 +3187,7 @@ bool CodeRunner::Init() {
 				break;
 			case POINT_DISTANCE:
 				_internalFuncNames.push_back("point_distance");
-				_gmlFuncs.push_back(&CodeRunner::unimplemented);
+                _gmlFuncs.push_back(&CodeRunner::point_distance);
 				break;
 			case POINT_DISTANCE_3D:
 				_internalFuncNames.push_back("point_distance_3d");
