@@ -105,7 +105,7 @@ bool GameFrame() {
 	// TODO: if timeline_running, add timeline_speed to timeline_position and then run any events in that timeline indexed BELOW (not equal to) the current timeline_position
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
-		if (instance->exists && instance->timeline_running) {
+		if (instance->timeline_running) {
 			Timeline* timeline = AMGetTimeline(instance->timeline_index);
 			if (timeline->exists) {
 				double oldTPos = instance->timeline_position;
@@ -124,13 +124,11 @@ bool GameFrame() {
 	AlarmUpdateAll();
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
-		if (instance->exists) {
-			for (const auto j : AlarmGetMap(instance->id)) {
-				if (j.second == 0) {
-					if (!_codeActions->RunInstanceEvent(2, j.first, instance, NULL, instance->object_index)) return false;
-					if (AlarmGet(instance->id, j.first) == 0) AlarmDelete(instance->id, j.first); // Only remove entry if it's still 0
-					if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
-				}
+		for (const auto j : AlarmGetMap(instance->id)) {
+			if (j.second == 0) {
+				if (!_codeActions->RunInstanceEvent(2, j.first, instance, NULL, instance->object_index)) return false;
+				if (AlarmGet(instance->id, j.first) == 0) AlarmDelete(instance->id, j.first); // Only remove entry if it's still 0
+				if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 			}
 		}
 	}
@@ -138,13 +136,11 @@ bool GameFrame() {
 	// Key events
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
-		if (instance->exists) {
-			Object* o = AMGetObject(instance->object_index);
-			for (unsigned int e : o->evList[5]) {
-				if (InputCheckKey(e)) {
-					if (!_codeActions->RunInstanceEvent(5, e, instance, NULL, instance->object_index)) return false; // Animation End event
-					if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
-				}
+		Object* o = AMGetObject(instance->object_index);
+		for (unsigned int e : o->evList[5]) {
+			if (InputCheckKey(e)) {
+				if (!_codeActions->RunInstanceEvent(5, e, instance, NULL, instance->object_index)) return false; // Animation End event
+				if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 			}
 		}
 	}
@@ -154,13 +150,11 @@ bool GameFrame() {
 	// Key press events
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
-		if (instance->exists) {
-			Object* o = AMGetObject(instance->object_index);
-			for (unsigned int e : o->evList[9]) {
-				if (InputCheckKeyPressed(e)) {
-					if (!_codeActions->RunInstanceEvent(9, e, instance, NULL, instance->object_index)) return false; // Animation End event
-					if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
-				}
+		Object* o = AMGetObject(instance->object_index);
+		for (unsigned int e : o->evList[9]) {
+			if (InputCheckKeyPressed(e)) {
+				if (!_codeActions->RunInstanceEvent(9, e, instance, NULL, instance->object_index)) return false; // Animation End event
+				if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 			}
 		}
 	}
@@ -168,13 +162,11 @@ bool GameFrame() {
 	// Key release events
 	iter = InstanceList::Iterator(&_instances);
 	while (instance = iter.Next()) {
-		if (instance->exists) {
-			Object* o = AMGetObject(instance->object_index);
-			for (unsigned int e : o->evList[10]) {
-				if (InputCheckKey(e)) {
-					if (!_codeActions->RunInstanceEvent(10, e, instance, NULL, instance->object_index)) return false; // Animation End event
-					if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
-				}
+		Object* o = AMGetObject(instance->object_index);
+		for (unsigned int e : o->evList[10]) {
+			if (InputCheckKey(e)) {
+				if (!_codeActions->RunInstanceEvent(10, e, instance, NULL, instance->object_index)) return false; // Animation End event
+				if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 			}
 		}
 	}
@@ -311,7 +303,7 @@ bool GameFrame() {
 		iter = InstanceList::Iterator(&_instances);
 		while (instance = iter.Next()) {
 			// Don't run draw event for instances that don't exist or aren't visible.
-			if (instance->exists && instance->visible) {
+			if (instance->visible) {
 				if (instance->depth == currentDepth) {
 					Object* obj = AMGetObject(instance->object_index);
 					if (obj->events[8].count(0)) {
