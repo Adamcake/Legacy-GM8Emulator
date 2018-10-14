@@ -412,7 +412,16 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 
 bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const unsigned char* arrayIndexVal, GMLType* out) {
 	out->state = GMLTypeState::Double;
+    GMLType arrayId;
 	switch (index) {
+        case IV_ALARM: {
+            if (!_parseVal(arrayIndexVal, &arrayId)) return false;
+            if (arrayId.state != GMLTypeState::Double) return false;
+            int roundedAId = _round(arrayId.dVal);
+            if (roundedAId < 0) return false;
+            out->dVal = (double)AlarmGet(instance->id, roundedAId);
+            break;
+		}
 		case IV_INSTANCE_ID:
 			out->dVal = instance->id;
 			break;
@@ -422,9 +431,30 @@ bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const 
 		case IV_Y:
 			out->dVal = instance->y;
 			break;
+        case IV_XPREVIOUS:
+            out->dVal = instance->xprevious;
+            break;
+        case IV_YPREVIOUS:
+            out->dVal = instance->yprevious;
+            break;
+        case IV_XSTART:
+            out->dVal = instance->xstart;
+            break;
+        case IV_YSTART:
+            out->dVal = instance->ystart;
+            break;
 		case IV_SOLID:
 			out->dVal = (instance->solid ? GMLTrue : GMLFalse);
 			break;
+        case IV_DEPTH:
+            out->dVal = (double)instance->depth;
+            break;
+        case IV_VISIBLE:
+            out->dVal = (instance->visible ? GMLTrue : GMLFalse);
+            break;
+        case IV_PERSISTENT:
+            out->dVal = (instance->persistent ? GMLTrue : GMLFalse);
+            break;
 		case IV_DIRECTION:
 			out->dVal = instance->direction;
 			break;
@@ -443,12 +473,15 @@ bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const 
 		case IV_GRAVITY_DIRECTION:
 			out->dVal = instance->gravity_direction;
 			break;
-		case IV_IMAGE_ALPHA:
-			out->dVal = instance->image_alpha;
-			break;
+        case IV_FRICTION:
+            out->dVal = instance->friction;
+            break;
 		case IV_IMAGE_INDEX:
 			out->dVal = instance->image_index;
 			break;
+        case IV_IMAGE_SPEED:
+            out->dVal = instance->image_speed;
+            break;
 		case IV_SPRITE_INDEX:
 			out->dVal = instance->sprite_index;
 			break;
@@ -470,6 +503,9 @@ bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const 
 				out->dVal = (s->exists ? s->height : 0);
 			}
 			break;
+        case IV_MASK_INDEX:
+            out->dVal = instance->mask_index;
+            break;
 		case IV_IMAGE_XSCALE:
 			out->dVal = instance->image_xscale;
 			break;
@@ -481,6 +517,30 @@ bool CodeRunner::_getInstanceVar(Instance* instance, CRInstanceVar index, const 
             break;
         case IV_IMAGE_BLEND:
             out->dVal = (double)instance->image_blend;
+            break;
+        case IV_IMAGE_ALPHA:
+            out->dVal = instance->image_alpha;
+            break;
+        case IV_PATH_INDEX:
+            out->dVal = (double)instance->path_index;
+            break;
+        case IV_PATH_POSITION:
+            out->dVal = instance->path_position;
+            break;
+        case IV_PATH_SPEED:
+            out->dVal = instance->path_speed;
+            break;
+        case IV_PATH_SCALE:
+            out->dVal = instance->path_scale;
+            break;
+        case IV_PATH_ORIENTATION:
+            out->dVal = instance->path_orientation;
+            break;
+        case IV_PATH_ENDACTION:
+            out->dVal = instance->path_endaction;
+            break;
+        case IV_PATH_POSITIONPREVIOUS:
+            out->dVal = instance->path_positionprevious;
             break;
 		case IV_TIMELINE_INDEX:
             out->dVal = (double)instance->timeline_index;
