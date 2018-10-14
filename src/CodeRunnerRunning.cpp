@@ -317,14 +317,14 @@ bool CodeRunner::_setInstanceVar(Instance* instance, CRInstanceVar index, const 
 			t.dVal = instance->vspeed;
 			if (!_applySetMethod(&t, method, &value)) return false;
 			instance->vspeed = t.dVal;
-			instance->direction = ::atan(-instance->vspeed / instance->hspeed) * 180.0 / PI;
+            instance->direction = (instance->hspeed == 0) ? ::abs(instance->vspeed) : (::atan(-instance->vspeed / instance->hspeed) * 180.0 / PI);
 			instance->speed = ::sqrt(pow(instance->hspeed, 2) + pow(instance->vspeed, 2));
 			break;
 		case IV_HSPEED:
 			t.dVal = instance->hspeed;
 			if (!_applySetMethod(&t, method, &value)) return false;
 			instance->hspeed = t.dVal;
-			instance->direction = ::atan(-instance->vspeed / instance->hspeed) * 180.0 / PI;
+            instance->direction = (instance->hspeed == 0) ? ::abs(instance->vspeed) : (::atan(-instance->vspeed / instance->hspeed) * 180.0 / PI);
 			instance->speed = ::sqrt(pow(instance->hspeed, 2) + pow(instance->vspeed, 2));
 			break;
 		case IV_GRAVITY:
