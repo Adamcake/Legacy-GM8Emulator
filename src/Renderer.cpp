@@ -79,6 +79,7 @@ struct RDrawCommand {
 	unsigned int atlasId;
 	unsigned int imageIndex;
 	GLint atlasGlTex;
+    int depth;
 };
 std::vector<RDrawCommand> _drawCommands;
 
@@ -314,12 +315,12 @@ RImageIndex RMakeImage(unsigned int w, unsigned int h, unsigned int originX, uns
 	return pImg->imgIndex;
 }
 
-void RDrawImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha) {
+void RDrawImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha, int depth) {
 	RAtlasImage* r = _atlasImages.data() + ix;
-	RDrawPartialImage(ix, x, y, xscale, yscale, rot, blend, alpha, 0, 0, r->w, r->h);
+	RDrawPartialImage(ix, x, y, xscale, yscale, rot, blend, alpha, 0, 0, r->w, r->h, depth);
 }
 
-void RDrawPartialImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha, unsigned int partX, unsigned int partY, unsigned int partW, unsigned int partH) {
+void RDrawPartialImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha, unsigned int partX, unsigned int partY, unsigned int partW, unsigned int partH, int depth) {
 	RDrawCommand command;
 
 	RAtlasImage* aImg = _atlasImages.data() + ix;
@@ -388,6 +389,7 @@ void RDrawPartialImage(RImageIndex ix, double x, double y, double xscale, double
 	command.imageIndex = ix;
 	command.atlasId = aImg->atlasId;
 	command.atlasGlTex = atlas->glTex;
+    command.depth = depth;
 	_drawCommands.push_back(command);
 }
 
@@ -413,6 +415,9 @@ void RStartFrame() {
 void RRenderFrame() {
 	int actualWinW, actualWinH;
 	glfwGetWindowSize(_window, &actualWinW, &actualWinH);
+
+	// Sort commands into depth order
+    std::sort(_drawCommands.begin(), _drawCommands.end(), [](const RDrawCommand& a, const RDrawCommand& b) -> bool { return a.depth > b.depth; });
 
 	// Buffer all draw commands into VBO
 	GLuint commandsVBO;

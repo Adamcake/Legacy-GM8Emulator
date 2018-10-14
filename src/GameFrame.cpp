@@ -285,17 +285,17 @@ bool GameFrame() {
 
 				for (int startY = (bg.tileVert ? (bg.y - stretchedH) : 0); startY < (int)room->height; startY += stretchedH) {
 					for (int startX = (bg.tileHor ? (bg.x - stretchedW) : 0); startX < (int)room->width; startX += stretchedW) {
-						RDrawImage(b->image, startX, startY, scaleX, scaleY, 0, 0xFFFFFFFF, 1);
+						RDrawImage(b->image, startX, startY, scaleX, scaleY, 0, 0xFFFFFFFF, 1, INT_MAX);
 					}
 				}
 			}			
 		}
 	}
 
-	// Draw all tiles (TODO: correct depth order)
+	// Draw all tiles
 	for (unsigned int i = 0; i < room->tileCount; i++) {
 		RoomTile tile = room->tiles[i];
-		RDrawPartialImage(AMGetBackground(tile.backgroundIndex)->image, tile.x, tile.y, 1, 1, 0, 0xFFFFFFFF, 1, tile.tileX, tile.tileY, tile.width, tile.height);
+		RDrawPartialImage(AMGetBackground(tile.backgroundIndex)->image, tile.x, tile.y, 1, 1, 0, 0xFFFFFFFF, 1, tile.tileX, tile.tileY, tile.width, tile.height, tile.depth);
 	}
 
 	// Run draw event for all instances in depth order
@@ -324,7 +324,7 @@ bool GameFrame() {
 						if (instance->sprite_index >= 0) {
 							Sprite* sprite = AMGetSprite(instance->sprite_index);
 							if (sprite->exists) {
-								RDrawImage(sprite->frames[((int)instance->image_index) % sprite->frameCount], instance->x, instance->y, instance->image_xscale, instance->image_yscale, instance->image_angle, instance->image_blend, instance->image_alpha);
+								RDrawImage(sprite->frames[((int)instance->image_index) % sprite->frameCount], instance->x, instance->y, instance->image_xscale, instance->image_yscale, instance->image_angle, instance->image_blend, instance->image_alpha, instance->depth);
 							}
 							else {
 								// Tried to draw non-existent sprite
@@ -353,7 +353,7 @@ bool GameFrame() {
 
 			for (int startY = (bg.tileVert ? (bg.y - stretchedH) : 0); startY < (int)room->height; startY += stretchedH) {
 				for (int startX = (bg.tileHor ? (bg.x - stretchedW) : 0); startX < (int)room->width; startX += stretchedW) {
-					RDrawImage(b->image, startX, startY, scaleX, scaleY, 0, 0xFFFFFFFF, 1);
+					RDrawImage(b->image, startX, startY, scaleX, scaleY, 0, 0xFFFFFFFF, 1, instance->depth);
 				}
 			}
 		}

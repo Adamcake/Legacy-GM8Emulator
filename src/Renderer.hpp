@@ -31,10 +31,10 @@ bool RShouldClose();
 RImageIndex RMakeImage(unsigned int w, unsigned int h, unsigned int originX, unsigned int originY, unsigned char* bytes);
 
 // Draws a registered image at the given X and Y. Tries to imitate draw_sprite_ext() from GML.
-void RDrawImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha);
+void RDrawImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha, int depth);
 
 // Draws a given section of a registered image at the given X and Y.
-void RDrawPartialImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha, unsigned int partX, unsigned int partY, unsigned int partW, unsigned int partH);
+void RDrawPartialImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha, unsigned int partX, unsigned int partY, unsigned int partW, unsigned int partH, int depth);
 
 // Clear the screen and prepare for drawing sprites
 void RStartFrame();
