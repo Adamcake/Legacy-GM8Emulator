@@ -188,7 +188,7 @@ bool CodeRunner::draw_sprite(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!this->_assertArgs(argc, argv, 4, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
     Sprite* spr = AMGetSprite(_round(argv[0].dVal));
     Instance* self = _contexts.top().self;
-    RDrawImage(spr->frames[_round(argv[1].dVal) % spr->frameCount], argv[2].dVal, argv[3].dVal, self->image_xscale, self->image_yscale, self->image_angle, self->image_blend, self->image_alpha);
+    RDrawImage(spr->frames[_round(argv[1].dVal) % spr->frameCount], argv[2].dVal, argv[3].dVal, self->image_xscale, self->image_yscale, self->image_angle, self->image_blend, self->image_alpha, self->depth);
     return true;
 }
 
@@ -197,7 +197,8 @@ bool CodeRunner::draw_sprite_ext(unsigned int argc, GMLType* argv, GMLType* out)
             GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double))
         return false;
     Sprite* spr = AMGetSprite(_round(argv[0].dVal));
-    RDrawImage(spr->frames[_round(argv[1].dVal) % spr->frameCount], argv[2].dVal, argv[3].dVal, argv[4].dVal, argv[5].dVal, argv[6].dVal, _round(argv[7].dVal), argv[8].dVal);
+    Instance* self = _contexts.top().self;
+    RDrawImage(spr->frames[_round(argv[1].dVal) % spr->frameCount], argv[2].dVal, argv[3].dVal, argv[4].dVal, argv[5].dVal, argv[6].dVal, _round(argv[7].dVal), argv[8].dVal, self->depth);
     return true;
 }
 
@@ -275,7 +276,7 @@ bool CodeRunner::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
                 unsigned int cCW = *(dmapPos + 4);
                 unsigned int cCO = *(dmapPos + 5);
 
-                RDrawPartialImage(font->image, cursorX + ( int )cCO, cursorY, 1, 1, 0.0, _drawColour, _drawAlpha, cX, cY, cW, cH);
+                RDrawPartialImage(font->image, cursorX + ( int )cCO, cursorY, 1, 1, 0.0, _drawColour, _drawAlpha, cX, cY, cW, cH, _contexts.top().self->depth);
                 cursorX += cCW;
             }
         }
