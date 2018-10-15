@@ -83,15 +83,17 @@ namespace GM8Emulator {
         };
 
         enum class SeparatorType : uint8_t {
-            ParenLeft,  // (
-            ParenRight, // )
-            BraceLeft,  // {
-            BraceRight, // }
-            Semicolon,  // ;
-            Colon,      // :
-            Comma,      // ,
-            Period,     // .
-            PascalThen, // then (Useless relic, does nothing)
+            ParenLeft,          // (
+            ParenRight,         // )
+            BraceLeft,          // {
+            BraceRight,         // }
+            SquareBracketLeft,  // [
+            SquareBracketRight, // ]
+            Semicolon,          // ;
+            Colon,              // :
+            Comma,              // ,
+            Period,             // .
+            PascalThen,         // then (Useless relic, does nothing)
             None
         };
 

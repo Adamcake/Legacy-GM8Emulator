@@ -65,6 +65,8 @@ namespace GM8Emulator {
             constexpr const char *SepParenRight = ")";
             constexpr const char *SepBraceLeft = "{";
             constexpr const char *SepBraceRight = "}";
+            constexpr const char *SepSquareBracketLeft = "[";
+            constexpr const char *SepSquareBracketRight = "]";
             constexpr const char *SepSemicolon = ";";
             constexpr const char *SepColon = ":";
             constexpr const char *SepComma = ",";

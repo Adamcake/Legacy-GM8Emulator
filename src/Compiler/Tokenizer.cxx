@@ -369,6 +369,14 @@ GM8Emulator::Compiler::TokenList GM8Emulator::Compiler::Tokenize(::std::string &
                 case '}':
                     sep = SeparatorType::BraceRight;
                     break;
+                
+                case '[':
+                    sep = SeparatorType::SquareBracketLeft;
+                    break;
+                
+                case ']':
+                    sep = SeparatorType::SquareBracketRight;
+                    break;
 
                 case ';':
                     sep = SeparatorType::Semicolon;
@@ -461,12 +469,11 @@ GM8Emulator::Compiler::TokenList GM8Emulator::Compiler::Tokenize(::std::string &
                     // Single-line Comment
                     case '/': {
                         if (op == OperatorType::Divide) {
-                            while (i != end) {
-                                i++;
-
-                                if (i == end) break;
-                                if (*i == '\n' || *i == '\r') break;
-                            }
+                            if (i != end) {
+								while (++i != end) {
+									if (*i == '\n' || *i == '\r') break;
+								}
+							}
 
                             if (i == end) continue;
                             if ((i + 1) != end) i++; // Increment past newline
@@ -482,15 +489,15 @@ GM8Emulator::Compiler::TokenList GM8Emulator::Compiler::Tokenize(::std::string &
                         multiline comments unclosed! */
                     case '*': {
                         if (op == OperatorType::Divide) {
-                            while (i != end) {
-                                i++;
-
-                                if (*i == '*') {
-                                    if ((i + 1) != end) {
-                                        if (*(i + 1) == '/') break;
-                                    }
-                                }
-                            }
+                            if (i != end) {
+								while (++i != end) {
+									if (*i == '*') {
+										if ((i + 1) != end) {
+											if (*(i + 1) == '/') break;
+										}
+									}
+								}
+							}
 
                             if (i == end) continue;  // Break out if @ end
                             i++;                     // Increment past */
@@ -782,6 +789,10 @@ GM8Emulator::Compiler::TokenList GM8Emulator::Compiler::Tokenize(::std::string &
                         return Constants::SepBraceLeft;
                     case SeparatorType::BraceRight:
                         return Constants::SepBraceRight;
+                    case SeparatorType::SquareBracketLeft:
+                        return Constants::SepSquareBracketLeft;
+                    case SeparatorType::SquareBracketRight:
+                        return Constants::SepSquareBracketRight;
                     case SeparatorType::Semicolon:
                         return Constants::SepSemicolon;
                     case SeparatorType::Colon:

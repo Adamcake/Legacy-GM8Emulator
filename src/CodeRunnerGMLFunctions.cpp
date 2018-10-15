@@ -1218,6 +1218,7 @@ bool CodeRunner::window_get_caption(unsigned int argc, GMLType* argv, GMLType* o
     return true;
 }
 
+constexpr bool CRErrorOnUnimplemented = false;
 bool CodeRunner::unimplemented(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!CRErrorOnUnimplemented) {
         if (out) {
