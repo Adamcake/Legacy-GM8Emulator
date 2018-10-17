@@ -8,8 +8,7 @@
 #include "RNG.hpp"
 #include "CRGMLType.hpp"
 
-CodeRunner::CodeRunner(InstanceList* instances, GlobalValues* globals, CodeActionManager* codeActions) {
-    _instances = instances;
+CodeRunner::CodeRunner(GlobalValues* globals, CodeActionManager* codeActions) {
     _globalValues = globals;
     _codeActions = codeActions;
     RNGRandomize();

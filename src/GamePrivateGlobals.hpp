@@ -23,9 +23,6 @@ struct GameInfo {
 	char* gameInfo;
 };
 
-// All active instances
-extern InstanceList _instances;
-
 // All global values such as room_speed, health, etc
 extern GlobalValues _globals;
 

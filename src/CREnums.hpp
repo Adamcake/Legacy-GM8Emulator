@@ -5,6 +5,7 @@
 
 // I put these in their own header because they're gonna be like, really big
 
+/*
 enum CRInstruction {
 	OP_NOP = 0x0,
 	OP_EXIT = 0x1,
@@ -34,6 +35,7 @@ enum CRInstruction {
 	OP_VARSTACK_POP = 0x19,
 	OP_RETURN = 0x1A
 };
+*/
 
 enum CRSetMethod {
 	SM_ASSIGN = 0,
@@ -46,11 +48,13 @@ enum CRSetMethod {
 	SM_BITWISE_XOR = 7
 };
 
+/*
 enum CRVarType {
 	VARTYPE_INSTANCE,
 	VARTYPE_FIELD,
 	VARTYPE_GAME
 };
+*/
 
 enum CROperator {
 	OPERATOR_STOP = 0x0,
@@ -75,12 +79,16 @@ enum CROperator {
 	OPERATOR_LSHIFT = 0x13,
 	OPERATOR_RSHIFT = 0x14,
 	OPERATOR_DEREF = 0x15,
-
-	EVMOD_NOT = 0x16,
-	EVMOD_NEGATIVE = 0x17,
-	EVMOD_TILDE = 0x18
 };
 
+enum CRUnaryOperator {
+    OPERATOR_NOT = 0x0,
+    OPERATOR_TILDE = 0x1,
+    OPERATOR_NEGATIVE = 0x2,
+    OPERATOR_POSITIVE = 0x3
+};
+
+/*
 enum CRExpVType {
 	EVTYPE_NONE = 0x0,
 	EVTYPE_VAL = 0x1,
@@ -92,6 +100,7 @@ enum CRExpVType {
 	EVTYPE_SCRIPT = 0x7,
 	EVTYPE_STACK = 0x8,
 };
+*/
 
 enum CRInternalFunction {
 	ABS,
@@ -1255,6 +1264,7 @@ enum CRInstanceVar {
 	_INSTANCE_VAR_COUNT // As long as this one is last, it'll tell us how many things are in this enum. So don't move it.
 };
 
+/*
 enum CRSpecialNames {
 	SP_SELF,
 	SP_OTHER,
@@ -1262,5 +1272,6 @@ enum CRSpecialNames {
 	SP_NOONE,
 	SP_GLOBAL
 };
+*/
 
 #endif

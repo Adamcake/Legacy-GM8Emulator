@@ -235,7 +235,6 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 #pragma endregion
 
 #pragma region Global extern definitions
-InstanceList _instances;
 GlobalValues _globals;
 CodeRunner* _runner;
 CodeActionManager* _codeActions;
@@ -251,7 +250,8 @@ void GameInit() {
 	_info.gameInfo = NULL;
 	_codeActions = new CodeActionManager();
 	RInit();
-	_runner = new CodeRunner(&_instances, &_globals, _codeActions);
+    InstanceList::Init();
+	_runner = new CodeRunner(&_globals, _codeActions);
 	_codeActions->SetRunner(_runner);
 	_roomOrder = NULL;
 	_lastUsedRoomSpeed = 0;
@@ -259,7 +259,7 @@ void GameInit() {
 
 void GameTerminate() {
 	// Run "Game End" events
-	InstanceList::Iterator iter = InstanceList::Iterator(&_instances);
+	InstanceList::Iterator iter;
 	Instance* instance;
 	while (instance = iter.Next()) {
 		if (!_codeActions->RunInstanceEvent(7, 3, instance, NULL, instance->object_index)) break;
@@ -272,6 +272,7 @@ void GameTerminate() {
 	delete _runner;
 	delete[] _roomOrder;
 	RTerminate();
+    InstanceList::Finalize();
 }
 
 bool GameLoad(const char *pFilename) {
@@ -1418,7 +1419,7 @@ bool GameLoad(const char *pFilename) {
 
 bool GameStart() {
 	// Clear out the instances if there were any
-	_instances.ClearAll();
+	InstanceList::ClearAll();
 
 	// Reset the room to its default value so that LoadRoom() won't ever fail when restarting
 	_globals.room = 0xFFFFFFFF;

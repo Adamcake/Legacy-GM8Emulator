@@ -109,7 +109,7 @@ bool CodeRunner::distance_to_object(unsigned int argc, GMLType* argv, GMLType* o
     if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     Instance* self = _contexts.top().self;
     Instance* other;
-    InstanceList::Iterator iter(_instances, _round(argv[0].dVal));
+    InstanceList::Iterator iter(_round(argv[0].dVal));
     double lowestDist = 1000000.0;  // GML default
     RefreshInstanceBbox(self);
 
@@ -431,7 +431,7 @@ bool CodeRunner::file_exists(unsigned int argc, GMLType* argv, GMLType* out) {
 bool CodeRunner::instance_create(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!this->_assertArgs(argc, argv, 3, false, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
     unsigned int objID = _round(argv[2].dVal);
-    Instance* i = _instances->AddInstance(_nextInstanceID, argv[0].dVal, argv[1].dVal, objID);
+    Instance* i = InstanceList::AddInstance(_nextInstanceID, argv[0].dVal, argv[1].dVal, objID);
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ( double )_nextInstanceID;
@@ -449,7 +449,7 @@ bool CodeRunner::instance_destroy(unsigned int argc, GMLType* argv, GMLType* out
 bool CodeRunner::instance_exists(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     int objId = _round(argv[0].dVal);
-    InstanceList::Iterator it(_instances, ( unsigned int )objId);
+    InstanceList::Iterator it((unsigned int)objId);
     out->state = GMLTypeState::Double;
     out->dVal = (it.Next() ? GMLTrue : GMLFalse);
     return true;
@@ -458,7 +458,7 @@ bool CodeRunner::instance_exists(unsigned int argc, GMLType* argv, GMLType* out)
 bool CodeRunner::instance_number(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     int objId = _round(argv[0].dVal);
-    InstanceList::Iterator it(_instances, ( unsigned int )objId);
+    InstanceList::Iterator it((unsigned int)objId);
     out->state = GMLTypeState::Double;
     unsigned int count = 0;
     while (it.Next()) count++;
@@ -472,8 +472,8 @@ bool CodeRunner::instance_position(unsigned int argc, GMLType* argv, GMLType* ou
         int objId = _round(argv[2].dVal);
         int x = _round(argv[0].dVal);
         int y = _round(argv[1].dVal);
-        InstanceList::Iterator it(_instances, ( unsigned int )objId);
-        if (objId == -3) it = InstanceList::Iterator(_instances);
+        InstanceList::Iterator it((unsigned int)objId);
+        if (objId == -3) it = InstanceList::Iterator();
         Instance* instance;
         double ret = -4.0;
         while (instance = it.Next()) {
@@ -538,7 +538,7 @@ bool CodeRunner::game_end(unsigned int argc, GMLType* argv, GMLType* out) { retu
 bool CodeRunner::game_restart(unsigned int argc, GMLType* argv, GMLType* out) {
     _globalValues->changeRoom = true;
     _globalValues->roomTarget = (*_roomOrder)[0];
-    InstanceList::Iterator iter(_instances);
+    InstanceList::Iterator iter;
     Instance* i;
     while (i = iter.Next()) {
         i->exists = false;
@@ -763,7 +763,7 @@ bool CodeRunner::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* ou
 		// First collision check - x offset only
         self->x += self->hspeed;
         self->bboxIsStale = true;
-        InstanceList::Iterator iter(_instances);
+        InstanceList::Iterator iter;
         while (target = iter.Next()) {
             if (target->solid) {
                 if (CollisionCheck(self, target)) {
@@ -778,7 +778,7 @@ bool CodeRunner::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* ou
         self->x = startx;
         self->y += self->vspeed;
         self->bboxIsStale = true;
-		iter = InstanceList::Iterator(_instances);
+		iter = InstanceList::Iterator();
         while (target = iter.Next()) {
             if (target->solid) {
                 if (CollisionCheck(self, target)) {
@@ -793,7 +793,7 @@ bool CodeRunner::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* ou
 			// Third collision check - x and y offset
             self->x += self->hspeed;
             self->bboxIsStale = true;
-            iter = InstanceList::Iterator(_instances);
+            iter = InstanceList::Iterator();
             while (target = iter.Next()) {
                 if (target->solid) {
                     if (CollisionCheck(self, target)) {
@@ -823,7 +823,7 @@ bool CodeRunner::move_contact_solid(unsigned int argc, GMLType* argv, GMLType* o
     bool moved = false;
 
     for (int i = 0; i <= maxdist; i++) {
-        InstanceList::Iterator iter(_instances);
+        InstanceList::Iterator iter;
         bool collision = false;
 
         Instance* target;
@@ -904,7 +904,7 @@ bool CodeRunner::place_free(unsigned int argc, GMLType* argv, GMLType* out) {
         out->state = GMLTypeState::Double;
         out->dVal = GMLTrue;
 
-        InstanceList::Iterator iter(_instances);
+        InstanceList::Iterator iter;
         Instance* self = _contexts.top().self;
         double oldX = self->x;
         double oldY = self->y;
@@ -935,8 +935,8 @@ bool CodeRunner::place_meeting(unsigned int argc, GMLType* argv, GMLType* out) {
         out->state = GMLTypeState::Double;
         out->dVal = GMLFalse;
         int obj = _round(argv[2].dVal);
-        InstanceList::Iterator iter(_instances, ( unsigned int )obj);
-        if (obj == -3) iter = InstanceList::Iterator(_instances);
+        InstanceList::Iterator iter((unsigned int)obj);
+        if (obj == -3) iter = InstanceList::Iterator();
 
         Instance* self = _contexts.top().self;
         double oldX = self->x;

@@ -27,7 +27,6 @@ enum CRSetMethod;
 
 class CodeRunner {
 	private:
-		InstanceList* _instances;
 		GlobalValues* _globalValues;
 		CodeActionManager* _codeActions;
 
@@ -51,8 +50,8 @@ class CodeRunner {
 			GMLType* argv;
 			InstanceList::Iterator iterator;
 			//std::map<unsigned int, GMLType> locals;
-			CRContext(Instance* s, Instance* o, int e, int se, unsigned int oid, unsigned int ac = 0, GMLType* av = NULL) : self(s), other(o), eventId(e), eventNumber(se), objId(oid), argc(ac), argv(av), iterator(NULL, 0) {}
-			CRContext(Instance* o, InstanceList* list, unsigned int id, unsigned int ac = 0, GMLType* av = NULL) : other(o), iterator(list, id), argc(ac), argv(av) { self = iterator.Next(); }
+			CRContext(Instance* s, Instance* o, int e, int se, unsigned int oid, unsigned int ac = 0, GMLType* av = NULL) : self(s), other(o), eventId(e), eventNumber(se), objId(oid), argc(ac), argv(av), iterator(0) {}
+			CRContext(Instance* o, unsigned int id, unsigned int ac = 0, GMLType* av = NULL) : other(o), iterator(id), argc(ac), argv(av) { self = iterator.Next(); }
 		};
 		std::stack<CRContext> _contexts;
 
@@ -174,7 +173,7 @@ class CodeRunner {
 		bool unimplemented(unsigned int argc, GMLType* argv, GMLType* out);
 
 	public:
-		CodeRunner(InstanceList* instances, GlobalValues* globals, CodeActionManager* codeActions);
+		CodeRunner(GlobalValues* globals, CodeActionManager* codeActions);
 		~CodeRunner();
 
 		// For populating the constant lists. This should be called before anything else.

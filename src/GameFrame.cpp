@@ -20,17 +20,18 @@ bool GameLoadRoom(int id) {
     // Check room exists
     if (!room->exists) return false;
 
-    unsigned int count = _instances.Count();
-    for (unsigned int i = 0; i < count; i++) {
+    InstanceList::Iterator iter;
+    Instance* i;
+    while(i = iter.Next()) {
         // run "room end" event for _instances[i]
-        Object* o = AMGetObject(_instances[i]->object_index);
+        Object* o = AMGetObject(i->object_index);
         if (o->events[7].count(5)) {
-            if (!_codeActions->RunInstanceEvent(7, 5, _instances[i], NULL, _instances[i]->object_index)) return false;
+            if (!_codeActions->RunInstanceEvent(7, 5, i, NULL, i->object_index)) return false;
         }
     }
 
     // Delete non-persistent instances
-    _instances.ClearNonPersistent();
+    InstanceList::ClearNonPersistent();
 
     // Clear inputs, because gm8 does this for some reason
     InputClearKeys();
@@ -52,9 +53,9 @@ bool GameLoadRoom(int id) {
 
     // Create all instances in new room
     for (unsigned int i = 0; i < room->instanceCount; i++) {
-        if (!_instances.GetInstanceByNumber(room->instances[i].id)) {
+        if (!InstanceList::GetInstanceByNumber(room->instances[i].id)) {
             unsigned int id = room->instances[i].id;
-            Instance* instance = _instances.AddInstance(id, room->instances[i].x, room->instances[i].y, room->instances[i].objectIndex);
+            Instance* instance = InstanceList::AddInstance(id, room->instances[i].x, room->instances[i].y, room->instances[i].objectIndex);
             if (!instance) {
                 // Failed to create instance
                 return false;
@@ -70,7 +71,7 @@ bool GameLoadRoom(int id) {
     // run room's creation code
     if (!_runner->Run(room->creationCode, NULL, NULL, 0, 0, 0)) return false;  // not sure if it matters what event id and number I pass here
 
-    InstanceList::Iterator iter(&_instances);
+    iter = InstanceList::Iterator();
     Instance* instance;
     while (instance = iter.Next()) {
         // run _instance's room start event
@@ -86,7 +87,7 @@ bool GameLoadRoom(int id) {
 
 bool GameFrame() {
     Instance* instance;
-    InstanceList::Iterator iter(&_instances);
+    InstanceList::Iterator iter;
 
     // Update inputs from keyboard and mouse (doesn't really matter where this is in the event order as far as I know)
     InputUpdate();
@@ -94,7 +95,7 @@ bool GameFrame() {
     // TODO: "begin step" trigger events
 
     // Run "begin step" event for all instances
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         Object* o = AMGetObject(instance->object_index);
         if (!_codeActions->RunInstanceEvent(3, 1, instance, NULL, instance->object_index)) return false;
@@ -102,7 +103,7 @@ bool GameFrame() {
     }
 
     // TODO: if timeline_running, add timeline_speed to timeline_position and then run any events in that timeline indexed BELOW (not equal to) the current timeline_position
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         if (instance->timeline_running) {
             Timeline* timeline = AMGetTimeline(instance->timeline_index);
@@ -121,7 +122,7 @@ bool GameFrame() {
 
     // Subtract from alarms and run event if they reach 0
     AlarmUpdateAll();
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         for (const auto j : AlarmGetMap(instance->id)) {
             if (j.second == 0) {
@@ -133,7 +134,7 @@ bool GameFrame() {
     }
 
     // Key events
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         Object* o = AMGetObject(instance->object_index);
         for (unsigned int e : o->evList[5]) {
@@ -147,7 +148,7 @@ bool GameFrame() {
     // TODO: mouse events
 
     // Key press events
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         Object* o = AMGetObject(instance->object_index);
         for (unsigned int e : o->evList[9]) {
@@ -159,7 +160,7 @@ bool GameFrame() {
     }
 
     // Key release events
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         Object* o = AMGetObject(instance->object_index);
         for (unsigned int e : o->evList[10]) {
@@ -173,7 +174,7 @@ bool GameFrame() {
     // TODO: "normal step" trigger events
 
     // Run "step" event for all instances
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     unsigned int a = 0;
     while (instance = iter.Next()) {
         if (!_codeActions->RunInstanceEvent(3, 0, instance, NULL, instance->object_index)) return false;
@@ -181,7 +182,7 @@ bool GameFrame() {
     }
 
     // Movement
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         // Set xprevious and yprevious
         instance->xprevious = instance->x;
@@ -218,7 +219,7 @@ bool GameFrame() {
     }
 
     // Outside Room event
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         Object* o = AMGetObject(instance->object_index);
         if (std::find(o->evList[7].begin(), o->evList[7].end(), 0) != o->evList[7].end()) {
@@ -231,7 +232,7 @@ bool GameFrame() {
     }
 
     // Intersect boundary event
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         Object* o = AMGetObject(instance->object_index);
         if (std::find(o->evList[7].begin(), o->evList[7].end(), 1) != o->evList[7].end()) {
@@ -246,11 +247,11 @@ bool GameFrame() {
     // TODO: in this order, if views are enabled: "outside view x" events for all instances, "intersect boundary view x" events for all instances
 
     // Collision events
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         Object* o = AMGetObject(instance->object_index);
         for (unsigned int e : o->evList[4]) {
-            InstanceList::Iterator iter2(&_instances, e);
+            InstanceList::Iterator iter2(e);
 
             Instance* target = iter2.Next();
             while (target) {
@@ -280,7 +281,7 @@ bool GameFrame() {
     // TODO: "end step" trigger events
 
     // Run "end step" event for all instances
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         if (!_codeActions->RunInstanceEvent(3, 2, instance, NULL, instance->object_index)) return false;
         if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
@@ -318,7 +319,7 @@ bool GameFrame() {
 
     // Run draw event for all instances in depth order
     int nextDepth = INT_MIN;
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         if (instance->depth > nextDepth && instance->exists && instance->visible) nextDepth = instance->depth;
     }
@@ -326,7 +327,7 @@ bool GameFrame() {
     while (true) {
         int currentDepth = nextDepth;
         nextDepth = INT_MIN;
-        iter = InstanceList::Iterator(&_instances);
+        iter = InstanceList::Iterator();
         while (instance = iter.Next()) {
             // Don't run draw event for instances that don't exist or aren't visible.
             if (instance->visible) {
@@ -386,7 +387,7 @@ bool GameFrame() {
     if (RShouldClose()) return false;
 
     // Update sprite info
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         instance->image_index += instance->image_speed;
 
@@ -401,7 +402,7 @@ bool GameFrame() {
         }
     }
 
-    _instances.ClearDeleted();
+    InstanceList::ClearDeleted();
 
     return true;
 }
