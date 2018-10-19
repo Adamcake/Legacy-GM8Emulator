@@ -186,7 +186,7 @@ bool CodeRunner::draw_set_valign(unsigned int argc, GMLType* argv, GMLType* out)
 
 bool CodeRunner::draw_sprite(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!this->_assertArgs(argc, argv, 4, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
-    Sprite* spr = AMGetSprite(_round(argv[0].dVal));
+    Sprite* spr = AssetManager::GetSprite(_round(argv[0].dVal));
     Instance* self = _contexts.top().self;
     RDrawImage(spr->frames[_round(argv[1].dVal) % spr->frameCount], argv[2].dVal, argv[3].dVal, self->image_xscale, self->image_yscale, self->image_angle, self->image_blend, self->image_alpha, self->depth);
     return true;
@@ -196,7 +196,7 @@ bool CodeRunner::draw_sprite_ext(unsigned int argc, GMLType* argv, GMLType* out)
     if (!this->_assertArgs(argc, argv, 9, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double,
             GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double))
         return false;
-    Sprite* spr = AMGetSprite(_round(argv[0].dVal));
+    Sprite* spr = AssetManager::GetSprite(_round(argv[0].dVal));
     Instance* self = _contexts.top().self;
     RDrawImage(spr->frames[_round(argv[1].dVal) % spr->frameCount], argv[2].dVal, argv[3].dVal, argv[4].dVal, argv[5].dVal, argv[6].dVal, _round(argv[7].dVal), argv[8].dVal, self->depth);
     return true;
@@ -214,7 +214,7 @@ bool CodeRunner::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
         str = st.c_str();
     }
 
-    Font* font = AMGetFont(_drawFont);
+    Font* font = AssetManager::GetFont(_drawFont);
     if (font && font->exists) {
         int cursorX = _round(argv[0].dVal);
         int cursorY = _round(argv[1].dVal);
@@ -289,12 +289,12 @@ bool CodeRunner::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
 }
 
 bool CodeRunner::event_inherited(unsigned int argc, GMLType* argv, GMLType* out) {
-    Object* o = AMGetObject(_contexts.top().objId);
+    Object* o = AssetManager::GetObject(_contexts.top().objId);
     unsigned int id;
 
     while (o->parentIndex >= 0) {
         id = o->parentIndex;
-        o = AMGetObject(id);
+        o = AssetManager::GetObject(id);
 
         if (_codeActions->CheckObjectEvent(_contexts.top().eventId, _contexts.top().eventNumber, o)) {
             return _codeActions->RunInstanceEvent(_contexts.top().eventId, _contexts.top().eventNumber, _contexts.top().self, _contexts.top().other, id);
@@ -867,7 +867,7 @@ bool CodeRunner::move_wrap(unsigned int argc, GMLType* argv, GMLType* out) {
     Instance* instance = _contexts.top().self;
 
     if (hor) {
-        unsigned int roomW = AMGetRoom(_globalValues->room)->width;
+        unsigned int roomW = AssetManager::GetRoom(_globalValues->room)->width;
         if (instance->x < -margin) {
             instance->x += roomW;
         }
@@ -877,7 +877,7 @@ bool CodeRunner::move_wrap(unsigned int argc, GMLType* argv, GMLType* out) {
     }
 
     if (ver) {
-        unsigned int roomH = AMGetRoom(_globalValues->room)->height;
+        unsigned int roomH = AssetManager::GetRoom(_globalValues->room)->height;
         if (instance->y < -margin) {
             instance->y += roomH;
         }
@@ -1136,7 +1136,7 @@ bool CodeRunner::string_width(unsigned int argc, GMLType* argv, GMLType* out) {
             return true;
         }
 
-        Font* font = AMGetFont(_drawFont);
+        Font* font = AssetManager::GetFont(_drawFont);
         if (!font->exists) {
             // Default font not sure what to do here
             out->dVal = GMLFalse;
@@ -1170,7 +1170,7 @@ bool CodeRunner::string_height(unsigned int argc, GMLType* argv, GMLType* out) {
             return true;
         }
 
-        Font* font = AMGetFont(_drawFont);
+        Font* font = AssetManager::GetFont(_drawFont);
         if (!font->exists) {
             // Default font not sure what to do here
             out->dVal = GMLFalse;

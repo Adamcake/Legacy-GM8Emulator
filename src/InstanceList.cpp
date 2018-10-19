@@ -121,7 +121,7 @@ Instance* InstanceList::GetInstanceByNumber(unsigned int num, unsigned int start
     else {
         // Object ID
         for (unsigned int i = startPos; i < _size; i++) {
-            Object* o = AMGetObject(_list[i].object_index);
+            Object* o = AssetManager::GetObject(_list[i].object_index);
             if (o->identities.count(num) && _list[i].exists) {
                 if (endPos) (*endPos) = i;
                 return _list + i;
@@ -137,7 +137,7 @@ unsigned int InstanceList::Count() { return _size; }
 // Private
 
 bool _InitInstance(Instance* instance, unsigned int id, double x, double y, unsigned int objectId) {
-    Object* obj = AMGetObject(objectId);
+    Object* obj = AssetManager::GetObject(objectId);
     if (!obj->exists) return false;
     instance->exists = true;
     instance->id = id;
