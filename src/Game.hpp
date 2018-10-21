@@ -5,7 +5,6 @@
 #include "InstanceList.hpp"
 #include "GlobalValues.hpp"
 class CodeRunner;
-class CodeActionManager;
 
 
 void GameInit();

@@ -6,6 +6,17 @@
 #include "Instance.hpp"
 #include "StreamUtil.hpp"
 
+// Private vars
+namespace CodeActionManager {
+    struct CACodeAction {
+        unsigned int actionID;
+        CodeObject codeObj;
+        bool question;
+        unsigned int param;  // Currently only used for repeat blocks because the game object needs to know how many times to repeat.
+    };
+    std::vector<CACodeAction> _actions;
+    CodeRunner* _runner;
+}
 
 bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, CodeAction* out) {
 	CACodeAction action;
@@ -450,3 +461,7 @@ bool CodeActionManager::RunInstanceEvent(int ev, int sub, Instance* target, Inst
 bool CodeActionManager::CheckObjectEvent(int ev, int sub, Object* o) {
 	return o->events[ev].count(sub);
 }
+
+ void CodeActionManager::SetRunner(CodeRunner* runner) {
+     _runner = runner;
+ }

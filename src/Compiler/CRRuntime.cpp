@@ -1,10 +1,24 @@
 #include <pch.h>
+#include "CRRuntime.hpp"
 #include "Compiled.hpp"
 #include "Instance.hpp"
 #include "InstanceList.hpp"
 
-#pragma region "Stuff we should probably move to the Runtime namespace when it exists"
-int _round(double d) {
+GlobalValues* _globals;
+
+void Runtime::Init(GlobalValues* globals) {
+    _globals = globals;
+}
+
+void Runtime::Finalize() {
+}
+
+GlobalValues* Runtime::GetGlobals() {
+    return _globals;
+}
+
+
+int Runtime::_round(double d) {
     // This mimics the x86_32 "FISTP" operator which is commonly used in the GM8 runner.
     // We can't actually use that operator, because we're targeting other platforms than x86 Windows.
     int down = ( int )d;
@@ -13,14 +27,22 @@ int _round(double d) {
     return down + (down & 1);
 }
 
-bool _equal(double d1, double d2) {
+bool Runtime::_equal(double d1, double d2) {
     // I have no idea why GM8 does this, but it does.
     double difference = fabs(d2 - d1);
     double cut_digits = ::floor(difference * 1e13) / 1e13;
     return cut_digits == 0.0;
 }
 
-bool _isTrue(const GMLType* value) { return (value->state == GMLTypeState::Double) && (value->dVal >= 0.5); }
+bool Runtime::_isTrue(const GMLType* value) {
+    return (value->state == GMLTypeState::Double) && (value->dVal >= 0.5);
+}
+
+Runtime::Context _context;
+Runtime::Context Runtime::GetContext() {
+    return _context;
+}
+
 
 bool _applySetMethod(GMLType* lhs, CRSetMethod method, const GMLType* const rhs) {
     if (method == SM_ASSIGN) {
@@ -58,19 +80,18 @@ bool _applySetMethod(GMLType* lhs, CRSetMethod method, const GMLType* const rhs)
                 lhs->dVal /= rhs->dVal;
                 break;
             case SM_BITWISE_AND:
-                lhs->dVal = ( double )(_round(lhs->dVal) & _round(rhs->dVal));
+                lhs->dVal = ( double )(Runtime::_round(lhs->dVal) & Runtime::_round(rhs->dVal));
                 break;
             case SM_BITWISE_OR:
-                lhs->dVal = ( double )(_round(lhs->dVal) | _round(rhs->dVal));
+                lhs->dVal = ( double )(Runtime::_round(lhs->dVal) | Runtime::_round(rhs->dVal));
                 break;
             case SM_BITWISE_XOR:
-                lhs->dVal = ( double )(_round(lhs->dVal) ^ _round(rhs->dVal));
+                lhs->dVal = ( double )(Runtime::_round(lhs->dVal) ^ Runtime::_round(rhs->dVal));
                 break;
         }
         return true;
     }
 }
-#pragma endregion
 
 
 bool CRActionList::Run(unsigned int start) {
@@ -123,7 +144,7 @@ bool CRExpression::Evaluate(GMLType* output) {
             }
             case OPERATOR_LTE: {
                 if (var.state == GMLTypeState::Double) {
-                    var.dVal = ((var.dVal < rhs.dVal || _equal(var.dVal, rhs.dVal)) ? GMLTrue : GMLFalse);
+                    var.dVal = ((var.dVal < rhs.dVal || Runtime::_equal(var.dVal, rhs.dVal)) ? GMLTrue : GMLFalse);
                 }
                 else {
                     var.dVal = (var.sVal.length() <= rhs.sVal.length() ? GMLTrue : GMLFalse);
@@ -133,7 +154,7 @@ bool CRExpression::Evaluate(GMLType* output) {
             }
             case OPERATOR_GTE: {
                 if (var.state == GMLTypeState::Double) {
-                    var.dVal = ((var.dVal > rhs.dVal || _equal(var.dVal, rhs.dVal)) ? GMLTrue : GMLFalse);
+                    var.dVal = ((var.dVal > rhs.dVal || Runtime::_equal(var.dVal, rhs.dVal)) ? GMLTrue : GMLFalse);
                 }
                 else {
                     var.dVal = (var.sVal.length() >= rhs.sVal.length() ? GMLTrue : GMLFalse);
@@ -163,7 +184,7 @@ bool CRExpression::Evaluate(GMLType* output) {
             }
             case OPERATOR_EQUALS: {
                 if (var.state == GMLTypeState::Double)
-                    var.dVal = (_equal(var.dVal, rhs.dVal) ? GMLTrue : GMLFalse);
+                    var.dVal = (Runtime::_equal(var.dVal, rhs.dVal) ? GMLTrue : GMLFalse);
                 else
                     var.dVal = (var.sVal.compare(rhs.sVal) ? GMLFalse : GMLTrue);
                 var.state = GMLTypeState::Double;
@@ -171,7 +192,7 @@ bool CRExpression::Evaluate(GMLType* output) {
             }
             case OPERATOR_NOT_EQUAL: {
                 if (var.state == GMLTypeState::Double)
-                    var.dVal = (_equal(var.dVal, rhs.dVal) ? GMLFalse : GMLTrue);
+                    var.dVal = (Runtime::_equal(var.dVal, rhs.dVal) ? GMLFalse : GMLTrue);
                 else
                     var.dVal = (var.sVal.compare(rhs.sVal) ? GMLTrue : GMLFalse);
                 var.state = GMLTypeState::Double;
@@ -179,42 +200,42 @@ bool CRExpression::Evaluate(GMLType* output) {
             }
             case OPERATOR_BOOLEAN_AND: {
                 if (var.state == GMLTypeState::String) return false;
-                var.dVal = (_isTrue(&var) && _isTrue(&rhs) ? GMLTrue : GMLFalse);
+                var.dVal = (Runtime::_isTrue(&var) && Runtime::_isTrue(&rhs) ? GMLTrue : GMLFalse);
                 break;
             }
             case OPERATOR_BOOLEAN_OR: {
                 if (var.state == GMLTypeState::String) return false;
-                var.dVal = (_isTrue(&var) || _isTrue(&rhs) ? GMLTrue : GMLFalse);
+                var.dVal = (Runtime::_isTrue(&var) || Runtime::_isTrue(&rhs) ? GMLTrue : GMLFalse);
                 break;
             }
             case OPERATOR_BOOLEAN_XOR: {
                 if (var.state == GMLTypeState::String) return false;
-                var.dVal = (_isTrue(&var) != _isTrue(&rhs) ? GMLTrue : GMLFalse);
+                var.dVal = (Runtime::_isTrue(&var) != Runtime::_isTrue(&rhs) ? GMLTrue : GMLFalse);
                 break;
             }
             case OPERATOR_BITWISE_AND: {
                 if (var.state == GMLTypeState::String) return false;
-                var.dVal = ( double )(_round(var.dVal) & _round(rhs.dVal));
+                var.dVal = ( double )(Runtime::_round(var.dVal) & Runtime::_round(rhs.dVal));
                 break;
             }
             case OPERATOR_BITWISE_OR: {
                 if (var.state == GMLTypeState::String) return false;
-                var.dVal = ( double )(_round(var.dVal) | _round(rhs.dVal));
+                var.dVal = ( double )(Runtime::_round(var.dVal) | Runtime::_round(rhs.dVal));
                 break;
             }
             case OPERATOR_BITWISE_XOR: {
                 if (var.state == GMLTypeState::String) return false;
-                var.dVal = ( double )(_round(var.dVal) ^ _round(rhs.dVal));
+                var.dVal = ( double )(Runtime::_round(var.dVal) ^ Runtime::_round(rhs.dVal));
                 break;
             }
             case OPERATOR_LSHIFT: {
                 if (var.state == GMLTypeState::String) return false;
-                var.dVal = ( double )(_round(var.dVal) << _round(rhs.dVal));
+                var.dVal = ( double )(Runtime::_round(var.dVal) << Runtime::_round(rhs.dVal));
                 break;
             }
             case OPERATOR_RSHIFT: {
                 if (var.state == GMLTypeState::String) return false;
-                var.dVal = ( double )(_round(var.dVal) >> _round(rhs.dVal));
+                var.dVal = ( double )(Runtime::_round(var.dVal) >> Runtime::_round(rhs.dVal));
                 break;
             }
             default: { return false; }
@@ -231,7 +252,7 @@ bool CRActionAssignmentField::Run() {
         if (!_expression.Evaluate(&v)) return false;
         if (!_deref.Evaluate(&d)) return false;
 
-        int id = _round(d.dVal);
+        int id = Runtime::_round(d.dVal);
         switch (id) {
             case -1:
             case -2:

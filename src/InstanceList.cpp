@@ -6,22 +6,21 @@
 #include "Instance.hpp"
 #define INSTANCE_CAPACITY 65536
 
-// Field map
-std::map<InstanceID, std::map<unsigned int, GMLType>> _fields;
-
-// Array map (if you're maintaining this: god help you)
+// Field/array map (if you're maintaining this: god help you)
 std::map<InstanceID, std::map<unsigned int, std::map<int, std::map<int, GMLType>>>> _arrays;
 
 Instance* _list;
 unsigned int _size;
 unsigned int _highestIdAdded;
 
+// Last dynamic instance ID to be assigned
+unsigned int _lastInstanceID;
+
 // Give an Instance its default values - returns false if the Object does not exist and game should close
 bool _InitInstance(Instance* instance, unsigned int id, double x, double y, unsigned int objectId);
 
 void _handleDeletedInstance(InstanceID instance) {
     AlarmRemoveInstance(instance);
-    _fields.erase(instance);
     _arrays.erase(instance);
 }
 
@@ -59,6 +58,11 @@ Instance* InstanceList::AddInstance(unsigned int id, double x, double y, unsigne
         return NULL;
 }
 
+Instance* InstanceList::AddInstance(double x, double y, unsigned int objectId) {
+    _lastInstanceID++;
+    return AddInstance(_lastInstanceID, x, y, objectId);
+}
+
 void InstanceList::DeleteInstance(unsigned int id) {
     AlarmRemoveInstance(id);
     for (unsigned int i = 0; i < _size; i++) {
@@ -72,7 +76,6 @@ void InstanceList::DeleteInstance(unsigned int id) {
 
 void InstanceList::ClearAll() {
     AlarmDeleteAll();
-    _fields.clear();
     _arrays.clear();
     _size = 0;
 }
@@ -207,10 +210,21 @@ Instance* InstanceList::Iterator::Next() {
     }
 }
 
-GMLType* InstanceList::GetField(InstanceID instance, unsigned int field) { return &_fields[instance][field]; }
+void InstanceList::SetLastInstanceID(unsigned int i) {
+    _lastInstanceID = i;
+}
 
-void InstanceList::SetField(InstanceID instance, unsigned int field, const GMLType* value) { _fields[instance][field] = *value; }
+GMLType* InstanceList::GetField(InstanceID instance, unsigned int field) {
+    return &_arrays[instance][field][0][0];
+}
+void InstanceList::SetField(InstanceID instance, unsigned int field, const GMLType* value) {
+    _arrays[instance][field][0][0] = *value;
+}
 
-GMLType* InstanceList::GetArray(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2) { return &_arrays[instance][field][array1][array2]; }
+GMLType* InstanceList::GetField(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2) {
+    return &_arrays[instance][field][array1][array2];
+}
 
-void InstanceList::SetArray(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2, const GMLType* value) { _arrays[instance][field][array1][array2] = *value; }
+void InstanceList::SetField(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2, const GMLType* value) {
+    _arrays[instance][field][array1][array2] = *value;
+}

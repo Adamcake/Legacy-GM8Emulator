@@ -16,10 +16,6 @@
 #include <set>
 // namespace fs = std::filesystem; // comfy alias
 
-// GM8Emulator
-#include "CREnums.hpp"
-#include "File.hpp"
-
 // Third Party
 #include <glad/glad.h> // GLAD
 #include <GLFW/glfw3.h> // GLFW

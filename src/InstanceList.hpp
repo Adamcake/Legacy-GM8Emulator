@@ -15,6 +15,9 @@ namespace InstanceList {
     // If this returns a null pointer, there was an error and the game should close.
     Instance* AddInstance(unsigned int id, double x, double y, unsigned int objectId);
 
+    // As above, but using a dynamic instance ID
+    Instance* AddInstance(double x, double y, unsigned int objectId);
+
     // Delete instance with the given id
     void DeleteInstance(unsigned int id);
 
@@ -33,11 +36,14 @@ namespace InstanceList {
     // Get the number of active instances
     unsigned int Count();
 
+    // Set the next instance ID to assign after all the static instances are loaded
+    void SetLastInstanceID(unsigned int i);// { _nextInstanceID = i; }
+
     // Getters and setters for instance fields
     GMLType* GetField(InstanceID instance, unsigned int field);
     void SetField(InstanceID instance, unsigned int field, const GMLType* value);
-    GMLType* GetArray(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2);
-    void SetArray(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2, const GMLType* value);
+    GMLType* GetField(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2);
+    void SetField(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2, const GMLType* value);
 
     // Iterator class for looping over instances. Has two modes of operation: all instances, or all matching a certain object/instance number.
     // Mode of operation is determined by which constructor is used. In other words, pass an ID if you want to iterate by that ID. Otherwise it will iterate all.

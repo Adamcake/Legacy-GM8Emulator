@@ -237,7 +237,6 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 #pragma region Global extern definitions
 GlobalValues _globals;
 CodeRunner* _runner;
-CodeActionManager* _codeActions;
 GameInfo _info;
 unsigned int* _roomOrder;
 unsigned int _roomOrderCount;
@@ -248,11 +247,10 @@ unsigned int _lastUsedRoomSpeed;
 void GameInit() {
 	_info.caption = NULL;
 	_info.gameInfo = NULL;
-	_codeActions = new CodeActionManager();
 	RInit();
     InstanceList::Init();
-	_runner = new CodeRunner(&_globals, _codeActions);
-	_codeActions->SetRunner(_runner);
+	_runner = new CodeRunner(&_globals);
+	CodeActionManager::SetRunner(_runner);
 	_roomOrder = NULL;
 	_lastUsedRoomSpeed = 0;
 }
@@ -262,13 +260,12 @@ void GameTerminate() {
 	InstanceList::Iterator iter;
 	Instance* instance;
 	while (instance = iter.Next()) {
-		if (!_codeActions->RunInstanceEvent(7, 3, instance, NULL, instance->object_index)) break;
+		if (!CodeActionManager::RunInstanceEvent(7, 3, instance, NULL, instance->object_index)) break;
 	}
 
 	// Clean up
 	free(_info.caption);
 	free(_info.gameInfo);
-	delete _codeActions;
 	delete _runner;
 	delete[] _roomOrder;
 	RTerminate();
@@ -1020,7 +1017,7 @@ bool GameLoad(const char *pFilename) {
 			timeline->moments[index].actions = new CodeAction[timeline->moments[index].actionCount];
 
 			for (unsigned int j = 0; j < timeline->moments[index].actionCount; j++) {
-				if(!_codeActions->Read(data, &dataPos, timeline->moments[index].actions + j)) {
+				if(!CodeActionManager::Read(data, &dataPos, timeline->moments[index].actions + j)) {
 					// Error reading action
 					free(data);
 					delete [] buffer;
@@ -1078,7 +1075,7 @@ bool GameLoad(const char *pFilename) {
 				e.actionCount = ReadDword(data, &dataPos);
 				e.actions = new CodeAction[e.actionCount];
 				for (unsigned int i = 0; i < e.actionCount; i++) {
-					if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
+                    if (!CodeActionManager::Read(data, &dataPos, e.actions + i)) {
 						// Error reading action
 						free(data);
 						delete [] buffer;
@@ -1095,8 +1092,6 @@ bool GameLoad(const char *pFilename) {
 
 
 	// Rooms
-
-	unsigned int nextInstanceId = 100001;
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
@@ -1186,10 +1181,6 @@ bool GameLoad(const char *pFilename) {
 			char* code = ReadString(data, &dataPos, &codeLen);
 			instance->creation = _runner->Register(code, codeLen);
 			free(code);
-
-			if (nextInstanceId <= instance->id) {
-				nextInstanceId = instance->id + 1;
-			}
 		}
 
 		// Room tiles
@@ -1209,8 +1200,9 @@ bool GameLoad(const char *pFilename) {
 		}
 	}
 
-	// ... not sure
-	pos += 8;
+	// Last instance and tile ID placed
+    InstanceList::SetLastInstanceID(ReadDword(buffer, &pos));
+    unsigned int lastTileID = ReadDword(buffer, &pos); // todo - unused
 
 	
 	// Include files
@@ -1296,10 +1288,7 @@ bool GameLoad(const char *pFilename) {
 	for (unsigned int i = 0; i < _roomOrderCount; i++) {
 		_roomOrder[i] = ReadDword(buffer, &pos);
 	}
-	_runner->SetRoomOrder(&_roomOrder, _roomOrderCount);
-
-	// Update runner with end of static instance id range
-	_runner->SetNextInstanceID(nextInstanceId);
+    _runner->SetRoomOrder(&_roomOrder, _roomOrderCount);
 
 	// Compile object parented event lists and identities
 	for (unsigned int i = 0; i < objectCount; i++) {
@@ -1348,7 +1337,7 @@ bool GameLoad(const char *pFilename) {
 		if (t->exists) {
 			for (const auto& j : t->moments) {
 				for (unsigned int k = 0; k < j.second.actionCount; k++) {
-					if(!_codeActions->Compile(j.second.actions[k])) {
+                    if (!CodeActionManager::Compile(j.second.actions[k])) {
 						// Error compiling script
 						free(data);
 						delete [] buffer;
@@ -1365,7 +1354,7 @@ bool GameLoad(const char *pFilename) {
 			for (unsigned int j = 0; j < 12; j++) {
 				for (auto const& ev : o->events[j]) {
 					for (unsigned int k = 0; k < ev.second.actionCount; k++) {
-						if (!_codeActions->Compile(ev.second.actions[k])) {
+                        if (!CodeActionManager::Compile(ev.second.actions[k])) {
 							// Error compiling script
 							free(data);
 							delete [] buffer;
