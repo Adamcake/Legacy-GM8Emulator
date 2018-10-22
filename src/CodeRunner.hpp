@@ -1,81 +1,24 @@
 #ifndef _A_CODERUNNER_HPP_
 #define _A_CODERUNNER_HPP_
 
-struct CRStatement;
 struct GlobalValues;
 struct Instance;
-struct CRExpressionElement;
 struct GMLType;
 enum struct GMLTypeState;
 typedef unsigned int CodeObject;
 typedef unsigned int InstanceID;
-enum CRGameVar;
-enum CRInstanceVar;
-enum CRVarType;
-enum CROperator;
-enum CRSetMethod;
 #include <pch.h>
-#include <vector>
-#include <list>
-#include <map>
-#include <stack>
-#include <string>
-#include "InstanceList.hpp"
 
 #define PI 3.141592654 // Actual value of PI used by the official runner. Please don't make it more accurate.
 
 class CodeRunner {
 	private:
-		// Internal code object
-		struct CRCodeObject {
-			std::string code;
-			unsigned int codeLength;
-			bool question;
-			unsigned char* compiled;
-		};
-		std::vector<CRCodeObject> _codeObjects;
-
-		// Runtime context
-        /*
-		struct CRContext {
-			Instance* self;
-			Instance* other;
-			int eventId;
-			int eventNumber;
-			unsigned int objId;
-			unsigned int argc;
-			GMLType* argv;
-			InstanceList::Iterator iterator;
-			//std::map<unsigned int, GMLType> locals;
-			CRContext(Instance* s, Instance* o, int e, int se, unsigned int oid, unsigned int ac = 0, GMLType* av = NULL) : self(s), other(o), eventId(e), eventNumber(se), objId(oid), argc(ac), argv(av), iterator(0) {}
-			CRContext(Instance* o, unsigned int id, unsigned int ac = 0, GMLType* av = NULL) : other(o), iterator(id), argc(ac), argv(av) { self = iterator.Next(); }
-		};
-		std::stack<CRContext> _contexts;
-        */
-
-		// Structure for user file manipulation
-		//std::fstream _userFiles[32];
-
-		// Field name index during compilation
-		//std::vector<char*> _fieldNames;
-
 		// Lists of internal names for compiling and running against
 		std::vector<const char*> _internalFuncNames;
 		std::vector<const char*> _gameValueNames;
 		std::vector<const char*> _instanceVarNames;
 		std::map<const char*, int> _gmlConsts;
 		std::vector<bool(*)(unsigned int,GMLType*,GMLType*)> _gmlFuncs;
-
-		// Iterator stack for runtime
-		//std::stack<InstanceList::Iterator> _iterators;
-
-		// The next instance ID to assign when instance_create is called
-		//unsigned int _nextInstanceID;
-
-		// Room order
-		//unsigned int** _roomOrder;
-		//unsigned int _roomOrderCount;
-
 
 	public:
 		CodeRunner(GlobalValues* globals);

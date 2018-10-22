@@ -9,6 +9,16 @@
 #include "Compiler/CRRuntime.hpp"
 #include "CREnums.hpp"
 
+// Internal code object
+struct CRCodeObject {
+    std::string code;
+    bool question;
+    unsigned char* compiled;
+    CRCodeObject(const char* c, unsigned int l, bool q) : question(q), compiled(nullptr) { std::copy(c, c + l, std::back_inserter(code)); }
+};
+std::vector<CRCodeObject> _codeObjects;
+
+// Global game value settings
 GlobalValues* _globalValues;
 
 CodeRunner::CodeRunner(GlobalValues* globals) {
@@ -26,26 +36,14 @@ CodeRunner::~CodeRunner() {
 
 CodeObject CodeRunner::Register(char* code, unsigned int len) {
     unsigned int ix = ( unsigned int )_codeObjects.size();
-    _codeObjects.push_back(CRCodeObject());
-
-    std::copy(code, code + len, std::back_inserter(_codeObjects[ix].code));
-    _codeObjects[ix].codeLength = len;
-    _codeObjects[ix].code[len] = '\0';
-    _codeObjects[ix].question = false;
-    _codeObjects[ix].compiled = NULL;
+    _codeObjects.push_back(CRCodeObject(code, len, false));
 
     return ix;
 }
 
 CodeObject CodeRunner::RegisterQuestion(char* code, unsigned int len) {
     unsigned int ix = ( unsigned int )_codeObjects.size();
-    _codeObjects.push_back(CRCodeObject());
-
-    std::copy(code, code + len, std::back_inserter(_codeObjects[ix].code));
-    _codeObjects[ix].codeLength = len;
-    _codeObjects[ix].code[len] = '\0';
-    _codeObjects[ix].question = true;
-    _codeObjects[ix].compiled = NULL;
+    _codeObjects.push_back(CRCodeObject(code, len, true));
 
     return ix;
 }
@@ -63,6 +61,14 @@ bool CodeRunner::Compile(CodeObject object) {
     catch (const std::runtime_error&) {
         return false;
 	}
+}
+
+bool CodeRunner::Run(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, unsigned int argc, GMLType* argv) {
+    return false;
+}
+
+bool CodeRunner::Query(CodeObject code, Instance* self, Instance* other, bool* response) {
+    return false;
 }
 
 
