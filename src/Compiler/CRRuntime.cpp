@@ -44,6 +44,15 @@ Runtime::Context Runtime::GetContext() {
 }
 
 
+bool Runtime::Execute(CRActionList& actions) {
+    return actions.Run();
+}
+
+bool Runtime::EvalExpression(CRExpression& expression, GMLType* out) {
+    return expression.Evaluate(out);
+}
+
+
 bool _applySetMethod(GMLType* lhs, CRSetMethod method, const GMLType* const rhs) {
     if (method == SM_ASSIGN) {
         // Easiest method
@@ -96,8 +105,9 @@ bool _applySetMethod(GMLType* lhs, CRSetMethod method, const GMLType* const rhs)
 
 bool CRActionList::Run(unsigned int start) {
     auto i = _actions.begin() + start;
-    for (CRAction* action = *i; i != _actions.end(); i++) {
-        if (!action->Run()) return false;
+    while (i != _actions.end()) {
+        if (!(*i)->Run()) return false;
+        i++;
     }
     return true;
 }
@@ -247,33 +257,33 @@ bool CRExpression::Evaluate(GMLType* output) {
 }
 
 bool CRActionAssignmentField::Run() {
-    if (_hasDeref) {
-        GMLType v, d;
-        if (!_expression.Evaluate(&v)) return false;
-        if (!_deref.Evaluate(&d)) return false;
-
-        int id = Runtime::_round(d.dVal);
-        switch (id) {
-            case -1:
-            case -2:
-            case -3:
-            case -4:
-            case -5:
-            case -7:
-                // todo
-                return false;
-            default:
-                InstanceList::Iterator iter(( unsigned int )id);
-                Instance* i;
-                while (i = iter.Next()) {
-                    if (!_applySetMethod(InstanceList::GetField(i->id, _field), _method, &v)) return false;
-                }
-        }
-    }
-    else {
-        // todo, requires knowing the "self" which is a runtime context variable
-        return false;
-    }
+    //if (_hasDeref) {
+    //    GMLType v, d;
+    //    if (!_expression.Evaluate(&v)) return false;
+    //    if (!_deref.Evaluate(&d)) return false;
+    //
+    //    int id = Runtime::_round(d.dVal);
+    //    switch (id) {
+    //        case -1:
+    //        case -2:
+    //        case -3:
+    //        case -4:
+    //        case -5:
+    //        case -7:
+    //            // todo
+    //            return false;
+    //        default:
+    //            InstanceList::Iterator iter(( unsigned int )id);
+    //            Instance* i;
+    //            while (i = iter.Next()) {
+    //                if (!_applySetMethod(InstanceList::GetField(i->id, _field), _method, &v)) return false;
+    //            }
+    //    }
+    //}
+    //else {
+    //    // todo, requires knowing the "self" which is a runtime context variable
+    //    return false;
+    //}
     return true;
 }
 

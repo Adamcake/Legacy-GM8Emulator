@@ -7,7 +7,7 @@
 #define INSTANCE_CAPACITY 65536
 
 // Field/array map (if you're maintaining this: god help you)
-std::map<InstanceID, std::map<unsigned int, std::map<int, std::map<int, GMLType>>>> _arrays;
+std::map<InstanceID, std::map<unsigned int, std::map<int, GMLType>>> _arrays;
 
 Instance* _list;
 unsigned int _size;
@@ -215,16 +215,24 @@ void InstanceList::SetLastInstanceID(unsigned int i) {
 }
 
 GMLType* InstanceList::GetField(InstanceID instance, unsigned int field) {
-    return &_arrays[instance][field][0][0];
+    return &_arrays[instance][field][0];
 }
 void InstanceList::SetField(InstanceID instance, unsigned int field, const GMLType* value) {
-    _arrays[instance][field][0][0] = *value;
+    _arrays[instance][field][0] = *value;
+}
+
+GMLType* InstanceList::GetField(InstanceID instance, unsigned int field, unsigned int array) {
+    return &_arrays[instance][field][array];
+}
+
+void InstanceList::SetField(InstanceID instance, unsigned int field, unsigned int array, const GMLType* value) {
+    _arrays[instance][field][array] = *value;
 }
 
 GMLType* InstanceList::GetField(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2) {
-    return &_arrays[instance][field][array1][array2];
+    return &_arrays[instance][field][(array1 * 32000) + array2];
 }
 
 void InstanceList::SetField(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2, const GMLType* value) {
-    _arrays[instance][field][array1][array2] = *value;
+    _arrays[instance][field][(array1 * 32000) + array2] = *value;
 }

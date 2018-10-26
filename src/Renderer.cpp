@@ -423,7 +423,7 @@ void RRenderFrame() {
 	GLuint commandsVBO;
 	glGenBuffers(1, &commandsVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, commandsVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(RDrawCommand) * _drawCommands.size(), &_drawCommands[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(RDrawCommand) * _drawCommands.size(), _drawCommands.data(), GL_STATIC_DRAW);
 
 	unsigned int drawn = 0;
 	while (drawn < _drawCommands.size()) {

@@ -42,6 +42,8 @@ namespace InstanceList {
     // Getters and setters for instance fields
     GMLType* GetField(InstanceID instance, unsigned int field);
     void SetField(InstanceID instance, unsigned int field, const GMLType* value);
+    GMLType* GetField(InstanceID instance, unsigned int field, unsigned int array);
+    void SetField(InstanceID instance, unsigned int field, unsigned int array, const GMLType* value);
     GMLType* GetField(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2);
     void SetField(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2, const GMLType* value);
 

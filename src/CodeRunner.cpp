@@ -7,14 +7,17 @@
 #include "RNG.hpp"
 #include "CRGMLType.hpp"
 #include "Compiler/CRRuntime.hpp"
+#include "Compiler/Compiled.hpp"
+#include "Compiler/Interpreter.hpp"
 #include "CREnums.hpp"
 
 // Internal code object
 struct CRCodeObject {
     std::string code;
     bool question;
-    unsigned char* compiled;
-    CRCodeObject(const char* c, unsigned int l, bool q) : question(q), compiled(nullptr) { std::copy(c, c + l, std::back_inserter(code)); }
+    CRActionList _actions;
+    CRExpression _expression;
+    CRCodeObject(const char* c, unsigned int l, bool q) : question(q) { std::copy(c, c + l, std::back_inserter(code)); }
 };
 std::vector<CRCodeObject> _codeObjects;
 
@@ -29,7 +32,7 @@ CodeRunner::CodeRunner(GlobalValues* globals) {
 
 CodeRunner::~CodeRunner() {
     for (unsigned int i = 0; i < _codeObjects.size(); i++) {
-        free(_codeObjects[i].compiled);
+        // todo
     }
     Runtime::Finalize();
 }
@@ -52,10 +55,11 @@ bool CodeRunner::Compile(CodeObject object) {
     try {
         GM8Emulator::Compiler::TokenList tokenList = GM8Emulator::Compiler::Tokenize(_codeObjects[object].code);
         if (_codeObjects[object].question) {
+            if(!GM8Emulator::Compiler::InterpretExpression(tokenList, &_codeObjects[object]._expression)) return false;
         }
         else {
+            if(!GM8Emulator::Compiler::Interpret(tokenList, &_codeObjects[object]._actions)) return false;
         }
-
         return true;
     }
     catch (const std::runtime_error&) {
@@ -63,12 +67,15 @@ bool CodeRunner::Compile(CodeObject object) {
 	}
 }
 
-bool CodeRunner::Run(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, unsigned int argc, GMLType* argv) {
-    return false;
+bool CodeRunner::Run(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId) {
+    return Runtime::Execute(_codeObjects[code]._actions);
 }
 
 bool CodeRunner::Query(CodeObject code, Instance* self, Instance* other, bool* response) {
-    return false;
+    GMLType t;
+    if(!Runtime::EvalExpression(_codeObjects[code]._expression, &t)) return false;
+    (*response) = Runtime::_isTrue(&t);
+    return true;
 }
 
 

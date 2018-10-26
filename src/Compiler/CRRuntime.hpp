@@ -5,6 +5,8 @@
 struct GMLType;
 struct GlobalValues;
 struct Instance;
+class CRActionList;
+class CRExpression;
 
 namespace Runtime {
     void Init(GlobalValues*);
@@ -33,6 +35,9 @@ namespace Runtime {
         //Context(Instance* o, unsigned int id, unsigned int ac = 0, const GMLType* av = NULL) : other(o), argc(ac), argv(av) {}
     };
     Context GetContext();
+
+    bool Execute(CRActionList&);
+    bool EvalExpression(CRExpression&, GMLType* out);
 
     // GML internal functions
     bool abs(unsigned int argc, GMLType* argv, GMLType* out);
