@@ -19,6 +19,8 @@ class CRExpressionValue {
   public:
     virtual bool Evaluate(GMLType* output) = 0;
     inline CROperator GetOperator() { return _operator; }
+    inline void SetOperator(CROperator op) { _operator = op; }
+    inline void SetUnaries(const std::vector<CRUnaryOperator>&& v) { _unary = v; }
 };
 
 // List of actions
@@ -53,6 +55,10 @@ class CRActionAssignmentField : public CRAction {
     CRExpression _expression;
 
   public:
+    CRActionAssignmentField(unsigned int field, CRSetMethod method, CRExpression exp) :
+        _field(field), _method(method), _expression(exp), _hasDeref(false) {}
+    CRActionAssignmentField(unsigned int field, CRSetMethod method, CRExpression deref, CRExpression exp) :
+        _field(field), _method(method), _deref(deref), _expression(exp), _hasDeref(true) {}
     virtual bool Run() override;
 };
 
@@ -66,6 +72,10 @@ class CRActionAssignmentArray : public CRAction {
     CRExpression _expression;
 
   public:
+    CRActionAssignmentArray(unsigned int field, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression exp) :
+        _field(field), _method(method), _expression(exp), _dimensions(dimensions), _hasDeref(false) {}
+    CRActionAssignmentArray(unsigned int field, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression deref, CRExpression exp) :
+        _field(field), _method(method), _dimensions(dimensions), _deref(deref), _expression(exp), _hasDeref(true) {}
     virtual bool Run() override;
 };
 
@@ -74,26 +84,28 @@ class CRActionAssignmentInstanceVar : public CRAction {
     CRInstanceVar _var;
     CRSetMethod _method;
     std::vector<CRExpression> _dimensions;
-    bool _hasArray;
     CRExpression _deref;
     bool _hasDeref;
     CRExpression _expression;
 
   public:
+    CRActionAssignmentInstanceVar(CRInstanceVar var, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression exp) :
+        _var(var), _method(method), _expression(exp), _dimensions(dimensions), _hasDeref(false) {}
+    CRActionAssignmentInstanceVar(CRInstanceVar var, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression deref, CRExpression exp) :
+        _var(var), _method(method), _dimensions(dimensions), _deref(deref), _expression(exp), _hasDeref(true) {}
     virtual bool Run() override;
 };
 
 class CRActionAssignmentGameVar : public CRAction {
   private:
-    CRGameVar _field;
+    CRGameVar _var;
     CRSetMethod _method;
     std::vector<CRExpression> _dimensions;
-    bool _hasArray;
-    CRExpression _deref;
-    bool _hasDeref;
     CRExpression _expression;
 
   public:
+    CRActionAssignmentGameVar(CRGameVar var, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression expression) :
+        _var(var), _method(method), _dimensions(dimensions), _expression(expression) {}
     virtual bool Run() override;
 };
 
@@ -102,6 +114,7 @@ class CRActionBlock : public CRAction {
     CRActionList _list;
 
   public:
+    CRActionBlock(CRActionList list) : _list(list) {}
     virtual bool Run() override;
 };
 
@@ -111,6 +124,7 @@ class CRActionRunFunction : public CRAction {
     std::vector<CRExpression> _args;
 
   public:
+    CRActionRunFunction(CRInternalFunction func, std::vector<CRExpression>& args) : _function(func), _args(args) {}
     virtual bool Run() override;
 };
 
@@ -120,6 +134,7 @@ class CRActionRunScript : public CRAction {
     std::vector<CRExpression> _args;
 
   public:
+    CRActionRunScript(unsigned int id, std::vector<CRExpression>& args) : _scriptID(id), _args(args) {}
     virtual bool Run() override;
 };
 
@@ -130,6 +145,7 @@ class CRActionIfElse : public CRAction {
     CRExpression _expression;
 
   public:
+    CRActionIfElse(CRAction* i, CRAction* e, CRExpression exp) : _if(i), _else(e), _expression(exp) {}
     virtual bool Run() override;
 };
 
@@ -139,15 +155,45 @@ class CRActionWith : public CRAction {
     CRAction* _code;
 
   public:
+    CRActionWith(CRExpression exp, CRAction* code) : _expression(exp), _code(code) {}
     virtual bool Run() override;
 };
 
 class CRActionSwitch : public CRAction {
   private:
+    CRExpression _expression;
     CRActionList _actions;
     std::map<int, unsigned int> _offsets;
 
   public:
+    CRActionSwitch(CRExpression exp, CRActionList actions, std::map<int, unsigned int>& offsets) : _expression(exp), _actions(actions), _offsets(offsets) {}
+    virtual bool Run() override;
+};
+
+class CRActionBreak : public CRAction {
+  public:
+    CRActionBreak() {}
+    virtual bool Run() override;
+};
+
+class CRActionContinue : public CRAction {
+  public:
+    CRActionContinue() {}
+    virtual bool Run() override;
+};
+
+class CRActionExit : public CRAction {
+  public:
+    CRActionExit() {}
+    virtual bool Run() override;
+};
+
+class CRActionReturn : public CRAction {
+  private:
+    CRExpression _expression;
+
+  public:
+    CRActionReturn(CRExpression exp) : _expression(exp) {}
     virtual bool Run() override;
 };
 
@@ -158,6 +204,14 @@ class CRExpLiteral : public CRExpressionValue {
     GMLType _value;
 
   public:
+    CRExpLiteral(const double& d) {
+        _value.state = GMLTypeState::Double;
+        _value.dVal = d;
+    }
+    CRExpLiteral(const std::string& s) {
+        _value.state = GMLTypeState::String;
+        _value.sVal = s;
+    }
     bool Evaluate(GMLType* output) override;
 };
 
@@ -167,6 +221,7 @@ class CRExpFunction : public CRExpressionValue {
     std::vector<CRExpression> _args;
 
   public:
+    CRExpFunction(CRInternalFunction func, std::vector<CRExpression>& args) : _function(func), _args(args) {}
     bool Evaluate(GMLType* output) override;
 };
 
@@ -176,6 +231,7 @@ class CRExpScript : public CRExpressionValue {
     std::vector<CRExpression> _args;
 
   public:
+    CRExpScript(unsigned int id, std::vector<CRExpression>& args) : _script(id), _args(args) {}
     bool Evaluate(GMLType* output) override;
 };
 
@@ -184,6 +240,7 @@ class CRExpNestedExpression : public CRExpressionValue {
     CRExpression _expression;
 
   public:
+    CRExpNestedExpression(CRExpression exp) : _expression(exp) {}
     bool Evaluate(GMLType* output) override;
 };
 
@@ -194,17 +251,21 @@ class CRExpField : public CRExpressionValue {
     bool _hasDeref;
 
   public:
+    CRExpField(unsigned int field) : _fieldNumber(field), _hasDeref(false) {}
+    CRExpField(unsigned int field, CRExpression deref) : _fieldNumber(field), _deref(deref), _hasDeref(true) {}
     bool Evaluate(GMLType* output) override;
 };
 
 class CRExpArray : public CRExpressionValue {
   private:
-    unsigned int _arrayNumber;
+    unsigned int _fieldNumber;
     std::vector<CRExpression> _dimensions;
     CRExpression _deref;
     bool _hasDeref;
 
   public:
+    CRExpArray(unsigned int field, std::vector<CRExpression>& dimensions) : _fieldNumber(field), _dimensions(dimensions), _hasDeref(false) {}
+    CRExpArray(unsigned int field, std::vector<CRExpression>& dimensions, CRExpression deref) : _fieldNumber(field), _dimensions(dimensions), _deref(deref), _hasDeref(true) {}
     bool Evaluate(GMLType* output) override;
 };
 
@@ -212,11 +273,12 @@ class CRExpInstanceVar : public CRExpressionValue {
   private:
     CRInstanceVar _var;
     std::vector<CRExpression> _dimensions;
-    bool _hasArray;
     CRExpression _deref;
     bool _hasDeref;
 
   public:
+    CRExpInstanceVar(CRInstanceVar var, std::vector<CRExpression>& dimensions) : _var(var), _dimensions(dimensions), _hasDeref(false) {}
+    CRExpInstanceVar(CRInstanceVar var, std::vector<CRExpression>& dimensions, CRExpression deref) : _var(var), _dimensions(dimensions), _deref(deref), _hasDeref(true) {}
     bool Evaluate(GMLType* output) override;
 };
 
@@ -224,11 +286,9 @@ class CRExpGameVar : public CRExpressionValue {
   private:
     CRGameVar _var;
     std::vector<CRExpression> _dimensions;
-    bool _hasArray;
-    CRExpression _deref;
-    bool _hasDeref;
 
   public:
+    CRExpGameVar(CRGameVar var, std::vector<CRExpression>& dimensions) : _var(var), _dimensions(dimensions) {}
     bool Evaluate(GMLType* output) override;
 };
 

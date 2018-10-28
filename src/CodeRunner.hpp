@@ -9,17 +9,7 @@ typedef unsigned int CodeObject;
 typedef unsigned int InstanceID;
 #include <pch.h>
 
-#define PI 3.141592654 // Actual value of PI used by the official runner. Please don't make it more accurate.
-
 class CodeRunner {
-	private:
-		// Lists of internal names for compiling and running against
-		std::vector<const char*> _internalFuncNames;
-		std::vector<const char*> _gameValueNames;
-		std::vector<const char*> _instanceVarNames;
-		std::map<const char*, int> _gmlConsts;
-		std::vector<bool(*)(unsigned int,GMLType*,GMLType*)> _gmlFuncs;
-
 	public:
 		CodeRunner(GlobalValues* globals);
 		~CodeRunner();

@@ -7,8 +7,10 @@ class CRExpression;
 
 namespace GM8Emulator {
     namespace Compiler {
-        bool Interpret(TokenList list, CRActionList* output);
-        bool InterpretExpression(TokenList list, CRExpression* output);
+        bool Init();
+
+        bool Interpret(const TokenList& list, CRActionList* output);
+        bool InterpretExpression(const TokenList& list, CRExpression* output, unsigned int* pos = nullptr);
     }
 }
 

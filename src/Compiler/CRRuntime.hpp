@@ -1,12 +1,18 @@
 #ifndef _A_CRRUNTIME_HPP_
 #define _A_CRRUNTIME_HPP_
 #include <pch.h>
-#include <map>
 struct GMLType;
 struct GlobalValues;
 struct Instance;
 class CRActionList;
 class CRExpression;
+
+#define SELF -1
+#define OTHER -2
+#define ALL -3
+#define NOONE -4
+#define GLOBAL -5
+#define LOCAL -7
 
 namespace Runtime {
     void Init(GlobalValues*);

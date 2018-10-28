@@ -305,6 +305,14 @@ bool CRActionWith::Run() { return false; }
 
 bool CRActionSwitch::Run() { return false; }
 
+bool CRActionBreak::Run() { return false; }
+
+bool CRActionContinue::Run() { return false; }
+
+bool CRActionExit::Run() { return false; }
+
+bool CRActionReturn::Run() { return false; }
+
 bool CRExpLiteral::Evaluate(GMLType* output) { return false; }
 
 bool CRExpFunction::Evaluate(GMLType* output) { return false; }

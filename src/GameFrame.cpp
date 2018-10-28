@@ -198,17 +198,17 @@ bool GameFrame() {
                 instance->speed = -instance->speed;
 
             // Recalculate hspeed/vspeed
-            instance->hspeed = cos(instance->direction * PI / 180.0) * instance->speed;
-            instance->vspeed = -sin(instance->direction * PI / 180.0) * instance->speed;
+            instance->hspeed = cos(instance->direction * GML_PI / 180.0) * instance->speed;
+            instance->vspeed = -sin(instance->direction * GML_PI / 180.0) * instance->speed;
         }
 
         if (instance->gravity) {
             // Apply gravity in gravity_direction to hspeed and vspeed
-            instance->hspeed += cos(instance->gravity_direction * PI / 180.0) * instance->gravity;
-            instance->vspeed += -sin(instance->gravity_direction * PI / 180.0) * instance->gravity;
+            instance->hspeed += cos(instance->gravity_direction * GML_PI / 180.0) * instance->gravity;
+            instance->vspeed += -sin(instance->gravity_direction * GML_PI / 180.0) * instance->gravity;
 
             // Recalculate speed and direction from hspeed/vspeed
-            instance->direction = atan(-instance->vspeed / instance->hspeed) * 180.0 / PI;
+            instance->direction = atan(-instance->vspeed / instance->hspeed) * 180.0 / GML_PI;
             instance->speed = sqrt(pow(instance->hspeed, 2) + pow(instance->vspeed, 2));
         }
 

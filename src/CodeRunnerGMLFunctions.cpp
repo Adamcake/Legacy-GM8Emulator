@@ -145,7 +145,7 @@ bool Runtime::degtorad(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
-        out->dVal = (PI * argv[0].dVal) / 180.0;
+        out->dVal = (GML_PI * argv[0].dVal) / 180.0;
     }
     return true;
 }
@@ -861,8 +861,8 @@ bool Runtime::move_contact_solid(unsigned int argc, GMLType* argv, GMLType* out)
     if (!_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
     int maxdist = _round(argv[1].dVal);
     if (maxdist <= 0) maxdist = 1000;  // GML default
-    double hspeed = ::cos(argv[0].dVal * PI / 180.0);
-    double vspeed = -::sin(argv[0].dVal * PI / 180.0);
+    double hspeed = ::cos(argv[0].dVal * GML_PI / 180.0);
+    double vspeed = -::sin(argv[0].dVal * GML_PI / 180.0);
     Instance* self = GetContext().self;
     bool moved = false;
 
@@ -1019,7 +1019,7 @@ bool Runtime::point_direction(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 4, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
-        out->dVal = (::atan2((argv[1].dVal - argv[3].dVal), (argv[2].dVal - argv[0].dVal))) * 180.0 / PI;
+        out->dVal = (::atan2((argv[1].dVal - argv[3].dVal), (argv[2].dVal - argv[0].dVal))) * 180.0 / GML_PI;
     }
     return true;
 }
@@ -1037,7 +1037,7 @@ bool Runtime::radtodeg(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
-        out->dVal = (180.0 * argv[0].dVal) / PI;
+        out->dVal = (180.0 * argv[0].dVal) / GML_PI;
     }
     return true;
 }
