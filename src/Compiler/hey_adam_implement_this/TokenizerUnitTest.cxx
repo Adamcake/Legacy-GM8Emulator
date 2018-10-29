@@ -5,6 +5,8 @@
 
 void GM8Emulator::Compiler::TokenizerUnitTest(std::ostream& out) {
 #if _DEBUG
+    goto w;
+w:
     const char* idut_src = "uwu owo whats this";
     out << "Asserting Sample Identifiers '" << idut_src << "' ..\n";
     TokenList idut(idut_src, 18);
