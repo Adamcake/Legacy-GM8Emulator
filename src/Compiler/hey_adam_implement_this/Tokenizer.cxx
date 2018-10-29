@@ -4,17 +4,17 @@
 #include <cstring>
 
 // Extra functions that are not in ctype.h for obvious reasons
-constexpr bool isunderscore(char &c) { return c == '_'; }
-constexpr bool isquotemark(char &c) { return c == '\'' || c == '"'; }
-constexpr bool isperiod(char &c) { return c == '.'; }
+constexpr bool isunderscore(char& c) { return c == '_'; }
+constexpr bool isquotemark(char& c) { return c == '\'' || c == '"'; }
+constexpr bool isperiod(char& c) { return c == '.'; }
 
-void GM8Emulator::Compiler::TokenList::ParseGML(const char *gml, const size_t &len) noexcept {
+void GM8Emulator::Compiler::TokenList::ParseGML(const char* gml, const size_t& len) noexcept {
     tokens.clear();  // In case you re-call this
     tokens.reserve(len / 4);
 
-    source = const_cast<char *>(gml);  // Source ptr (we don't copy the data)
-    char *end = source + len;          // EOF
-    char *i = source;                  // Iterator
+    source = const_cast<char*>(gml);  // Source ptr (we don't copy the data)
+    char* end = source + len;         // EOF
+    char* i = source;                 // Iterator
 
     while (i < end) {
         /* Ignore SPC, TAB, LF, VT, FF, CR */
@@ -24,7 +24,7 @@ void GM8Emulator::Compiler::TokenList::ParseGML(const char *gml, const size_t &l
 
         /* Identifier, Keyword or Operator Word */
         else if (isalpha(*i) || isunderscore(*i)) {
-            char *id_start = i++;
+            char* id_start = i++;
 
             while (i < end) {
                 if (isalnum(*i) || isunderscore(*i))
@@ -35,7 +35,7 @@ void GM8Emulator::Compiler::TokenList::ParseGML(const char *gml, const size_t &l
             }
 
             KeywordType key = KeywordType::None;
-            std::string_view svw(const_cast<const char *>(id_start), static_cast<size_t>(i - id_start));
+            std::string_view svw(const_cast<const char*>(id_start), static_cast<size_t>(i - id_start));
 
             if (svw == "var")
                 key = KeywordType::Var;
@@ -119,14 +119,15 @@ void GM8Emulator::Compiler::TokenList::ParseGML(const char *gml, const size_t &l
                         i++;
                         continue;
                     }
-                } else {
+                }
+                else {
                     tokens.push_back(Token(SeparatorType::Period));
                     i++;
                     continue;
                 }
             }
 
-            char *num_start = i++;
+            char* num_start = i++;
             while (i < end) {
                 if (isdigit(*i) || isperiod(*i))
                     i++;
@@ -142,7 +143,7 @@ void GM8Emulator::Compiler::TokenList::ParseGML(const char *gml, const size_t &l
 
             size_t buf_len = static_cast<size_t>(i - num_start) + 1;  // Total length (in characters) of the number matched above with extra space for a null
             size_t co = 0;                                            // How many characters we've co(pied) from num_start (so we can glue all the characters together)
-            char *number = new char[buf_len];                         // Allocate as much space as the source in case it's like, a normal fucking number
+            char* number = new char[buf_len];                         // Allocate as much space as the source in case it's like, a normal fucking number
             memset(number, 0, buf_len);                               // Clear out buffer with NULL to prevent errors when passing to stod
             bool foundDecimalSeparator = false;                       // Read above for explanation (tl;dr only the first . counts)
             for (size_t p = 0; p < (buf_len - 1); p++) {
@@ -165,18 +166,18 @@ void GM8Emulator::Compiler::TokenList::ParseGML(const char *gml, const size_t &l
 
         /* String Literal */
         else if (isquotemark(*i)) {
-            char *str_start = i++;
+            char* str_start = i++;
             while (i < end) {
                 if (*++i == *str_start) break;
             }
 
-            tokens.push_back(Token(const_cast<const char *>(str_start + 1), static_cast<size_t>(i - (str_start + 1)), true));
+            tokens.push_back(Token(const_cast<const char*>(str_start + 1), static_cast<size_t>(i - (str_start + 1)), true));
             i++;  // Increment past end quote
         }
 
         /* Hex Number Literal */
         else if (*i == '$') {
-            char *hexl_start = ++i;
+            char* hexl_start = ++i;
 
             while (i < end)
                 if (!isxdigit(*i))
@@ -200,7 +201,7 @@ void GM8Emulator::Compiler::TokenList::ParseGML(const char *gml, const size_t &l
             }
         }
 
-        /* Operator or Separator or Something Invalid™ */
+        /* Operator or Separator or Something Invalidï¿½ */
         else if (isprint(*i)) {
 
             // No match, malformed character
@@ -221,7 +222,7 @@ void GM8Emulator::Compiler::TokenList::ParseGML(const char *gml, const size_t &l
                 OperatorType op = static_cast<OperatorType>(unknown);
 
                 // 2-char Operators
-                char *i2 = i + 1;
+                char* i2 = i + 1;
                 if (i2 != end) {
                     if (*i2 == '=') {
                         OperatorType match = OperatorComboLUT[std::min(static_cast<uint8_t>(op), static_cast<uint8_t>(11U))];

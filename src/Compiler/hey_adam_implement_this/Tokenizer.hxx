@@ -147,7 +147,7 @@ namespace GM8Emulator {
                 value_type(OperatorType o) noexcept : op(o) {}
                 value_type(SeparatorType s) noexcept : sep(s) {}
                 value_type(std::string_view svw) : str(svw) {}
-                value_type(std::string_view::const_pointer &&ptr, std::string_view::size_type &&size) noexcept : str(ptr, size) {}
+                value_type(std::string_view::const_pointer&& ptr, std::string_view::size_type&& size) noexcept : str(ptr, size) {}
 
                 double real;
                 KeywordType key;
@@ -162,14 +162,14 @@ namespace GM8Emulator {
             Token(KeywordType key) noexcept : type(token_type::Keyword), value(key) {}
             Token(OperatorType op) noexcept : type(token_type::Operator), value(op) {}
             Token(SeparatorType sep) noexcept : type(token_type::Separator), value(sep) {}
-            Token(std::string_view const &svw, bool is_str_literal = false) : value(svw) {
+            Token(std::string_view const& svw, bool is_str_literal = false) : value(svw) {
                 if (is_str_literal)
                     type = token_type::String;
                 else
                     type = token_type::Identifier;
             }
-            Token(std::string_view::const_pointer &&ptr, std::string_view::size_type &&size, bool is_str_literal = false) noexcept
-                : value(static_cast<std::string_view::const_pointer &&>(ptr), static_cast<std::string_view::size_type &&>(size)) {
+            Token(std::string_view::const_pointer&& ptr, std::string_view::size_type&& size, bool is_str_literal = false) noexcept
+                : value(static_cast<std::string_view::const_pointer&&>(ptr), static_cast<std::string_view::size_type&&>(size)) {
                 if (is_str_literal)
                     type = token_type::String;
                 else
@@ -179,22 +179,22 @@ namespace GM8Emulator {
 
         struct TokenList {
             /* A copy of the source code that was parsed, if necessary to store. Referenced by strings. */
-            char *source;
+            char* source;
             /* The list of interpreted tokens. */
             std::vector<Token> tokens;
 
-            void ParseGML(const char *gml, const size_t &len) noexcept;
-            TokenList(const char *gml, const size_t &len) noexcept { ParseGML(gml, len); }
+            void ParseGML(const char* gml, const size_t& len) noexcept;
+            TokenList(const char* gml, const size_t& len) noexcept { ParseGML(gml, len); }
         };
 
         extern const uint8_t OperatorSeparatorLUT[94];
         extern const OperatorType OperatorComboLUT[12];
 
-        const char *OperatorToString(OperatorType op);
-        const char *SeparatorToString(SeparatorType sep);
-        const char *KeywordToString(KeywordType key);
+        const char* OperatorToString(OperatorType op);
+        const char* SeparatorToString(SeparatorType sep);
+        const char* KeywordToString(KeywordType key);
 
-        void TokenizerUnitTest(std::ostream &out);
+        void TokenizerUnitTest(std::ostream& out);
     };
 };
 

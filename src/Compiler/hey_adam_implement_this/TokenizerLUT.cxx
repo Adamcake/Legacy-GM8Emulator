@@ -117,7 +117,7 @@ const GM8Emulator::Compiler::OperatorType GM8Emulator::Compiler::OperatorComboLU
 };
 
 // ([A-z]+),[ ]*\/\/ (.+)\n
-const char *GM8Emulator::Compiler::OperatorToString(GM8Emulator::Compiler::OperatorType op) {
+const char* GM8Emulator::Compiler::OperatorToString(GM8Emulator::Compiler::OperatorType op) {
     switch (op) {
         case GM8Emulator::Compiler::OperatorType::Add:
             return "+";
@@ -185,7 +185,7 @@ const char *GM8Emulator::Compiler::OperatorToString(GM8Emulator::Compiler::Opera
     }
 }
 
-const char *GM8Emulator::Compiler::SeparatorToString(GM8Emulator::Compiler::SeparatorType sep) {
+const char* GM8Emulator::Compiler::SeparatorToString(GM8Emulator::Compiler::SeparatorType sep) {
     switch (sep) {
         case GM8Emulator::Compiler::SeparatorType::ParenLeft:
             return "(";
@@ -214,7 +214,7 @@ const char *GM8Emulator::Compiler::SeparatorToString(GM8Emulator::Compiler::Sepa
     }
 }
 
-const char *GM8Emulator::Compiler::KeywordToString(GM8Emulator::Compiler::KeywordType key) {
+const char* GM8Emulator::Compiler::KeywordToString(GM8Emulator::Compiler::KeywordType key) {
     switch (key) {
         case GM8Emulator::Compiler::KeywordType::Var:
             return "var";
