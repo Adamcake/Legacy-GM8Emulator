@@ -123,7 +123,7 @@ void GM8Emulator::Compiler::TokenList::ParseGML(const char* gml, const size_t& l
                 else {
                     tokens.push_back(Token(SeparatorType::Period));
                     i++;
-                    continue;
+                    break;
                 }
             }
 
