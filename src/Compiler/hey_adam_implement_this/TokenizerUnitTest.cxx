@@ -3,154 +3,190 @@
 
 /* This is the best worst thing that has ever lived, top 10 funniest programmer moments right here :POG: */
 
-void GM8Emulator::Compiler::TokenizerUnitTest(std::ostream& out) {
+void GM8Emulator::Compiler::TokenizerUnitTest(std::ostream &out)
+{
 #if _DEBUG
     goto w;
 w:
-    const char* idut_src = "uwu owo whats this";
-    out << "Asserting Sample Identifiers '" << idut_src << "' ..\n";
-    TokenList idut(idut_src, 18);
-    std::string idut_result;
-    for (const auto& token : idut.tokens) {
-        if (token.type == Token::token_type::Identifier) {
-            idut_result += token.value.id;
-            idut_result += ' ';
+    const char *_ = "uwu owo whats this";
+    out << "Asserting Sample Identifiers '" << _ << "' ..\n";
+    TokenList __(_, 18);
+    std::string ____;
+    for (const auto &___ : __.tokens)
+        {
+            if (___.type == Token::token_type::Identifier)
+                {
+                    ____ += ___.value.id;
+                    ____ += ' ';
+                }
+            else
+                {
+                    out << " -> FAILED! Wrong token type encountered.\n";
+                    goto next1;
+                }
         }
-        else {
-            out << " -> FAILED! Wrong token type encountered.\n";
-            goto next1;
+    if (____.substr(0, ____.size() - 1) == _)
+        {
+            out << " -> Success!\n";
         }
-    }
-    if (idut_result.substr(0, idut_result.size() - 1) == idut_src) {
-        out << " -> Success!\n";
-    }
-    else {
-        out << " -> FAILED! Mismatching result.\n   Source: " << idut_src << "\n   Parsed: " << idut_result;
-    }
+    else
+        {
+            out << " -> FAILED! Mismatching result.\n   Source: " << _ << "\n   Parsed: " << ____;
+        }
 next1:
-    std::string kwut_src;
-    for (uint8_t i = 0; i < static_cast<uint8_t>(KeywordType::None); i++) {
-        kwut_src += KeywordToString(static_cast<KeywordType>(i));
-        kwut_src += ' ';
-    }
-    out << "Asserting Keywords '" << kwut_src.substr(0, kwut_src.length() - 1) << "' ..\n";
-    std::string kwut_result;
-    TokenList kwut(kwut_src.c_str(), kwut_src.length());
-    for (const auto& token : kwut.tokens) {
-        if (token.type == Token::token_type::Keyword) {
-            kwut_result += KeywordToString(token.value.key);
-            kwut_result += ' ';
+    std::string _____;
+    for (uint8_t _w = 0; _w < static_cast<uint8_t>(KeywordType::None); _w++)
+        {
+            _____ += KeywordToString(static_cast<KeywordType>(_w));
+            _____ += ' ';
         }
-        else {
-            out << " -> FAILED! Wrong token type encountered.\n";
-            goto owoowowoowoWOWOOWOWOWOOWOOWOOOWOWOOOWOOWOWO69;
+    out << "Asserting Keywords '" << _____.substr(0, _____.length() - 1) << "' ..\n";
+    std::string ______;
+    TokenList ________(_____.c_str(), _____.length());
+    for (const auto &_______ : ________.tokens)
+        {
+            if (_______.type == Token::token_type::Keyword)
+                {
+                    ______ += KeywordToString(_______.value.key);
+                    ______ += ' ';
+                }
+            else
+                {
+                    out << " -> FAILED! Wrong token type encountered.\n";
+                    goto owoowowoowoWOWOOWOWOWOOWOOWOOOWOWOOOWOOWOWO69;
+                }
         }
-    }
-    if (kwut_result == kwut_src) {
-        out << " -> Success!\n";
-    }
-    else {
-        out << " -> FAILED! Mismatching result.\n   Source: " << kwut_src << "\n   Parsed: " << kwut_result;
-    }
+    if (______ == _____)
+        {
+            out << " -> Success!\n";
+        }
+    else
+        {
+            out << " -> FAILED! Mismatching result.\n   Source: " << _____ << "\n   Parsed: " << ______;
+        }
 owoowowoowoWOWOOWOWOWOOWOOWOOOWOWOOOWOOWOWO69:
-    std::string seput_src;
-    for (uint8_t i = static_cast<uint8_t>(SeparatorType::ParenLeft); i < static_cast<uint8_t>(SeparatorType::None); i++) {
-        seput_src += SeparatorToString(static_cast<SeparatorType>(i));
-        seput_src += ' ';
-    }
-    out << "Asserting Separators '" << seput_src.substr(0, seput_src.length() - 1) << "' ..\n";
-    std::string seput_result;
-    TokenList seput(seput_src.c_str(), seput_src.length());
-    for (const auto& token : seput.tokens) {
-        if (token.type == Token::token_type::Separator) {
-            seput_result += SeparatorToString(token.value.sep);
-            seput_result += ' ';
+    std::string _________;
+    for (uint8_t __w = static_cast<uint8_t>(SeparatorType::ParenLeft); __w < static_cast<uint8_t>(SeparatorType::None); __w++)
+        {
+            _________ += SeparatorToString(static_cast<SeparatorType>(__w));
+            _________ += ' ';
         }
-        else {
-            out << " -> FAILED! Wrong token type encountered.\n";
-            goto next2;
+    out << "Asserting Separators '" << _________.substr(0, _________.length() - 1) << "' ..\n";
+    std::string __________;
+    TokenList ___________(_________.c_str(), _________.length());
+    for (const auto &____________ : ___________.tokens)
+        {
+            if (____________.type == Token::token_type::Separator)
+                {
+                    __________ += SeparatorToString(____________.value.sep);
+                    __________ += ' ';
+                }
+            else
+                {
+                    out << " -> FAILED! Wrong token type encountered.\n";
+                    goto next2;
+                }
         }
-    }
-    if (seput_result == seput_src) {
-        out << " -> Success!\n";
-    }
-    else {
-        out << " -> FAILED! Mismatching result.\n   Source: " << seput_src << "\n   Parsed: " << seput_result;
-    }
+    if (__________ == _________)
+        {
+            out << " -> Success!\n";
+        }
+    else
+        {
+            out << " -> FAILED! Mismatching result.\n   Source: " << _________ << "\n   Parsed: " << __________;
+        }
 next2:
-    std::string oput_src;
-    for (uint8_t i = 0; i < static_cast<uint8_t>(OperatorType::None); i++) {
-        oput_src += OperatorToString(static_cast<OperatorType>(i));
-        oput_src += ' ';
-    }
-    out << "Asserting Operators '" << oput_src.substr(0, oput_src.length() - 1) << "' ..\n";
-    std::string oput_result;
-    TokenList oput(oput_src.c_str(), oput_src.length());
-    for (const auto& token : oput.tokens) {
-        if (token.type == Token::token_type::Operator) {
-            oput_result += OperatorToString(token.value.op);
-            oput_result += ' ';
+    std::string _____________;
+    for (uint8_t ___w = 0; ___w < static_cast<uint8_t>(OperatorType::None); ___w++)
+        {
+            _____________ += OperatorToString(static_cast<OperatorType>(___w));
+            _____________ += ' ';
         }
-        else {
-            out << " -> FAILED! Wrong token type encountered.\n";
-            goto next3;
+    out << "Asserting Operators '" << _____________.substr(0, _____________.length() - 1) << "' ..\n";
+    std::string _______________;
+    TokenList ________________(_____________.c_str(), _____________.length());
+    for (const auto &______________ : ________________.tokens)
+        {
+            if (______________.type == Token::token_type::Operator)
+                {
+                    _______________ += OperatorToString(______________.value.op);
+                    _______________ += ' ';
+                }
+            else
+                {
+                    out << " -> FAILED! Wrong token type encountered.\n";
+                    goto next3;
+                }
         }
-    }
-    if (oput_src == oput_result) {
-        out << " -> Success!\n";
-    }
-    else {
-        out << " -> FAILED! Mismatching result.\n   Source: " << oput_src << "\n   Parsed: " << oput_result;
-    }
+    if (_____________ == _______________)
+        {
+            out << " -> Success!\n";
+        }
+    else
+        {
+            out << " -> FAILED! Mismatching result.\n   Source: " << _____________ << "\n   Parsed: " << _______________;
+        }
 next3:
-    const char* numut_src = "5.5.5.... 6...2...9 .7....3.. 4.2...0.. $ $a $A $aa $0d0a";
-    out << "Asserting Numbers '" << numut_src << "' ..\n";
-    std::string numut_expect = "5.550000 6.290000 0.730000 4.200000 0.000000 10.000000 10.000000 170.000000 3338.000000 ";
-    TokenList numut(numut_src, 57);
-    std::string numut_result;
-    for (const auto& token : numut.tokens) {
-        if (token.type == Token::token_type::Real) {
-            numut_result += std::to_string(token.value.real);
-            numut_result += ' ';
+    const char *_________________ = "5.5.5.... 6...2...9 .7....3.. 4.2...0.. $ $a $A $aa $0d0a";
+    out << "Asserting Numbers '" << _________________ << "' ..\n";
+    std::string __________________ = "5.550000 6.290000 0.730000 4.200000 0.000000 10.000000 10.000000 170.000000 3338.000000 ";
+    TokenList _____________________(_________________, 57);
+    std::string ___________________;
+    for (const auto &____________________ : _____________________.tokens)
+        {
+            if (____________________.type == Token::token_type::Real)
+                {
+                    ___________________ += std::to_string(____________________.value.real);
+                    ___________________ += ' ';
+                }
+            else
+                {
+                    out << " -> FAILED! Wrong token type encountered.\n";
+                    goto next_;
+                }
         }
-        else {
-            out << " -> FAILED! Wrong token type encountered.\n";
-            goto next_;
-        }
-    }
 
-    if (numut_result == numut_expect) {
-        out << " -> Success!\n";
-    }
-    else {
-        out << " -> FAILED! Mismatching result.\n   Source: " << numut_src << "\n   Parsed:   " << numut_result << "\n   Expected: " << numut_expect << "\n";
-    }
+    if (___________________ == __________________)
+        {
+            out << " -> Success!\n";
+        }
+    else
+        {
+            out << " -> FAILED! Mismatching result.\n   Source: " << _________________ << "\n   Parsed:   " << ___________________
+                << "\n   Expected: " << __________________ << "\n";
+        }
 next_:
-    const char* stupidut_src = "begin end then and or not xor";
-    out << "Asserting Stupids '" << stupidut_src << "' ..\n";
-    std::string stupidut_result;
-    TokenList stupidut(stupidut_src, 29);
-    for (const auto& token : stupidut.tokens) {
-        if (token.type == Token::token_type::Separator) {
-            stupidut_result += SeparatorToString(token.value.sep);
-            stupidut_result += ' ';
+    const char *______________________ = "begin end then and or not xor";
+    out << "Asserting Stupids '" << ______________________ << "' ..\n";
+    std::string _______________________;
+    TokenList _________________________(______________________, 29);
+    for (const auto &________________________ : _________________________.tokens)
+        {
+            if (________________________.type == Token::token_type::Separator)
+                {
+                    _______________________ += SeparatorToString(________________________.value.sep);
+                    _______________________ += ' ';
+                }
+            else if (________________________.type == Token::token_type::Operator)
+                {
+                    _______________________ += OperatorToString(________________________.value.op);
+                    _______________________ += ' ';
+                }
+            else
+                {
+                    out << " -> FAILED! Wrong token type encountered.\n";
+                    goto next4;
+                }
         }
-        else if (token.type == Token::token_type::Operator) {
-            stupidut_result += OperatorToString(token.value.op);
-            stupidut_result += ' ';
+    if (_______________________ != "{ } then && || ! ^^ ")
+        {
+            out << " -> FAILED! Mismatching result.\n   Source: " << ______________________ << "\n   Parsed:   " << _______________________ << "\n   Expected: "
+                << "{ } then && || ! ^^\n";
         }
-        else {
-            out << " -> FAILED! Wrong token type encountered.\n";
-            goto next4;
+    else
+        {
+            out << " -> Success!\n";
         }
-    }
-    if (stupidut_result != "{ } then && || ! ^^ ") {
-        out << " -> FAILED! Mismatching result.\n   Source: " << stupidut_src << "\n   Parsed:   " << stupidut_result << "\n   Expected: "
-            << "{ } then && || ! ^^\n";
-    }
-    else {
-        out << " -> Success!\n";
-    }
 next4:;
 
 #else
