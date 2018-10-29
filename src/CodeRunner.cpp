@@ -15,10 +15,14 @@
 // Internal code object
 struct CRCodeObject {
     std::string code;
+    GM8Emulator::Compiler::TokenList _tokenized;
     bool question;
     CRActionList _actions;
     CRExpression _expression;
-    CRCodeObject(const char* c, unsigned int l, bool q) : question(q) { std::copy(c, c + l, std::back_inserter(code)); }
+    CRCodeObject(const char* c, unsigned int l, bool q) : question(q) {
+        std::copy(c, c + l, std::back_inserter(code));
+        _tokenized = GM8Emulator::Compiler::TokenList(code.c_str(), l);
+    }
 };
 std::vector<CRCodeObject> _codeObjects;
 
@@ -55,12 +59,11 @@ CodeObject CodeRunner::RegisterQuestion(char* code, unsigned int len) {
 
 bool CodeRunner::Compile(CodeObject object) {
     try {
-        GM8Emulator::Compiler::TokenList tokenList = GM8Emulator::Compiler::Tokenize(_codeObjects[object].code);
         if (_codeObjects[object].question) {
-            if(!GM8Emulator::Compiler::InterpretExpression(tokenList, &_codeObjects[object]._expression)) return false;
+            if(!GM8Emulator::Compiler::InterpretExpression(_codeObjects[object]._tokenized, &_codeObjects[object]._expression)) return false;
         }
         else {
-            if(!GM8Emulator::Compiler::Interpret(tokenList, &_codeObjects[object]._actions)) return false;
+            if (!GM8Emulator::Compiler::Interpret(_codeObjects[object]._tokenized, &_codeObjects[object]._actions)) return false;
         }
         return true;
     }

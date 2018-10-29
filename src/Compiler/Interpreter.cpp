@@ -30,16 +30,16 @@ namespace GM8Emulator {
         bool _TokenHasValue(const GM8Emulator::Compiler::Token& token, std::string t);
         void _SkipSemicolon(const GM8Emulator::Compiler::TokenList& list, unsigned int& pos);
 
-        bool _IsAsset(const char* name, unsigned int* index = nullptr);
-        bool _IsGMLConst(const char* name, double* value = nullptr);
-        bool _IsGameValue(const char* name, CRGameVar* value = nullptr);
-        bool _IsInstanceVar(const char* name, CRInstanceVar* value = nullptr);
+        bool _IsAsset(std::string_view& name, unsigned int* index = nullptr);
+        bool _IsGMLConst(std::string_view& name, double* value = nullptr);
+        bool _IsGameValue(std::string_view& name, CRGameVar* value = nullptr);
+        bool _IsInstanceVar(std::string_view& name, CRInstanceVar* value = nullptr);
 
         enum VarType { VARTYPE_INSTANCE, VARTYPE_FIELD, VARTYPE_GAME };
-        VarType _getVarType(std::string& name, unsigned int* index = nullptr);
+        VarType _getVarType(std::string_view& name, unsigned int* index = nullptr);
 
         std::vector<std::string> _fieldNames;
-        unsigned int _RegisterField(std::string& name);
+        unsigned int _RegisterField(std::string_view& name);
 
         std::vector<const char*> _gameValueNames;
         std::vector<const char*> _instanceVarNames;
@@ -4630,20 +4630,20 @@ bool GM8Emulator::Compiler::Init() {
     return true;
 }
 
-unsigned int GM8Emulator::Compiler::_RegisterField(std::string& name) {
+unsigned int GM8Emulator::Compiler::_RegisterField(std::string_view& name) {
     for (unsigned int i = 0; i < _fieldNames.size(); i++) {
         if (name == _fieldNames[i]) {
             return i;
         }
     }
-    _fieldNames.push_back(name);
+    _fieldNames.push_back(std::string(name));
     return ( unsigned int )(_fieldNames.size() - 1);
 }
 
 bool GM8Emulator::Compiler::Interpret(const TokenList& list, CRActionList* output) {
     unsigned int pos = 0;
     CRAction* action;
-    while (pos < list.size()) {
+    while (pos < list.tokens.size()) {
         if (!_InterpretLine(list, &action, pos)) return false;
         output->Append(action);
     }
@@ -4659,8 +4659,8 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
     while (true) {
         // Read any unary operators
         std::vector<CRUnaryOperator> unaries;
-        while (list[*pos].Type == TokenType::Operator) {
-            switch (std::get<OperatorType>(list[*pos].Value)) {
+        while (list.tokens[*pos].type == Token::token_type::Operator) {
+            switch (list.tokens[*pos].value.op) {
                 case OperatorType::Add:
                     // unaries.push_back(CRUnaryOperator::OPERATOR_POSITIVE); // This doesn't do anything so no reason to compile it
                     break;
@@ -4683,13 +4683,13 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
         GM8Emulator::Compiler::TokenList deref;
         unsigned int newPos = *pos;
         while (true) {
-            if (_TokenHasValue(list[newPos], SeparatorType::ParenLeft)) {
+            if (_TokenHasValue(list.tokens[newPos], SeparatorType::ParenLeft)) {
                 unsigned int depth = 1;
                 while (++newPos) {
-                    deref.push_back(list[newPos]);
-                    if (_TokenHasValue(list[newPos], SeparatorType::ParenLeft))
+                    // deref.push_back(list[newPos]);
+                    if (_TokenHasValue(list.tokens[newPos], SeparatorType::ParenLeft))
                         depth++;
-                    else if (_TokenHasValue(list[newPos], SeparatorType::ParenRight)) {
+                    else if (_TokenHasValue(list.tokens[newPos], SeparatorType::ParenRight)) {
                         depth--;
                         if (depth == 0) {
                             newPos++;
@@ -4698,15 +4698,15 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                     }
                 }
             }
-            else if (list[newPos].Type == TokenType::Identifier) {
+            else if (list.tokens[newPos].type == Token::token_type::Identifier) {
                 newPos++;
-                if (_TokenHasValue(list[newPos], SeparatorType::SquareBracketLeft)) {
+                if (_TokenHasValue(list.tokens[newPos], SeparatorType::SquareBracketLeft)) {
                     // Skip over array accessor
                     unsigned int depth = 1;
                     while (++newPos) {
-                        if (_TokenHasValue(list[newPos], SeparatorType::SquareBracketLeft))
+                        if (_TokenHasValue(list.tokens[newPos], SeparatorType::SquareBracketLeft))
                             depth++;
-                        else if (_TokenHasValue(list[newPos], SeparatorType::SquareBracketRight)) {
+                        else if (_TokenHasValue(list.tokens[newPos], SeparatorType::SquareBracketRight)) {
                             depth--;
                             if (depth == 0) {
                                 newPos++;
@@ -4716,10 +4716,10 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                     }
                 }
             }
-            if (_TokenHasValue(list[newPos], SeparatorType::Period)) {
-                if (deref.size()) deref.push_back(list[newPos]);  // Add a period to the deref expression if it's already populated
+            if (_TokenHasValue(list.tokens[newPos], SeparatorType::Period)) {
+                if (deref.tokens.size()) deref.tokens.push_back(list.tokens[newPos]);  // Add a period to the deref expression if it's already populated
                 for (unsigned int i = *pos; i < newPos; i++) {
-                    deref.push_back(list[i]);
+                    deref.tokens.push_back(list.tokens[i]);
                 }
             }
             else {
@@ -4729,28 +4729,28 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
 
         CRExpression derefCompiled;
         bool hasDeref = false;
-        if (deref.size()) {
+        if (deref.tokens.size()) {
             hasDeref = true;
             if (!InterpretExpression(deref, &derefCompiled)) return false;
         }
 
         // Read one expression variable
         CRExpressionValue* value;
-        switch (list[*pos].Type) {
+        switch (list.tokens[*pos].type) {
 
-            case TokenType::Separator: {
+            case Token::token_type::Separator: {
                 if (hasDeref) return false;  // Fail if there is a deref before this
-                if (std::get<SeparatorType>(list[*pos].Value) != SeparatorType::ParenLeft) return false;
+                if (list.tokens[*pos].value.sep != SeparatorType::ParenLeft) return false;
                 TokenList innerList;
                 unsigned int depth = 1;
                 while ((*pos)++) {
-                    if (std::get<SeparatorType>(list[*pos].Value) == SeparatorType::ParenLeft)
+                    if (list.tokens[*pos].value.sep == SeparatorType::ParenLeft)
                         depth++;
-                    else if (std::get<SeparatorType>(list[*pos].Value) == SeparatorType::ParenRight) {
+                    else if (list.tokens[*pos].value.sep == SeparatorType::ParenRight) {
                         depth--;
                         if (!depth) break;
                     }
-                    innerList.push_back(list[*pos]);
+                    innerList.tokens.push_back(list.tokens[*pos]);
                 }
                 pos++;
                 CRExpression inner;
@@ -4759,21 +4759,21 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                 break;
             }
 
-            case TokenType::Identifier: {
+            case Token::token_type::Identifier: {
                 // Store identifier name for later
-                std::string identifier = std::get<std::string>(list[*pos].Value);
+                std::string_view identifier = list.tokens[*pos].value.str;
                 (*pos)++;
 
-                if (_TokenHasValue(list[*pos], SeparatorType::ParenLeft)) {
+                if (_TokenHasValue(list.tokens[*pos], SeparatorType::ParenLeft)) {
                     // This is a script or function
                     (*pos)++;
                     // Parse args
                     std::vector<CRExpression> args;
-                    while (!_TokenHasValue(list[*pos], SeparatorType::ParenRight)) {
+                    while (!_TokenHasValue(list.tokens[*pos], SeparatorType::ParenRight)) {
                         CRExpression arg;
                         if (!InterpretExpression(list, &arg, pos)) return false;
                         args.push_back(arg);
-                        if (_TokenHasValue(list[*pos], SeparatorType::Comma)) (*pos)++;
+                        if (_TokenHasValue(list.tokens[*pos], SeparatorType::Comma)) (*pos)++;
                     }
                     (*pos)++;
 
@@ -4783,58 +4783,58 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                     for (s = 0; s < scriptCount; s++) {
                         Script* scr = AssetManager::GetScript(s);
                         if (!scr->exists) continue;
-                        if (strcmp(scr->name, identifier.c_str()) == 0) {
+                        if (identifier.compare(scr->name) == 0) {
                             value = new CRExpScript(s, args);
                             break;
                         }
                     }
 
-                    if(s == scriptCount) {
+                    if (s == scriptCount) {
                         // Check if this is an internal function
                         unsigned int f;
                         for (f = 0; f < _internalFuncNames.size(); f++) {
-                            if (strcmp(_internalFuncNames[f], identifier.c_str()) == 0) {
-                                value = new CRExpFunction((CRInternalFunction)f, args);
+                            if (identifier.compare(_internalFuncNames[f]) == 0) {
+                                value = new CRExpFunction(( CRInternalFunction )f, args);
                                 break;
                             }
                         }
 
                         // Unrecognized function name?
-                        if(f == _internalFuncNames.size()) return false;
+                        if (f == _internalFuncNames.size()) return false;
                     }
                 }
                 else {
                     // Parse array accessor
                     std::vector<CRExpression> dimensions;
-                    if (_TokenHasValue(list[*pos], SeparatorType::SquareBracketLeft)) {
-                        while (!_TokenHasValue(list[*pos], SeparatorType::SquareBracketRight)) {
+                    if (_TokenHasValue(list.tokens[*pos], SeparatorType::SquareBracketLeft)) {
+                        while (!_TokenHasValue(list.tokens[*pos], SeparatorType::SquareBracketRight)) {
                             CRExpression dim;
                             if (!InterpretExpression(list, &dim, pos)) return false;
                             dimensions.push_back(dim);
-                            if (_TokenHasValue(list[*pos], SeparatorType::Comma)) (*pos)++;
+                            if (_TokenHasValue(list.tokens[*pos], SeparatorType::Comma)) (*pos)++;
                         }
                     }
 
                     // Order of priority: assets, gml consts, fields
                     unsigned int assetId;
-                    if (_IsAsset(identifier.c_str(), &assetId)) {
+                    if (_IsAsset(identifier, &assetId)) {
                         if (hasDeref) return false;
                         value = new CRExpLiteral(static_cast<double>(assetId));
                     }
                     else {
                         double constValue;
-                        if (_IsGMLConst(identifier.c_str(), &constValue)) {
+                        if (_IsGMLConst(identifier, &constValue)) {
                             if (hasDeref) return false;
                             value = new CRExpLiteral(constValue);
                         }
                         else {
                             CRGameVar gameVar;
-                            if (_IsGameValue(identifier.c_str(), &gameVar)) {
+                            if (_IsGameValue(identifier, &gameVar)) {
                                 value = new CRExpGameVar(gameVar, dimensions);
                             }
                             else {
                                 CRInstanceVar instanceVar;
-                                if (_IsInstanceVar(identifier.c_str(), &instanceVar)) {
+                                if (_IsInstanceVar(identifier, &instanceVar)) {
                                     if (hasDeref)
                                         value = new CRExpInstanceVar(instanceVar, dimensions, derefCompiled);
                                     else
@@ -4855,15 +4855,15 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                 break;
             }
 
-            case TokenType::LiteralReal: {
+            case Token::token_type::Real: {
                 if (hasDeref) return false;  // Fail if there is a deref before this
-                value = new CRExpLiteral(std::get<double>(list[*pos].Value));
+                value = new CRExpLiteral(list.tokens[*pos].value.real);
                 break;
             }
 
-            case TokenType::LiteralString: {
+            case Token::token_type::String: {
                 if (hasDeref) return false;  // Fail if there is a deref before this
-                value = new CRExpLiteral(std::get<std::string>(list[*pos].Value));
+                value = new CRExpLiteral(std::string(list.tokens[*pos].value.str));
                 break;
             }
         }
@@ -4872,13 +4872,13 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
 
         // Parse an operator
         (*pos)++;
-        if ((*pos) == list.size()) {
+        if ((*pos) == list.tokens.size()) {
             // No operators here because it's the end of the code, so exit
             value->SetOperator(CROperator::OPERATOR_STOP);
             return true;
         }
-        if (list[*pos].Type == TokenType::Operator) {
-            switch (std::get<OperatorType>(list[*pos].Value)) {
+        if (list.tokens[*pos].type == Token::token_type::Operator) {
+            switch (list.tokens[*pos].value.op) {
                 case OperatorType::Add:
                     value->SetOperator(CROperator::OPERATOR_ADD);
                     break;
@@ -4954,10 +4954,10 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
 
 
 bool GM8Emulator::Compiler::_InterpretLine(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) {
-    switch (list[pos].Type) {
+    switch (list.tokens[pos].type) {
 
-        case TokenType::Keyword:
-            switch (std::get<KeywordType>(list[pos].Value)) {
+        case Token::token_type::Keyword:
+            switch (list.tokens[pos].value.key) {
                 case KeywordType::Var:
                     return _InterpretVar(list, output, pos);
                 case KeywordType::If:
@@ -4984,17 +4984,17 @@ bool GM8Emulator::Compiler::_InterpretLine(const GM8Emulator::Compiler::TokenLis
                     return false;
             }
 
-        case TokenType::Identifier:
-            if (pos + 1 >= list.size()) return false;
-            if (list[pos + 1].Type == TokenType::Separator) {
-                if (std::get<SeparatorType>(list[pos + 1].Value) == SeparatorType::ParenLeft) {
+        case Token::token_type::Identifier:
+            if (pos + 1 >= list.tokens.size()) return false;
+            if (list.tokens[pos + 1].type == Token::token_type::Separator) {
+                if (list.tokens[pos + 1].value.sep == SeparatorType::ParenLeft) {
                     return _InterpretFunction(list, output, pos);
                 }
             }
             return _InterpretAssignment(list, output, pos);
 
-        case TokenType::Separator:
-            switch (std::get<SeparatorType>(list[pos].Value)) {
+        case Token::token_type::Separator:
+            switch (list.tokens[pos].value.sep) {
                 case SeparatorType::ParenLeft:
                     return _InterpretAssignment(list, output, pos);
                 case SeparatorType::BraceLeft:
@@ -5051,16 +5051,16 @@ bool GM8Emulator::Compiler::_InterpretAssignment(const GM8Emulator::Compiler::To
     // The first thing to interpret is the dereference expression. There may or may not be one.
     GM8Emulator::Compiler::TokenList deref;
 
-    if (_TokenHasValue(list[pos], SeparatorType::ParenLeft)) {
-        deref.push_back(list[pos]);
+    if (_TokenHasValue(list.tokens[pos], SeparatorType::ParenLeft)) {
+        deref.tokens.push_back(list.tokens[pos]);
         // If the line starts with an open-paren, it's definitely a deref. This format is only allowed at the start of the line.
         unsigned int depth = 1;
         while (++pos) {
-            deref.push_back(list[pos]);
-            if (_TokenHasValue(list[pos], SeparatorType::ParenLeft)) {
+            deref.tokens.push_back(list.tokens[pos]);
+            if (_TokenHasValue(list.tokens[pos], SeparatorType::ParenLeft)) {
                 depth++;
             }
-            else if (_TokenHasValue(list[pos], SeparatorType::ParenRight)) {
+            else if (_TokenHasValue(list.tokens[pos], SeparatorType::ParenRight)) {
                 depth--;
                 if (depth == 0) {
                     pos++;
@@ -5068,23 +5068,23 @@ bool GM8Emulator::Compiler::_InterpretAssignment(const GM8Emulator::Compiler::To
                 }
             }
         }
-        if (!_TokenHasValue(list[pos], SeparatorType::Period)) return false;
+        if (!_TokenHasValue(list.tokens[pos], SeparatorType::Period)) return false;
         pos++;
     }
 
     while (true) {
-        if (list[pos].Type != TokenType::Identifier) return false;
+        if (list.tokens[pos].type != Token::token_type::Identifier) return false;
 
         // This token will indicate a var. Now, we need to work out if there's a period after this variable indication. If so, it's part of the deref.
         unsigned int startPos = pos;
         pos++;
-        if (_TokenHasValue(list[pos], SeparatorType::SquareBracketLeft)) {
+        if (_TokenHasValue(list.tokens[pos], SeparatorType::SquareBracketLeft)) {
             // Skip over an array accessor...
             unsigned int depth = 1;
             while (++pos) {
-                if (_TokenHasValue(list[pos], SeparatorType::ParenLeft))
+                if (_TokenHasValue(list.tokens[pos], SeparatorType::ParenLeft))
                     depth++;
-                else if (_TokenHasValue(list[pos], SeparatorType::ParenRight)) {
+                else if (_TokenHasValue(list.tokens[pos], SeparatorType::ParenRight)) {
                     depth--;
                     if (!depth) {
                         pos++;
@@ -5094,10 +5094,10 @@ bool GM8Emulator::Compiler::_InterpretAssignment(const GM8Emulator::Compiler::To
             }
         }
 
-        if (_TokenHasValue(list[pos], SeparatorType::Period)) {
-            if (deref.size()) deref.push_back(list[pos]);  // Add a period to the deref if it's already got something in it
+        if (_TokenHasValue(list.tokens[pos], SeparatorType::Period)) {
+            if (deref.tokens.size()) deref.tokens.push_back(list.tokens[pos]);  // Add a period to the deref if it's already got something in it
             for (unsigned int i = startPos; i < pos; i++) {
-                deref.push_back(list[i]);
+                deref.tokens.push_back(list.tokens[i]);
             }
         }
         else {
@@ -5107,29 +5107,29 @@ bool GM8Emulator::Compiler::_InterpretAssignment(const GM8Emulator::Compiler::To
     }
 
     // Now we're past the dereference part, so compile it
-    bool hasDeref = deref.size();
+    bool hasDeref = deref.tokens.size();
     CRExpression derefCompiled;
     if (hasDeref) {
         unsigned int p = 0;
         if (!InterpretExpression(deref, &derefCompiled, &p)) return false;
-        if (p != deref.size()) return false;
+        if (p != deref.tokens.size()) return false;
     }
 
     // Let's store the var identifier for later and parse the array accessor and rhs.
-    if (list[pos].Type != TokenType::Identifier) return false;
-    std::string var = std::get<std::string>(list[pos].Value);
+    if (list.tokens[pos].type != Token::token_type::Identifier) return false;
+    std::string_view var = list.tokens[pos].value.str;
     pos++;
 
     // Parse array accessor
     std::vector<CRExpression> dimensions;
-    if (_TokenHasValue(list[pos], SeparatorType::SquareBracketLeft)) {
+    if (_TokenHasValue(list.tokens[pos], SeparatorType::SquareBracketLeft)) {
         pos++;
         while (true) {
-            if (_TokenHasValue(list[pos], SeparatorType::SquareBracketRight)) break;
+            if (_TokenHasValue(list.tokens[pos], SeparatorType::SquareBracketRight)) break;
             CRExpression dim;
             if (!InterpretExpression(list, &dim, &pos)) return false;
             dimensions.push_back(dim);
-            if (_TokenHasValue(list[pos], SeparatorType::Comma))
+            if (_TokenHasValue(list.tokens[pos], SeparatorType::Comma))
                 pos++;
             else
                 break;
@@ -5137,9 +5137,9 @@ bool GM8Emulator::Compiler::_InterpretAssignment(const GM8Emulator::Compiler::To
     }
 
     // Figure out set method
-    if (list[pos].Type != TokenType::Operator) return false;
+    if (list.tokens[pos].type != Token::token_type::Operator) return false;
     CRSetMethod method;
-    switch (std::get<OperatorType>(list[pos].Value)) {
+    switch (list.tokens[pos].value.op) {
         case OperatorType::Assign:
             method = CRSetMethod::SM_ASSIGN;
             break;
@@ -5208,19 +5208,19 @@ bool GM8Emulator::Compiler::_InterpretAssignment(const GM8Emulator::Compiler::To
 }
 
 bool GM8Emulator::Compiler::_InterpretFunction(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) {
-    if (list[pos].Type != TokenType::Identifier) return false;
-    std::string functionName = std::get<std::string>(list[pos].Value);
+    if (list.tokens[pos].type != Token::token_type::Identifier) return false;
+    std::string_view functionName = list.tokens[pos].value.str;
 
     // Parse arguments
     pos++;
-    if (!_TokenHasValue(list[pos], SeparatorType::ParenLeft)) return false;
+    if (!_TokenHasValue(list.tokens[pos], SeparatorType::ParenLeft)) return false;
     pos++;
     std::vector<CRExpression> args;
-    while (!_TokenHasValue(list[pos], SeparatorType::ParenRight)) {
+    while (!_TokenHasValue(list.tokens[pos], SeparatorType::ParenRight)) {
         CRExpression arg;
         if (!InterpretExpression(list, &arg, &pos)) return false;
         args.push_back(arg);
-        if (_TokenHasValue(list[pos], SeparatorType::Comma)) pos++;
+        if (_TokenHasValue(list.tokens[pos], SeparatorType::Comma)) pos++;
     }
     pos++;
     _SkipSemicolon(list, pos);
@@ -5230,7 +5230,7 @@ bool GM8Emulator::Compiler::_InterpretFunction(const GM8Emulator::Compiler::Toke
     for (unsigned int s = 0; s < scriptCount; s++) {
         Script* scr = AssetManager::GetScript(s);
         if (!scr->exists) continue;
-        if (strcmp(scr->name, functionName.c_str()) == 0) {
+        if (functionName.compare(scr->name) == 0) {
             (*output) = new CRActionRunScript(s, args);
             return true;
         }
@@ -5238,7 +5238,7 @@ bool GM8Emulator::Compiler::_InterpretFunction(const GM8Emulator::Compiler::Toke
 
     // Check if this is an internal function
     for (unsigned int f = 0; f < _internalFuncNames.size(); f++) {
-        if (strcmp(_internalFuncNames[f], functionName.c_str()) == 0) {
+        if (functionName.compare(_internalFuncNames[f]) == 0) {
             (*output) = new CRActionRunFunction(( CRInternalFunction )f, args);
             return true;
         }
@@ -5252,12 +5252,12 @@ bool GM8Emulator::Compiler::_InterpretBraces(const GM8Emulator::Compiler::TokenL
     unsigned int depth = 1;
     TokenList innerList;
     while (++pos) {
-        if (_TokenHasValue(list[pos], SeparatorType::BraceLeft)) depth++;
-        if (_TokenHasValue(list[pos], SeparatorType::BraceRight)) {
+        if (_TokenHasValue(list.tokens[pos], SeparatorType::BraceLeft)) depth++;
+        if (_TokenHasValue(list.tokens[pos], SeparatorType::BraceRight)) {
             depth--;
             if (!depth) break;
         }
-        innerList.push_back(list[pos]);
+        innerList.tokens.push_back(list.tokens[pos]);
     }
     pos++;
 
@@ -5269,53 +5269,53 @@ bool GM8Emulator::Compiler::_InterpretBraces(const GM8Emulator::Compiler::TokenL
 
 
 bool GM8Emulator::Compiler::_TokenHasValue(const GM8Emulator::Compiler::Token& token, GM8Emulator::Compiler::KeywordType t) {
-    if (token.Type == TokenType::Keyword) {
-        return std::get<KeywordType>(token.Value) == t;
+    if (token.type == Token::token_type::Keyword) {
+        return token.value.key == t;
     }
     return false;
 }
 
 bool GM8Emulator::Compiler::_TokenHasValue(const GM8Emulator::Compiler::Token& token, GM8Emulator::Compiler::OperatorType t) {
-    if (token.Type == TokenType::Operator) {
-        return std::get<OperatorType>(token.Value) == t;
+    if (token.type == Token::token_type::Operator) {
+        return token.value.op == t;
     }
     return false;
 }
 
 bool GM8Emulator::Compiler::_TokenHasValue(const GM8Emulator::Compiler::Token& token, GM8Emulator::Compiler::SeparatorType t) {
-    if (token.Type == TokenType::Separator) {
-        return std::get<SeparatorType>(token.Value) == t;
+    if (token.type == Token::token_type::Separator) {
+        return token.value.sep == t;
     }
     return false;
 }
 
 bool GM8Emulator::Compiler::_TokenHasValue(const GM8Emulator::Compiler::Token& token, double t) {
-    if (token.Type == TokenType::LiteralReal) {
-        return std::get<double>(token.Value) == t;
+    if (token.type == Token::token_type::Real) {
+        return token.value.real == t;
     }
     return false;
 }
 
 bool GM8Emulator::Compiler::_TokenHasValue(const GM8Emulator::Compiler::Token& token, std::string t) {
-    if (token.Type == TokenType::LiteralString) {
-        return std::get<std::string>(token.Value) == t;
+    if (token.type == Token::token_type::String) {
+        return !token.value.str.compare(t.c_str());
     }
     return false;
 }
 
 void GM8Emulator::Compiler::_SkipSemicolon(const GM8Emulator::Compiler::TokenList& list, unsigned int& pos) {
-    if (pos >= list.size()) return;
-    if (_TokenHasValue(list[pos], SeparatorType::Semicolon)) {
+    if (pos >= list.tokens.size()) return;
+    if (_TokenHasValue(list.tokens[pos], SeparatorType::Semicolon)) {
         pos++;
     }
 }
 
-bool GM8Emulator::Compiler::_IsAsset(const char* name, unsigned int* index) {
+bool GM8Emulator::Compiler::_IsAsset(std::string_view& name, unsigned int* index) {
     // These are in order of precedence in the GM8 engine, since two assets can have the same name.
     unsigned int i;
     for (i = 0; i < AssetManager::GetObjectCount(); i++) {
         if (AssetManager::GetObject(i)->exists) {
-            if (!strcmp(AssetManager::GetObject(i)->name, name)) {
+            if (!name.compare(AssetManager::GetObject(i)->name)) {
                 if (index) (*index) = i;
                 return true;
             }
@@ -5323,7 +5323,7 @@ bool GM8Emulator::Compiler::_IsAsset(const char* name, unsigned int* index) {
     }
     for (i = 0; i < AssetManager::GetSpriteCount(); i++) {
         if (AssetManager::GetSprite(i)->exists) {
-            if (!strcmp(AssetManager::GetSprite(i)->name, name)) {
+            if (!name.compare(AssetManager::GetSprite(i)->name)) {
                 if (index) (*index) = i;
                 return true;
             }
@@ -5331,7 +5331,7 @@ bool GM8Emulator::Compiler::_IsAsset(const char* name, unsigned int* index) {
     }
     for (i = 0; i < AssetManager::GetSoundCount(); i++) {
         if (AssetManager::GetSound(i)->exists) {
-            if (!strcmp(AssetManager::GetSound(i)->name, name)) {
+            if (!name.compare(AssetManager::GetSound(i)->name)) {
                 if (index) (*index) = i;
                 return true;
             }
@@ -5339,7 +5339,7 @@ bool GM8Emulator::Compiler::_IsAsset(const char* name, unsigned int* index) {
     }
     for (i = 0; i < AssetManager::GetBackgroundCount(); i++) {
         if (AssetManager::GetBackground(i)->exists) {
-            if (!strcmp(AssetManager::GetBackground(i)->name, name)) {
+            if (!name.compare(AssetManager::GetBackground(i)->name)) {
                 if (index) (*index) = i;
                 return true;
             }
@@ -5347,7 +5347,7 @@ bool GM8Emulator::Compiler::_IsAsset(const char* name, unsigned int* index) {
     }
     for (i = 0; i < AssetManager::GetPathCount(); i++) {
         if (AssetManager::GetPath(i)->exists) {
-            if (!strcmp(AssetManager::GetPath(i)->name, name)) {
+            if (!name.compare(AssetManager::GetPath(i)->name)) {
                 if (index) (*index) = i;
                 return true;
             }
@@ -5355,7 +5355,7 @@ bool GM8Emulator::Compiler::_IsAsset(const char* name, unsigned int* index) {
     }
     for (i = 0; i < AssetManager::GetFontCount(); i++) {
         if (AssetManager::GetFont(i)->exists) {
-            if (!strcmp(AssetManager::GetFont(i)->name, name)) {
+            if (!name.compare(AssetManager::GetFont(i)->name)) {
                 if (index) (*index) = i;
                 return true;
             }
@@ -5363,7 +5363,7 @@ bool GM8Emulator::Compiler::_IsAsset(const char* name, unsigned int* index) {
     }
     for (i = 0; i < AssetManager::GetTimelineCount(); i++) {
         if (AssetManager::GetTimeline(i)->exists) {
-            if (!strcmp(AssetManager::GetTimeline(i)->name, name)) {
+            if (!name.compare(AssetManager::GetTimeline(i)->name)) {
                 if (index) (*index) = i;
                 return true;
             }
@@ -5371,7 +5371,7 @@ bool GM8Emulator::Compiler::_IsAsset(const char* name, unsigned int* index) {
     }
     for (i = 0; i < AssetManager::GetScriptCount(); i++) {
         if (AssetManager::GetScript(i)->exists) {
-            if (!strcmp(AssetManager::GetScript(i)->name, name)) {
+            if (!name.compare(AssetManager::GetScript(i)->name)) {
                 if (index) (*index) = i;
                 return true;
             }
@@ -5379,7 +5379,7 @@ bool GM8Emulator::Compiler::_IsAsset(const char* name, unsigned int* index) {
     }
     for (i = 0; i < AssetManager::GetRoomCount(); i++) {
         if (AssetManager::GetRoom(i)->exists) {
-            if (!strcmp(AssetManager::GetRoom(i)->name, name)) {
+            if (!name.compare(AssetManager::GetRoom(i)->name)) {
                 if (index) (*index) = i;
                 return true;
             }
@@ -5387,39 +5387,33 @@ bool GM8Emulator::Compiler::_IsAsset(const char* name, unsigned int* index) {
     }
     for (i = 0; i < AssetManager::GetTriggerCount(); i++) {
         if (AssetManager::GetTrigger(i)->exists) {
-            if (!strcmp(AssetManager::GetTrigger(i)->constantName, name)) {
+            if (!name.compare(AssetManager::GetTrigger(i)->constantName)) {
                 if (index) (*index) = i;
                 return true;
             }
         }
     }
-    // for (i = 0; i < AssetManager::GetConstantCount(); i++) {
-    //    if (!strcmp(AssetManager::GetConstant(i)->name, name)) {
-    //        if (index) (*index) = ;
-    //        return true;
-    //    }
-    //}
 
     return false;
 }
 
-bool GM8Emulator::Compiler::_IsGMLConst(const char* name, double* value) {
+bool GM8Emulator::Compiler::_IsGMLConst(std::string_view& name, double* value) {
     for (const auto& c : _gmlConsts) {
-        if (strcmp(c.first, name) == 0) {
+        if (name.compare(c.first) == 0) {
             if (value) (*value) = static_cast<double>(c.second);
             return true;
         }
     }
-    if (strcmp("pi", name) == 0) {  // LUL
+    if (name == "pi") {  // LUL
         if (value) (*value) = GML_PI;
         return true;
     }
     return false;
 }
 
-bool GM8Emulator::Compiler::_IsGameValue(const char* name, CRGameVar* value) {
+bool GM8Emulator::Compiler::_IsGameValue(std::string_view& name, CRGameVar* value) {
     for (unsigned int i = 0; i < _gameValueNames.size(); i++) {
-        if (strcmp(_gameValueNames[i], name) == 0) {
+        if (name.compare(_gameValueNames[i]) == 0) {
             if (value) (*value) = static_cast<CRGameVar>(i);
             return true;
         }
@@ -5427,9 +5421,9 @@ bool GM8Emulator::Compiler::_IsGameValue(const char* name, CRGameVar* value) {
     return false;
 }
 
-bool GM8Emulator::Compiler::_IsInstanceVar(const char* name, CRInstanceVar* value) {
+bool GM8Emulator::Compiler::_IsInstanceVar(std::string_view& name, CRInstanceVar* value) {
     for (unsigned int i = 0; i < _instanceVarNames.size(); i++) {
-        if (strcmp(_instanceVarNames[i], name) == 0) {
+        if (name.compare(_instanceVarNames[i]) == 0) {
             if (value) (*value) = static_cast<CRInstanceVar>(i);
             return true;
         }
@@ -5437,10 +5431,10 @@ bool GM8Emulator::Compiler::_IsInstanceVar(const char* name, CRInstanceVar* valu
     return false;
 }
 
-GM8Emulator::Compiler::VarType GM8Emulator::Compiler::_getVarType(std::string& name, unsigned int* index) {
+GM8Emulator::Compiler::VarType GM8Emulator::Compiler::_getVarType(std::string_view& name, unsigned int* index) {
     // Game values have highest precedence
     for (unsigned int i = 0; i < _gameValueNames.size(); i++) {
-        if (strcmp(_gameValueNames[i], name.c_str()) == 0) {
+        if (name.compare(_gameValueNames[i]) == 0) {
             if (index) (*index) = i;
             return VARTYPE_GAME;
         }
@@ -5448,7 +5442,7 @@ GM8Emulator::Compiler::VarType GM8Emulator::Compiler::_getVarType(std::string& n
 
     // Next, instance variables
     for (unsigned int i = 0; i < _instanceVarNames.size(); i++) {
-        if (strcmp(_instanceVarNames[i], name.c_str()) == 0) {
+        if (name.compare(_instanceVarNames[i]) == 0) {
             if (index) (*index) = i;
             return VARTYPE_INSTANCE;
         }
