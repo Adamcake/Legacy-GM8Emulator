@@ -122,6 +122,7 @@ void GM8Emulator::Compiler::TokenList::ParseGML(const char* gml, const size_t& l
                 }
                 else {
                     tokens.push_back(Token(SeparatorType::Period));
+                    i++;
                     break;
                 }
             }
@@ -200,7 +201,7 @@ void GM8Emulator::Compiler::TokenList::ParseGML(const char* gml, const size_t& l
             }
         }
 
-        /* Operator or Separator or Something Invalid� */
+        /* Operator or Separator or Something Invalid™ */
         else if (isprint(*i)) {
 
             // No match, malformed character
@@ -247,12 +248,51 @@ void GM8Emulator::Compiler::TokenList::ParseGML(const char* gml, const size_t& l
                             case OperatorType::GreaterThan:
                                 op = OperatorType::BinaryShiftRight;
                                 break;
+
+                            /* Single-line Comments */
+                            case OperatorType::Divide: {
+                                while (i < end) {
+                                    if (*i == '\n' || *i == '\r')
+                                        break;
+                                    else
+                                        i++;
+                                }
+
+                                i++;  // Increment past CR or LF
+                                continue;
+                            }
                             default:
                                 goto dblop_no_match;  // heheheheheehe
                         }
 
                         i++;
                     dblop_no_match:;
+                    }
+
+                    /* Multi-line Comments */
+                    else if (op == OperatorType::Divide && *i2 == '*') {
+                        i += 2;  // Increment past /*
+                        while (i < end) {
+                            if (*i != '*') {
+                                i++;  // Skip past anything that isn't the closing tag
+                            }
+                            else {
+                                if (i + 1 < end) {
+                                    if (*(++i) == '/') {  // Matched * and / pair, increment past and break
+                                        i++;
+                                        break;
+                                    }
+                                    else {
+                                        i++;  // Otherwise, it won't be a * next time around, so just increment to save cycles
+                                    }
+                                }
+                                else {
+                                    goto stop;  // * into EOF - just exit, no more checks need to be performed.
+                                }
+                            }
+                        }
+
+                        continue;
                     }
                 }
 
@@ -262,5 +302,6 @@ void GM8Emulator::Compiler::TokenList::ParseGML(const char* gml, const size_t& l
         }
     }
 
+stop:
     tokens.shrink_to_fit();
 }
