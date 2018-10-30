@@ -4701,7 +4701,7 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
             }
             else if (list.tokens[newPos].type == Token::token_type::Identifier) {
                 newPos++;
-                if(newPos < list.tokens.size()) {
+                if (newPos < list.tokens.size()) {
                     if (_TokenHasValue(list.tokens[newPos], SeparatorType::SquareBracketLeft)) {
                         // Skip over array accessor
                         unsigned int depth = 1;
@@ -4752,9 +4752,9 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                 TokenList innerList;
                 unsigned int depth = 1;
                 while (++(*pos)) {
-                    if (list.tokens[*pos].value.sep == SeparatorType::ParenLeft)
+                    if (_TokenHasValue(list.tokens[*pos], SeparatorType::ParenLeft))
                         depth++;
-                    else if (list.tokens[*pos].value.sep == SeparatorType::ParenRight) {
+                    if (_TokenHasValue(list.tokens[*pos], SeparatorType::ParenRight)) {
                         depth--;
                         if (!depth) break;
                     }
@@ -4814,7 +4814,7 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                 else {
                     // Parse array accessor
                     std::vector<CRExpression> dimensions;
-                    if((*pos) < list.tokens.size()) {
+                    if ((*pos) < list.tokens.size()) {
                         if (_TokenHasValue(list.tokens[*pos], SeparatorType::SquareBracketLeft)) {
                             while (!_TokenHasValue(list.tokens[*pos], SeparatorType::SquareBracketRight)) {
                                 CRExpression dim;
@@ -5021,10 +5021,10 @@ bool GM8Emulator::Compiler::_InterpretLine(const GM8Emulator::Compiler::TokenLis
 
 bool GM8Emulator::Compiler::_InterpretVar(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) {
     pos++;
-    if(list.tokens[pos].type != Token::token_type::Identifier) return false;
+    if (list.tokens[pos].type != Token::token_type::Identifier) return false;
     std::vector<unsigned int> fields;
     fields.push_back(_RegisterField(list.tokens[pos++].value.str));
-    while(_TokenHasValue(list.tokens[pos], SeparatorType::Comma)) {
+    while (_TokenHasValue(list.tokens[pos], SeparatorType::Comma)) {
         pos++;
         if (list.tokens[pos].type != Token::token_type::Identifier) return false;
         fields.push_back(_RegisterField(list.tokens[pos++].value.str));
@@ -5039,10 +5039,11 @@ bool GM8Emulator::Compiler::_InterpretIfElse(const GM8Emulator::Compiler::TokenL
     CRExpression condition;
     CRAction* aIf;
     CRAction* aElse = nullptr;
-    if(!InterpretExpression(list, &condition, &pos)) return false;
-    if(!_InterpretLine(list, &aIf, pos)) return false;
-    if(pos < list.tokens.size()) {
-        if(_TokenHasValue(list.tokens[pos], KeywordType::Else)) {
+    if (!InterpretExpression(list, &condition, &pos)) return false;
+    if (_TokenHasValue(list.tokens[pos], SeparatorType::PascalThen)) pos++;
+    if (!_InterpretLine(list, &aIf, pos)) return false;
+    if (pos < list.tokens.size()) {
+        if (_TokenHasValue(list.tokens[pos], KeywordType::Else)) {
             pos++;
             if (!_InterpretLine(list, &aElse, pos)) return false;
         }
@@ -5051,17 +5052,109 @@ bool GM8Emulator::Compiler::_InterpretIfElse(const GM8Emulator::Compiler::TokenL
     return true;
 }
 
-bool GM8Emulator::Compiler::_InterpretWith(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) { return false; }
+bool GM8Emulator::Compiler::_InterpretWith(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) {
+    pos++;
+    CRExpression exp;
+    if (!InterpretExpression(list, &exp, &pos)) return false;
+    CRAction* action;
+    if (!_InterpretLine(list, &action, pos)) return false;
+    (*output) = new CRActionWith(exp, action);
+    return true;
+}
 
-bool GM8Emulator::Compiler::_InterpretRepeat(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) { return false; }
+bool GM8Emulator::Compiler::_InterpretRepeat(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) {
+    pos++;
+    CRExpression exp;
+    if (!InterpretExpression(list, &exp, &pos)) return false;
+    CRAction* action;
+    if (!_InterpretLine(list, &action, pos)) return false;
+    (*output) = new CRActionRepeat(exp, action);
+    return true;
+}
 
-bool GM8Emulator::Compiler::_InterpretDoUntil(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) { return false; }
+bool GM8Emulator::Compiler::_InterpretDoUntil(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) {
+    pos++;
+    CRAction* action;
+    if (!_InterpretLine(list, &action, pos)) return false;
+    if (!_TokenHasValue(list.tokens[pos], KeywordType::Until)) return false;
+    pos++;
+    CRExpression exp;
+    if (!InterpretExpression(list, &exp, &pos)) return false;
+    (*output) = new CRActionDoUntil(exp, action);
+    _SkipSemicolon(list, pos);
+    return true;
+}
 
-bool GM8Emulator::Compiler::_InterpretWhile(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) { return false; }
+bool GM8Emulator::Compiler::_InterpretWhile(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) {
+    pos++;
+    CRExpression exp;
+    if (!InterpretExpression(list, &exp, &pos)) return false;
+    CRAction* action;
+    if (!_InterpretLine(list, &action, pos)) return false;
+    (*output) = new CRActionWhile(exp, action);
+    return true;
+}
 
-bool GM8Emulator::Compiler::_InterpretFor(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) { return false; }
+bool GM8Emulator::Compiler::_InterpretFor(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) {
+    pos++;
+    if (!_TokenHasValue(list.tokens[pos], SeparatorType::ParenLeft)) return false;
+    pos++;
+    CRAction* init;
+    if (!_InterpretLine(list, &init, pos)) return false;
+    CRExpression exp;
+    if (!InterpretExpression(list, &exp, &pos)) return false;
+    if (!_TokenHasValue(list.tokens[pos], SeparatorType::Semicolon)) return false;
+    pos++;
+    CRAction* final;
+    if (!_InterpretLine(list, &final, pos)) return false;
+    if (!_TokenHasValue(list.tokens[pos], SeparatorType::ParenRight)) return false;
+    pos++;
+    CRAction* code;
+    if (!_InterpretLine(list, &code, pos)) return false;
+    (*output) = new CRActionFor(init, exp, final, code);
+    return true;
+}
 
-bool GM8Emulator::Compiler::_InterpretSwitch(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) { return false; }
+bool GM8Emulator::Compiler::_InterpretSwitch(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) {
+    pos++;
+    CRExpression exp;
+    if (!InterpretExpression(list, &exp, &pos)) return false;
+    if (!_TokenHasValue(list.tokens[pos], SeparatorType::BraceLeft)) return false;
+    pos++;
+
+    bool defaulted = false;  // have we already found the default keyword
+    unsigned int defaultOffset;
+    std::vector<SwitchCase> cases;
+    CRActionList actions;
+    while (++pos) {
+        if (_TokenHasValue(list.tokens[pos], SeparatorType::BraceRight))
+            break;
+        else if (_TokenHasValue(list.tokens[pos], KeywordType::Case)) {
+            pos++;
+            CRExpression c;
+            if (!InterpretExpression(list, &c, &pos)) return false;
+            if (!_TokenHasValue(list.tokens[pos], SeparatorType::Colon)) return false;
+            pos++;
+            if (!defaulted) cases.push_back(SwitchCase(c, actions.Count()));
+        }
+        else if (_TokenHasValue(list.tokens[pos], KeywordType::Default)) {
+            defaulted = true;
+            pos++;
+            if (!_TokenHasValue(list.tokens[pos], SeparatorType::Colon)) return false;
+            pos++;
+            if (!defaulted) defaultOffset = actions.Count();
+        }
+        else {
+            CRAction* act;
+            if(!_InterpretLine(list, &act, pos)) return false;
+            actions.Append(act);
+        }
+    }
+    pos++;
+    if(!defaulted) defaultOffset = actions.Count();
+    (*output) = new CRActionSwitch(exp, actions, cases, defaultOffset);
+    return true;
+}
 
 bool GM8Emulator::Compiler::_InterpretBreak(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) {
     (*output) = new CRActionBreak();

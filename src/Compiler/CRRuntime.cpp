@@ -221,6 +221,26 @@ bool _getGameValue(CRGameVar index, unsigned int arrayIndex, GMLType* out) {
     return true;
 }
 
+bool _setGameValue(CRGameVar index, unsigned int arrayIndex, CRSetMethod method, GMLType& value) {
+    switch (index) {
+        case ROOM:
+            _globalValues->roomTarget = (unsigned int)Runtime::_round(value.dVal);
+            break;
+        case ROOM_SPEED:
+            _globalValues->room_speed = (unsigned int)Runtime::_round(value.dVal);
+            break;
+        case ROOM_CAPTION: {
+            GMLType tCaption{GMLTypeState::String, 0.0, _globalValues->room_caption};
+            _applySetMethod(&tCaption, method, &value);
+            _globalValues->room_caption = tCaption.sVal;
+            break;
+        }
+        default:
+            return false;
+    }
+    return true;
+}
+
 
 bool _setInstanceVar(Instance* instance, CRInstanceVar index, unsigned int arrayIndex, CRSetMethod method, GMLType value) {
     // No instance vars are strings. In GML if you set an instance var to a string, it gets set to 0.
@@ -999,9 +1019,35 @@ bool CRActionAssignmentInstanceVar::Run() {
     return true;
 }
 
-bool CRActionAssignmentGameVar::Run() { return false; }
+bool CRActionAssignmentGameVar::Run() {
+    GMLType v;
+    if (!_expression.Evaluate(&v)) return false;
 
-bool CRActionBlock::Run() { return false; }
+    int index = 0;
+    if (_dimensions.size()) {
+        if (_dimensions.size() > 2) return false;
+        GMLType dim1;
+        if (!_dimensions[0].Evaluate(&dim1)) return false;
+        if (dim1.state == GMLTypeState::String) return false;
+        index = Runtime::_round(dim1.dVal);
+        if (index < 0) return false;
+
+        if (_dimensions.size() == 2) {
+            GMLType dim2;
+            if (!_dimensions[1].Evaluate(&dim2)) return false;
+            if (dim2.state == GMLTypeState::String) return false;
+            int id2 = Runtime::_round(dim2.dVal);
+            if (id2 < 0) return false;
+            index = (index * 32000) + id2;
+        }
+    }
+
+    return !_setGameValue(_var, index, _method, v);
+}
+
+bool CRActionBlock::Run() {
+    return _list.Run();
+}
 
 bool CRActionRunFunction::Run() {
     GMLType argv[16];
@@ -1012,7 +1058,18 @@ bool CRActionRunFunction::Run() {
     return (*_gmlFuncs[_function])(argc, argv, NULL);
 }
 
-bool CRActionRunScript::Run() { return false; }
+bool CRActionRunScript::Run() {
+    /*
+    GMLType argv[16];
+    unsigned int argc = static_cast<unsigned int>(_args.size());
+    for (unsigned int i = 0; i < argc; i++) {
+        if (!_args[i].Evaluate(argv + i)) return false;
+    }
+    Script* scr = AssetManager::GetScript(_scriptID);
+    // run script here????????
+    */
+    return false;
+}
 
 bool CRActionIfElse::Run() {
     GMLType v;
@@ -1026,7 +1083,76 @@ bool CRActionIfElse::Run() {
     return true;
 }
 
-bool CRActionWith::Run() { return false; }
+bool CRActionWith::Run() {
+    GMLType v;
+    if (!_expression.Evaluate(&v)) return false;
+    if(v.state != GMLTypeState::Double) return false;
+    int objID = Runtime::_round(v.dVal);
+    
+    switch(objID) {
+        case SELF:
+            return _code->Run();
+        case OTHER: {
+            Runtime::Context c = _context;
+            _context.self = c.other;
+            _context.other = c.self;
+            _context.objId = c.other->id;
+            bool r = _code->Run();
+            c.locals = _context.locals;
+            _context = c;
+            return r;
+        }
+        case ALL: {
+            Runtime::Context c = _context;
+            _context.other = c.self;
+            InstanceList::Iterator iter;
+            Instance* i;
+            while(i = iter.Next()) {
+                _context.self = i;
+                _context.objId = i->id;
+                if(!_code->Run()) return false;
+            }
+            c.locals = _context.locals;
+            _context = c;
+            return true;
+        }
+        case NOONE: {
+            return true;
+        }
+        default: {
+            if(objID < 0) return false;
+            Runtime::Context c = _context;
+            _context.other = c.self;
+            InstanceList::Iterator iter(objID);
+            Instance* i;
+            while (i = iter.Next()) {
+                _context.self = i;
+                _context.objId = i->id;
+                if (!_code->Run()) return false;
+            }
+            c.locals = _context.locals;
+            _context = c;
+            return true;
+        }
+    }
+}
+
+bool CRActionRepeat::Run() {
+    GMLType v;
+    if (!_expression.Evaluate(&v)) return false;
+    if(v.state != GMLTypeState::Double) return false; // repeat count must be a number
+    int count = Runtime::_round(v.dVal);
+    for(unsigned int i = 0; i < count; i++) {
+        if(!_code->Run()) return false;
+    }
+    return true;
+}
+
+bool CRActionWhile::Run() { return false; }
+
+bool CRActionDoUntil::Run() { return false; }
+
+bool CRActionFor::Run() { return false; }
 
 bool CRActionSwitch::Run() { return false; }
 

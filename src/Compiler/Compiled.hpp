@@ -34,6 +34,7 @@ class CRActionList {
   public:
     inline void Append(CRAction* a) { _actions.push_back(a); }
     bool Run(unsigned int start = 0);
+    inline size_t Count() {return _actions.size();}
 };
 
 // List of expression values
@@ -171,14 +172,62 @@ class CRActionWith : public CRAction {
     virtual bool Run() override;
 };
 
+class CRActionRepeat : public CRAction {
+  private:
+    CRExpression _expression;
+    CRAction* _code;
+
+  public:
+    CRActionRepeat(CRExpression exp, CRAction* code) : _expression(exp), _code(code) {}
+    virtual bool Run() override;
+};
+
+class CRActionWhile : public CRAction {
+  private:
+    CRExpression _expression;
+    CRAction* _code;
+
+  public:
+    CRActionWhile(CRExpression exp, CRAction* code) : _expression(exp), _code(code) {}
+    virtual bool Run() override;
+};
+
+class CRActionFor : public CRAction {
+  private:
+      CRAction* _initializer;
+    CRExpression _check;
+    CRAction* _finalizer;
+    CRAction* _code;
+
+  public:
+    CRActionFor(CRAction* init, CRExpression exp, CRAction* final, CRAction* code) : _initializer(init), _check(exp), _finalizer(final), _code(code) {}
+    virtual bool Run() override;
+};
+
+class CRActionDoUntil : public CRAction {
+  private:
+    CRExpression _expression;
+    CRAction* _code;
+
+  public:
+    CRActionDoUntil(CRExpression exp, CRAction* code) : _expression(exp), _code(code) {}
+    virtual bool Run() override;
+};
+
+struct SwitchCase {
+    CRExpression expression;
+    unsigned int offset;
+    SwitchCase(CRExpression exp, unsigned int off) : expression(exp), offset(off) {}
+};
 class CRActionSwitch : public CRAction {
   private:
     CRExpression _expression;
     CRActionList _actions;
-    std::map<int, unsigned int> _offsets;
+    std::vector<SwitchCase> _cases;
+    unsigned int _defaultOffset;
 
   public:
-    CRActionSwitch(CRExpression exp, CRActionList actions, std::map<int, unsigned int>& offsets) : _expression(exp), _actions(actions), _offsets(offsets) {}
+    CRActionSwitch(CRExpression exp, CRActionList actions, std::vector<SwitchCase>& offsets, unsigned int def) : _expression(exp), _actions(actions), _cases(offsets), _defaultOffset(def) {}
     virtual bool Run() override;
 };
 
