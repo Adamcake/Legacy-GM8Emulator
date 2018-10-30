@@ -415,7 +415,7 @@ bool CodeActionManager::Run(CodeAction* actions, unsigned int count, Instance* s
 			while (_actions[actions[pos]].question) {
 				if (run) {
 					bool r;
-					if (!_runner->Query(_actions[actions[pos]].codeObj, self, other, &r)) return false;
+					if (!_runner->Query(_actions[actions[pos]].codeObj, self, other, ev, sub, asObjId, &r)) return false;
 					run &= r;
 				}
 				pos++;

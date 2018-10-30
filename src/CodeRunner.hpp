@@ -36,11 +36,11 @@ class CodeRunner {
 		// Run a compiled code object. Returns true on success, false on error (ie. the game should close.)
 		// Most be passed the instance ID of the "self" and "other" instances in this context. (both may be NULL)
 		// ev and sub indicate the event that's being run. For more info, check the "COMPILED OBJECT EVENTS" section of notes.txt
-		bool Run(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId);
+		bool Run(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, unsigned int argc = 0, GMLType* argv = nullptr);
 
 		// Run a compiled GML question (boolean expression). Returns true on success, false on error (ie. the game should close.)
 		// The output value is stored in the supplied pointer.
-		bool Query(CodeObject code, Instance* self, Instance* other, bool* response);
+        bool Query(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, bool* response);
 };
 
 #endif

@@ -14,25 +14,25 @@
 
 // Internal code object
 struct CRCodeObject {
-    std::string code;
+    char* _code;
     GM8Emulator::Compiler::TokenList _tokenized;
     bool question;
     CRActionList _actions;
     CRExpression _expression;
     CRCodeObject(const char* c, unsigned int l, bool q) : question(q) {
-        std::copy(c, c + l, std::back_inserter(code));
-        _tokenized = GM8Emulator::Compiler::TokenList(code.c_str(), l);
+        _code = (char*)malloc(l);
+        memcpy(_code, c, l);
+        _tokenized = GM8Emulator::Compiler::TokenList(_code, l);
     }
 };
 std::vector<CRCodeObject> _codeObjects;
 
 // Global game value settings
-GlobalValues* _globalValues;
+GlobalValues* _crGlobalValues;
 
 CodeRunner::CodeRunner(GlobalValues* globals) {
-    _globalValues = globals;
-    GM8Emulator::Compiler::Init();
-    Runtime::Init(globals);
+    _crGlobalValues = globals;
+    GM8Emulator::Compiler::Init(globals);
     RNGRandomize();
 }
 
@@ -72,13 +72,13 @@ bool CodeRunner::Compile(CodeObject object) {
 	}
 }
 
-bool CodeRunner::Run(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId) {
-    return Runtime::Execute(_codeObjects[code]._actions);
+bool CodeRunner::Run(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, unsigned int argc, GMLType* argv) {
+    return Runtime::Execute(_codeObjects[code]._actions, self, other, ev, sub, asObjId, argc, argv);
 }
 
-bool CodeRunner::Query(CodeObject code, Instance* self, Instance* other, bool* response) {
+bool CodeRunner::Query(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, bool* response) {
     GMLType t;
-    if(!Runtime::EvalExpression(_codeObjects[code]._expression, &t)) return false;
+    if (!Runtime::EvalExpression(_codeObjects[code]._expression, self, other, ev, sub, asObjId, &t)) return false;
     (*response) = Runtime::_isTrue(&t);
     return true;
 }

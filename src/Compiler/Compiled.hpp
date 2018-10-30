@@ -16,8 +16,11 @@ class CRExpressionValue {
     std::vector<CRUnaryOperator> _unary;
     CROperator _operator;
 
+  protected:
+    virtual bool _evaluate(GMLType* output) = 0;
+
   public:
-    virtual bool Evaluate(GMLType* output) = 0;
+    bool Evaluate(GMLType* output);
     inline CROperator GetOperator() { return _operator; }
     inline void SetOperator(CROperator op) { _operator = op; }
     inline void SetUnaries(const std::vector<CRUnaryOperator>&& v) { _unary = v; }
@@ -45,6 +48,15 @@ class CRExpression {
 
 
 // Actual action types
+
+class CRActionBindVars : public CRAction {
+  private:
+    std::vector<unsigned int> _fields;
+
+  public:
+    virtual bool Run() override;
+    CRActionBindVars(std::vector<unsigned int>& fields) : _fields(fields) {}
+};
 
 class CRActionAssignmentField : public CRAction {
   private:
@@ -212,7 +224,7 @@ class CRExpLiteral : public CRExpressionValue {
         _value.state = GMLTypeState::String;
         _value.sVal = s;
     }
-    bool Evaluate(GMLType* output) override;
+    bool _evaluate(GMLType* output) override;
 };
 
 class CRExpFunction : public CRExpressionValue {
@@ -222,7 +234,7 @@ class CRExpFunction : public CRExpressionValue {
 
   public:
     CRExpFunction(CRInternalFunction func, std::vector<CRExpression>& args) : _function(func), _args(args) {}
-    bool Evaluate(GMLType* output) override;
+    bool _evaluate(GMLType* output) override;
 };
 
 class CRExpScript : public CRExpressionValue {
@@ -232,7 +244,7 @@ class CRExpScript : public CRExpressionValue {
 
   public:
     CRExpScript(unsigned int id, std::vector<CRExpression>& args) : _script(id), _args(args) {}
-    bool Evaluate(GMLType* output) override;
+    bool _evaluate(GMLType* output) override;
 };
 
 class CRExpNestedExpression : public CRExpressionValue {
@@ -241,7 +253,7 @@ class CRExpNestedExpression : public CRExpressionValue {
 
   public:
     CRExpNestedExpression(CRExpression exp) : _expression(exp) {}
-    bool Evaluate(GMLType* output) override;
+    bool _evaluate(GMLType* output) override;
 };
 
 class CRExpField : public CRExpressionValue {
@@ -253,7 +265,7 @@ class CRExpField : public CRExpressionValue {
   public:
     CRExpField(unsigned int field) : _fieldNumber(field), _hasDeref(false) {}
     CRExpField(unsigned int field, CRExpression deref) : _fieldNumber(field), _deref(deref), _hasDeref(true) {}
-    bool Evaluate(GMLType* output) override;
+    bool _evaluate(GMLType* output) override;
 };
 
 class CRExpArray : public CRExpressionValue {
@@ -266,7 +278,7 @@ class CRExpArray : public CRExpressionValue {
   public:
     CRExpArray(unsigned int field, std::vector<CRExpression>& dimensions) : _fieldNumber(field), _dimensions(dimensions), _hasDeref(false) {}
     CRExpArray(unsigned int field, std::vector<CRExpression>& dimensions, CRExpression deref) : _fieldNumber(field), _dimensions(dimensions), _deref(deref), _hasDeref(true) {}
-    bool Evaluate(GMLType* output) override;
+    bool _evaluate(GMLType* output) override;
 };
 
 class CRExpInstanceVar : public CRExpressionValue {
@@ -279,7 +291,7 @@ class CRExpInstanceVar : public CRExpressionValue {
   public:
     CRExpInstanceVar(CRInstanceVar var, std::vector<CRExpression>& dimensions) : _var(var), _dimensions(dimensions), _hasDeref(false) {}
     CRExpInstanceVar(CRInstanceVar var, std::vector<CRExpression>& dimensions, CRExpression deref) : _var(var), _dimensions(dimensions), _deref(deref), _hasDeref(true) {}
-    bool Evaluate(GMLType* output) override;
+    bool _evaluate(GMLType* output) override;
 };
 
 class CRExpGameVar : public CRExpressionValue {
@@ -289,7 +301,7 @@ class CRExpGameVar : public CRExpressionValue {
 
   public:
     CRExpGameVar(CRGameVar var, std::vector<CRExpression>& dimensions) : _var(var), _dimensions(dimensions) {}
-    bool Evaluate(GMLType* output) override;
+    bool _evaluate(GMLType* output) override;
 };
 
 #endif

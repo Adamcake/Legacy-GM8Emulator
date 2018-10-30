@@ -7,15 +7,15 @@ struct Instance;
 class CRActionList;
 class CRExpression;
 
-#define SELF -1
-#define OTHER -2
-#define ALL -3
-#define NOONE -4
-#define GLOBAL -5
-#define LOCAL -7
+constexpr int SELF = -1;
+constexpr int OTHER = -2;
+constexpr int ALL = -3;
+constexpr int NOONE = -4;
+constexpr int GLOBAL = -5;
+constexpr int LOCAL = -7;
 
 namespace Runtime {
-    void Init(GlobalValues*);
+    void Init(GlobalValues* globals, std::vector<bool (*)(unsigned int, GMLType*, GMLType*)>& gmlFuncs);
     void Finalize();
 
     GlobalValues* GetGlobals();
@@ -35,15 +35,15 @@ namespace Runtime {
         unsigned int objId;
         unsigned int argc;
         const GMLType* argv;
-        std::map<unsigned int, GMLType> locals;
+        std::map<unsigned int, std::map<unsigned int, GMLType>> locals;
         Context() : self(nullptr), other(nullptr), eventId(0), eventNumber(0), objId(0), argc(0), argv(nullptr) {}
         Context(Instance* s, Instance* o, int e, int se, unsigned int oid, unsigned int ac = 0, const GMLType* av = NULL) : self(s), other(o), eventId(e), eventNumber(se), objId(oid), argc(ac), argv(av) {}
         //Context(Instance* o, unsigned int id, unsigned int ac = 0, const GMLType* av = NULL) : other(o), argc(ac), argv(av) {}
     };
     Context GetContext();
 
-    bool Execute(CRActionList&);
-    bool EvalExpression(CRExpression&, GMLType* out);
+    bool Execute(CRActionList&, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, unsigned int argc = 0, GMLType* argv = nullptr);
+    bool EvalExpression(CRExpression&, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, GMLType* out);
 
     // GML internal functions
     bool abs(unsigned int argc, GMLType* argv, GMLType* out);
