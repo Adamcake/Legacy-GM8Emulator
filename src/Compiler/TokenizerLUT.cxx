@@ -1,3 +1,5 @@
+#include <pch.h>
+
 #include "Tokenizer.hxx"
 
 /* extern */ const uint8_t GM8Emulator::Compiler::OperatorSeparatorLUT[94] = {

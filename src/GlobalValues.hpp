@@ -1,6 +1,7 @@
 #ifndef _A_GLOBALVALUES_HPP_
 #define _A_GLOBALVALUES_HPP_
 
+#include <string>
 
 // These are the GML values that are global (ie. not tied to any one instance.)
 struct GlobalValues {

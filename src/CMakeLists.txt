@@ -1,6 +1,6 @@
 # it uses globs, remake on pull. it's not that hard.
-file(GLOB Source "*.cpp")
-file(GLOB Headers "*.hpp" "*.h")
+file(GLOB_RECURSE Source "*.cpp" "*.cxx")
+file(GLOB_RECURSE Headers "*.hxx" "*.hpp" "*.h")
 
 add_executable(GM8Emulator ${Source} ${Headers} "pch.cpp" "pch.h")
 add_precompiled_header(GM8Emulator "pch.h" SOURCE_CXX "pch.cpp")
