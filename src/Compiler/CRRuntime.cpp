@@ -1042,7 +1042,7 @@ bool CRActionAssignmentGameVar::Run() {
         }
     }
 
-    return !_setGameValue(_var, index, _method, v);
+    return _setGameValue(_var, index, _method, v);
 }
 
 bool CRActionBlock::Run() {

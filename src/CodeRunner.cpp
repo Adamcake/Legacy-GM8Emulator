@@ -30,34 +30,34 @@ std::vector<CRCodeObject> _codeObjects;
 // Global game value settings
 GlobalValues* _crGlobalValues;
 
-CodeRunner::CodeRunner(GlobalValues* globals) {
+bool CodeManager::Init(GlobalValues* globals) {
     _crGlobalValues = globals;
-    GM8Emulator::Compiler::Init(globals);
     RNGRandomize();
+    return GM8Emulator::Compiler::Init(globals);
 }
 
-CodeRunner::~CodeRunner() {
+void CodeManager::Finalize() {
     for (unsigned int i = 0; i < _codeObjects.size(); i++) {
         // todo
     }
     Runtime::Finalize();
 }
 
-CodeObject CodeRunner::Register(char* code, unsigned int len) {
+CodeObject CodeManager::Register(char* code, unsigned int len) {
     unsigned int ix = ( unsigned int )_codeObjects.size();
     _codeObjects.push_back(CRCodeObject(code, len, false));
 
     return ix;
 }
 
-CodeObject CodeRunner::RegisterQuestion(char* code, unsigned int len) {
+CodeObject CodeManager::RegisterQuestion(char* code, unsigned int len) {
     unsigned int ix = ( unsigned int )_codeObjects.size();
     _codeObjects.push_back(CRCodeObject(code, len, true));
 
     return ix;
 }
 
-bool CodeRunner::Compile(CodeObject object) {
+bool CodeManager::Compile(CodeObject object) {
     try {
         if (_codeObjects[object].question) {
             if(!GM8Emulator::Compiler::InterpretExpression(_codeObjects[object]._tokenized, &_codeObjects[object]._expression)) return false;
@@ -72,11 +72,11 @@ bool CodeRunner::Compile(CodeObject object) {
 	}
 }
 
-bool CodeRunner::Run(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, unsigned int argc, GMLType* argv) {
+bool CodeManager::Run(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, unsigned int argc, GMLType* argv) {
     return Runtime::Execute(_codeObjects[code]._actions, self, other, ev, sub, asObjId, argc, argv);
 }
 
-bool CodeRunner::Query(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, bool* response) {
+bool CodeManager::Query(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, bool* response) {
     GMLType t;
     if (!Runtime::EvalExpression(_codeObjects[code]._expression, self, other, ev, sub, asObjId, &t)) return false;
     (*response) = Runtime::_isTrue(&t);
@@ -84,10 +84,10 @@ bool CodeRunner::Query(CodeObject code, Instance* self, Instance* other, int ev,
 }
 
 
-void CodeRunner::SetRoomOrder(unsigned int** order, unsigned int count) {
+void CodeManager::SetRoomOrder(unsigned int** order, unsigned int count) {
     Runtime::SetRoomOrder(order, count);
 }
 
-bool CodeRunner::Init() {
+bool CodeManager::Init() {
     return true;
 }

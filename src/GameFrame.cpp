@@ -61,7 +61,7 @@ bool GameLoadRoom(int id) {
                 return false;
             }
             // run room->instances[i] creation code
-            if (!_runner->Run(room->instances[i].creation, instance, NULL, 0, 0, 0)) return false;  // not sure if it matters what event id and number I pass here?
+            if (!CodeManager::Run(room->instances[i].creation, instance, NULL, 0, 0, 0)) return false;  // not sure if it matters what event id and number I pass here?
             // run instance create event
             Object* o = AssetManager::GetObject(instance->object_index);
             if (!CodeActionManager::RunInstanceEvent(0, 0, instance, NULL, instance->object_index)) return false;
@@ -69,7 +69,7 @@ bool GameLoadRoom(int id) {
     }
 
     // run room's creation code
-    if (!_runner->Run(room->creationCode, NULL, NULL, 0, 0, 0)) return false;  // not sure if it matters what event id and number I pass here
+    if (!CodeManager::Run(room->creationCode, NULL, NULL, 0, 0, 0)) return false;  // not sure if it matters what event id and number I pass here
 
     iter = InstanceList::Iterator();
     Instance* instance;

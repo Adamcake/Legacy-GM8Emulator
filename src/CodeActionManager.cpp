@@ -15,7 +15,6 @@ namespace CodeActionManager {
         unsigned int param;  // Currently only used for repeat blocks because the game object needs to know how many times to repeat.
     };
     std::vector<CACodeAction> _actions;
-    CodeRunner* _runner;
 }
 
 bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, CodeAction* out) {
@@ -385,10 +384,10 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
 
 	// Register the code we just generated
 	if (action.question) {
-		action.codeObj = _runner->RegisterQuestion(gml, gmlLen);
+        action.codeObj = CodeManager::RegisterQuestion(gml, gmlLen);
 	}
 	else {
-		action.codeObj = _runner->Register(gml, gmlLen);
+        action.codeObj = CodeManager::Register(gml, gmlLen);
 	}
 
 	// Clean up
@@ -403,7 +402,7 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
 }
 
 bool CodeActionManager::Compile(CodeAction action) {
-	return _runner->Compile(_actions[action].codeObj);
+	return CodeManager::Compile(_actions[action].codeObj);
 }
 
 bool CodeActionManager::Run(CodeAction* actions, unsigned int count, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId) {
@@ -415,7 +414,7 @@ bool CodeActionManager::Run(CodeAction* actions, unsigned int count, Instance* s
 			while (_actions[actions[pos]].question) {
 				if (run) {
 					bool r;
-					if (!_runner->Query(_actions[actions[pos]].codeObj, self, other, ev, sub, asObjId, &r)) return false;
+                    if (!CodeManager::Query(_actions[actions[pos]].codeObj, self, other, ev, sub, asObjId, &r)) return false;
 					run &= r;
 				}
 				pos++;
@@ -423,7 +422,7 @@ bool CodeActionManager::Run(CodeAction* actions, unsigned int count, Instance* s
 		}
 
 		if(run) {
-			if (!_runner->Run(_actions[actions[pos]].codeObj, self, other, ev, sub, asObjId)) return false;
+            if (!CodeManager::Run(_actions[actions[pos]].codeObj, self, other, ev, sub, asObjId)) return false;
 			pos++;
 		}
 		else {
@@ -461,7 +460,3 @@ bool CodeActionManager::RunInstanceEvent(int ev, int sub, Instance* target, Inst
 bool CodeActionManager::CheckObjectEvent(int ev, int sub, Object* o) {
 	return o->events[ev].count(sub);
 }
-
- void CodeActionManager::SetRunner(CodeRunner* runner) {
-     _runner = runner;
- }

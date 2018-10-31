@@ -236,7 +236,6 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 
 #pragma region Global extern definitions
 GlobalValues _globals;
-CodeRunner* _runner;
 GameInfo _info;
 unsigned int* _roomOrder;
 unsigned int _roomOrderCount;
@@ -249,8 +248,6 @@ void GameInit() {
 	_info.gameInfo = NULL;
 	RInit();
     InstanceList::Init();
-	_runner = new CodeRunner(&_globals);
-	CodeActionManager::SetRunner(_runner);
 	_roomOrder = NULL;
 	_lastUsedRoomSpeed = 0;
 }
@@ -266,7 +263,6 @@ void GameTerminate() {
 	// Clean up
 	free(_info.caption);
 	free(_info.gameInfo);
-	delete _runner;
 	delete[] _roomOrder;
 	RTerminate();
     InstanceList::Finalize();
@@ -274,7 +270,7 @@ void GameTerminate() {
 
 bool GameLoad(const char *pFilename) {
 	// Init the runner
-	if (! _runner->Init()) {
+    if (!CodeManager::Init(&_globals)) {
 		return false;
 	}
 
@@ -622,7 +618,7 @@ bool GameLoad(const char *pFilename) {
 		char* condition = ReadString(data, &dataPos, &condLength);
 		trigger->checkMoment = ReadDword(data, &dataPos);
 		trigger->constantName = ReadString(data, &dataPos);
-		trigger->codeObj = _runner->RegisterQuestion(condition, condLength);
+		trigger->codeObj = CodeManager::RegisterQuestion(condition, condLength);
 		free(condition);
 	}
 
@@ -910,7 +906,7 @@ bool GameLoad(const char *pFilename) {
 		dataPos += 4;
 		unsigned int codeLen;
 		char* code = ReadString(data, &dataPos, &codeLen);
-		script->codeObj = _runner->Register(code, codeLen);
+        script->codeObj = CodeManager::Register(code, codeLen);
 		free(code);
 	}
 
@@ -1126,7 +1122,7 @@ bool GameLoad(const char *pFilename) {
 		room->drawBackgroundColour = ReadDword(data, &dataPos);
 		unsigned int creationLen;
 		char* creation = ReadString(data, &dataPos, &creationLen);
-		room->creationCode = _runner->Register(creation, creationLen);
+        room->creationCode = CodeManager::Register(creation, creationLen);
 		free(creation);
 
 		// Room backgrounds
@@ -1179,7 +1175,7 @@ bool GameLoad(const char *pFilename) {
 			instance->id = ReadDword(data, &dataPos);
 			unsigned int codeLen;
 			char* code = ReadString(data, &dataPos, &codeLen);
-			instance->creation = _runner->Register(code, codeLen);
+            instance->creation = CodeManager::Register(code, codeLen);
 			free(code);
 		}
 
@@ -1288,7 +1284,7 @@ bool GameLoad(const char *pFilename) {
 	for (unsigned int i = 0; i < _roomOrderCount; i++) {
 		_roomOrder[i] = ReadDword(buffer, &pos);
 	}
-    _runner->SetRoomOrder(&_roomOrder, _roomOrderCount);
+    CodeManager::SetRoomOrder(&_roomOrder, _roomOrderCount);
 
 	// Compile object parented event lists and identities
 	for (unsigned int i = 0; i < objectCount; i++) {
@@ -1323,7 +1319,7 @@ bool GameLoad(const char *pFilename) {
 	for (unsigned int i = 0; i < scriptCount; i++) {
 		Script* s = AssetManager::GetScript(i);
 		if (s->exists) {
-			if (!_runner->Compile(s->codeObj)) {
+            if (!CodeManager::Compile(s->codeObj)) {
 				// Error compiling script
 				free(data);
 				delete [] buffer;
@@ -1369,7 +1365,7 @@ bool GameLoad(const char *pFilename) {
 	for (unsigned int i = 0; i < triggerCount; i++) {
 		Trigger* t = AssetManager::GetTrigger(i);
 		if (t->exists) {
-			if (!_runner->Compile(t->codeObj)) {
+            if (!CodeManager::Compile(t->codeObj)) {
 				// Error compiling script
 				free(data);
 				delete [] buffer;
@@ -1381,14 +1377,14 @@ bool GameLoad(const char *pFilename) {
 	for (unsigned int i = 0; i < roomCount; i++) {
 		Room* r = AssetManager::GetRoom(i);
 		if (r->exists) {
-			if (!_runner->Compile(r->creationCode)) {
+            if (!CodeManager::Compile(r->creationCode)) {
 				// Error compiling script
 				free(data);
 				delete [] buffer;
 				return false;
 			}
 			for (unsigned int j = 0; j < r->instanceCount; j++) {
-				if (!_runner->Compile(r->instances[j].creation)) {
+                if (!CodeManager::Compile(r->instances[j].creation)) {
 					// Error compiling script
 					free(data);
 					delete [] buffer;

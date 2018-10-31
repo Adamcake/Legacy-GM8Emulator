@@ -29,9 +29,6 @@ namespace CodeActionManager {
     // In conjunction with the above, this tells us if an ev and sub has a defined event within an object.
     // If not, the instance's parent should usually be checked next.
     bool CheckObjectEvent(int ev, int sub, Object* obj);
-
-    // Must be done before
-    void SetRunner(CodeRunner* runner);
 };
 
 #endif
