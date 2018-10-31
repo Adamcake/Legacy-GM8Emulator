@@ -9,6 +9,7 @@
 #include "Instance.hpp"
 #include "InstanceList.hpp"
 #include "Renderer.hpp"
+#include "CodeRunner.hpp"
 
 GlobalValues* _globalValues;
 std::map<unsigned int, std::map<unsigned int, GMLType>> _global;
@@ -1059,16 +1060,13 @@ bool CRActionRunFunction::Run() {
 }
 
 bool CRActionRunScript::Run() {
-    /*
     GMLType argv[16];
     unsigned int argc = static_cast<unsigned int>(_args.size());
     for (unsigned int i = 0; i < argc; i++) {
         if (!_args[i].Evaluate(argv + i)) return false;
     }
     Script* scr = AssetManager::GetScript(_scriptID);
-    // run script here????????
-    */
-    return false;
+    return CodeManager::Run(scr->codeObj, _context.self, _context.other, _context.eventId, _context.eventNumber, _context.objId, argc, argv);
 }
 
 bool CRActionIfElse::Run() {
