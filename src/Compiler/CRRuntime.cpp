@@ -1140,17 +1140,50 @@ bool CRActionRepeat::Run() {
     if (!_expression.Evaluate(&v)) return false;
     if(v.state != GMLTypeState::Double) return false; // repeat count must be a number
     int count = Runtime::_round(v.dVal);
-    for(unsigned int i = 0; i < count; i++) {
+    for(int i = 0; i < count; i++) {
         if(!_code->Run()) return false;
     }
     return true;
 }
 
-bool CRActionWhile::Run() { return false; }
+bool CRActionWhile::Run() {
+    while(true) {
+        GMLType out;
+        if(!_expression.Evaluate(&out)) return false;
+        if(Runtime::_isTrue(&out)) {
+            if(!_code->Run()) return false;
+        }
+        else {
+            return true;
+        }
+    }
+}
 
-bool CRActionDoUntil::Run() { return false; }
+bool CRActionDoUntil::Run() {
+    while (true) {
+        if (!_code->Run()) return false;
+        GMLType out;
+        if (!_expression.Evaluate(&out)) return false;
+        if (Runtime::_isTrue(&out)) {
+            return true;
+        }
+    }
+}
 
-bool CRActionFor::Run() { return false; }
+bool CRActionFor::Run() {
+    if(!_initializer->Run()) return false;
+    while(true) {
+        GMLType out;
+        if (!_check.Evaluate(&out)) return false;
+        if(Runtime::_isTrue(&out)) {
+            if (!_code->Run()) return false;
+            if (!_finalizer->Run()) return false;
+        }
+        else {
+            return true;
+        }
+    }
+}
 
 bool CRActionSwitch::Run() { return false; }
 
@@ -1169,14 +1202,22 @@ bool CRExpLiteral::_evaluate(GMLType* output) {
 
 bool CRExpFunction::_evaluate(GMLType* output) {
     GMLType argv[16];
-    unsigned int argc = _args.size();
+    unsigned int argc = static_cast<unsigned int>(_args.size());
     for (unsigned int i = 0; i < argc; i++) {
         if (!_args[i].Evaluate(argv + i)) return false;
     }
     return (*_gmlFuncs[_function])(argc, argv, output);
 }
 
-bool CRExpScript::_evaluate(GMLType* output) { return false; }
+bool CRExpScript::_evaluate(GMLType* output) {
+    GMLType argv[16];
+    unsigned int argc = static_cast<unsigned int>(_args.size());
+    for (unsigned int i = 0; i < argc; i++) {
+        if (!_args[i].Evaluate(argv + i)) return false;
+    }
+    Script* scr = AssetManager::GetScript(_script);
+    return CodeManager::Run(scr->codeObj, _context.self, _context.other, _context.eventId, _context.eventNumber, _context.objId, argc, argv);
+}
 
 bool CRExpNestedExpression::_evaluate(GMLType* output) {
     return _expression.Evaluate(output);

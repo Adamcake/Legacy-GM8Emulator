@@ -4881,10 +4881,18 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                                 }
                                 else {
                                     unsigned int fieldNumber = _RegisterField(identifier);
-                                    if (hasDeref)
-                                        value = new CRExpField(fieldNumber, derefCompiled);
-                                    else
-                                        value = new CRExpField(fieldNumber);
+                                    if (!dimensions.size()) {
+                                        if (hasDeref)
+                                            value = new CRExpField(fieldNumber, derefCompiled);
+                                        else
+                                            value = new CRExpField(fieldNumber);
+                                    }
+                                    else {
+                                        if (hasDeref)
+                                            value = new CRExpArray(fieldNumber, dimensions, derefCompiled);
+                                        else
+                                            value = new CRExpArray(fieldNumber, dimensions);
+                                    }
                                 }
                             }
                         }
