@@ -4645,7 +4645,9 @@ bool GM8Emulator::Compiler::Interpret(const TokenList& list, CRActionList* outpu
     unsigned int pos = 0;
     CRAction* action;
     while (pos < list.tokens.size()) {
-        if (!_InterpretLine(list, &action, pos)) return false;
+        if (!_InterpretLine(list, &action, pos)) {
+            return false;
+        }
         output->Append(action);
     }
     return true;
@@ -4682,6 +4684,7 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
 
         // Read the deref for this expression
         GM8Emulator::Compiler::TokenList deref;
+        // unsigned int storedPos = *pos;
         unsigned int newPos = *pos;
         while (true) {
             if (_TokenHasValue(list.tokens[newPos], SeparatorType::ParenLeft)) {
@@ -4717,6 +4720,21 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                             }
                         }
                     }
+                    else if (_TokenHasValue(list.tokens[newPos], SeparatorType::ParenLeft)) {
+                        // Skip over function args
+                        unsigned int depth = 1;
+                        while (++newPos) {
+                            if (_TokenHasValue(list.tokens[newPos], SeparatorType::ParenLeft))
+                                depth++;
+                            else if (_TokenHasValue(list.tokens[newPos], SeparatorType::ParenRight)) {
+                                depth--;
+                                if (depth == 0) {
+                                    newPos++;
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
             }
             if (newPos < list.tokens.size()) {
@@ -4725,6 +4743,8 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                     for (unsigned int i = *pos; i < newPos; i++) {
                         deref.tokens.push_back(list.tokens[i]);
                     }
+                    newPos++;
+                    (*pos) = newPos;
                 }
                 else {
                     break;
@@ -4734,6 +4754,7 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                 break;
             }
         }
+        //(*pos) = storedPos;
 
         CRExpression derefCompiled;
         bool hasDeref = false;
@@ -4752,8 +4773,7 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                 TokenList innerList;
                 unsigned int depth = 1;
                 while (++(*pos)) {
-                    if (_TokenHasValue(list.tokens[*pos], SeparatorType::ParenLeft))
-                        depth++;
+                    if (_TokenHasValue(list.tokens[*pos], SeparatorType::ParenLeft)) depth++;
                     if (_TokenHasValue(list.tokens[*pos], SeparatorType::ParenRight)) {
                         depth--;
                         if (!depth) break;
@@ -4816,11 +4836,20 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                     std::vector<CRExpression> dimensions;
                     if ((*pos) < list.tokens.size()) {
                         if (_TokenHasValue(list.tokens[*pos], SeparatorType::SquareBracketLeft)) {
+                            (*pos)++;
                             while (!_TokenHasValue(list.tokens[*pos], SeparatorType::SquareBracketRight)) {
                                 CRExpression dim;
                                 if (!InterpretExpression(list, &dim, pos)) return false;
                                 dimensions.push_back(dim);
-                                if (_TokenHasValue(list.tokens[*pos], SeparatorType::Comma)) (*pos)++;
+                                if (_TokenHasValue(list.tokens[*pos], SeparatorType::Comma)) {
+                                    (*pos)++;
+                                }
+                                else if (_TokenHasValue(list.tokens[*pos], SeparatorType::SquareBracketRight)) {
+                                    (*pos)++;
+                                    break;
+                                }
+                                else
+                                    return false;
                             }
                         }
                     }
@@ -4878,6 +4907,8 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                 (*pos)++;
                 break;
             }
+            default:
+                return false;
         }
         value->SetUnaries(std::move(unaries));
         output->Append(value);
@@ -5146,12 +5177,12 @@ bool GM8Emulator::Compiler::_InterpretSwitch(const GM8Emulator::Compiler::TokenL
         }
         else {
             CRAction* act;
-            if(!_InterpretLine(list, &act, pos)) return false;
+            if (!_InterpretLine(list, &act, pos)) return false;
             actions.Append(act);
         }
     }
     pos++;
-    if(!defaulted) defaultOffset = actions.Count();
+    if (!defaulted) defaultOffset = actions.Count();
     (*output) = new CRActionSwitch(exp, actions, cases, defaultOffset);
     return true;
 }
@@ -5172,9 +5203,9 @@ bool GM8Emulator::Compiler::_InterpretContinue(const GM8Emulator::Compiler::Toke
 
 bool GM8Emulator::Compiler::_InterpretReturn(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) {
     CRExpression exp;
+    pos++;
     if (!InterpretExpression(list, &exp, &pos)) return false;
     (*output) = new CRActionReturn(exp);
-    pos++;
     _SkipSemicolon(list, pos);
     return true;
 }
@@ -5214,9 +5245,9 @@ bool GM8Emulator::Compiler::_InterpretAssignment(const GM8Emulator::Compiler::To
             // Skip over an array accessor...
             unsigned int depth = 1;
             while (++pos) {
-                if (_TokenHasValue(list.tokens[pos], SeparatorType::ParenLeft))
+                if (_TokenHasValue(list.tokens[pos], SeparatorType::SquareBracketLeft))
                     depth++;
-                else if (_TokenHasValue(list.tokens[pos], SeparatorType::ParenRight)) {
+                else if (_TokenHasValue(list.tokens[pos], SeparatorType::SquareBracketRight)) {
                     depth--;
                     if (!depth) {
                         pos++;
@@ -5262,10 +5293,15 @@ bool GM8Emulator::Compiler::_InterpretAssignment(const GM8Emulator::Compiler::To
             CRExpression dim;
             if (!InterpretExpression(list, &dim, &pos)) return false;
             dimensions.push_back(dim);
-            if (_TokenHasValue(list.tokens[pos], SeparatorType::Comma))
+            if (_TokenHasValue(list.tokens[pos], SeparatorType::Comma)) {
                 pos++;
-            else
+            }
+            else if (_TokenHasValue(list.tokens[pos], SeparatorType::SquareBracketRight)) {
+                pos++;
                 break;
+            }
+            else
+                return false;
         }
     }
 
