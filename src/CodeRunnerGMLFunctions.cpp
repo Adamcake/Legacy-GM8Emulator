@@ -802,17 +802,17 @@ bool Runtime::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* out) 
         Instance* self = GetContext().self;
         double startx = self->x, starty = self->y;
         Instance* target;
-        bool doThirdCheck = true;
 
 		// First collision check - x offset only
         self->x += self->hspeed;
         self->bboxIsStale = true;
+        bool didChange = false;
         InstanceList::Iterator iter;
         while (target = iter.Next()) {
             if (target->solid) {
                 if (CollisionCheck(self, target)) {
                     self->hspeed = -self->hspeed;
-                    doThirdCheck = false;
+                    didChange = true;
                     break;
 				}
 			}
@@ -827,13 +827,13 @@ bool Runtime::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* out) 
             if (target->solid) {
                 if (CollisionCheck(self, target)) {
                     self->vspeed = -self->vspeed;
-                    doThirdCheck = false;
+                    didChange = true;
                     break;
                 }
             }
         }
 
-		if (doThirdCheck) {
+		if (!didChange) {
 			// Third collision check - x and y offset
             self->x += self->hspeed;
             self->bboxIsStale = true;
@@ -843,6 +843,7 @@ bool Runtime::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* out) 
                     if (CollisionCheck(self, target)) {
                         self->hspeed = -self->hspeed;
                         self->vspeed = -self->vspeed;
+                        didChange = true;
                         break;
                     }
                 }
@@ -852,6 +853,11 @@ bool Runtime::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* out) 
 		self->x = startx;
         self->y = starty;
         self->bboxIsStale = true;
+
+        if(didChange) {
+            self->direction = ::atan2(-self->vspeed * GML_PI / 180.0, self->hspeed * GML_PI / 180.0) * 180.0 / GML_PI;
+            self->speed = ::sqrt(pow(self->hspeed, 2) + pow(self->vspeed, 2));
+        }
 
 		return true;
 	}

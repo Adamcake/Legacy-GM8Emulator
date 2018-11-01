@@ -347,21 +347,21 @@ bool _setInstanceVar(Instance* instance, CRInstanceVar index, unsigned int array
             t.dVal = instance->speed;
             if (!_applySetMethod(&t, method, &value)) return false;
             instance->speed = t.dVal;
-            instance->hspeed = ::cos(instance->direction * GML_PI / 180.0) * instance->speed;
+            instance->hspeed =  ::cos(instance->direction * GML_PI / 180.0) * instance->speed;
             instance->vspeed = -::sin(instance->direction * GML_PI / 180.0) * instance->speed;
             break;
         case IV_VSPEED:
             t.dVal = instance->vspeed;
             if (!_applySetMethod(&t, method, &value)) return false;
             instance->vspeed = t.dVal;
-            instance->direction = (instance->hspeed == 0) ? ::abs(instance->vspeed) : (::atan(-instance->vspeed / instance->hspeed) * 180.0 / GML_PI);
+            instance->direction = ::atan2(instance->vspeed, instance->hspeed) * 180.0 / GML_PI;
             instance->speed = ::sqrt(pow(instance->hspeed, 2) + pow(instance->vspeed, 2));
             break;
         case IV_HSPEED:
             t.dVal = instance->hspeed;
             if (!_applySetMethod(&t, method, &value)) return false;
             instance->hspeed = t.dVal;
-            instance->direction = (instance->hspeed == 0) ? ::abs(instance->vspeed) : (::atan(-instance->vspeed / instance->hspeed) * 180.0 / GML_PI);
+            instance->direction = ::atan2(instance->vspeed, instance->hspeed) * 180.0 / GML_PI;
             instance->speed = ::sqrt(pow(instance->hspeed, 2) + pow(instance->vspeed, 2));
             break;
         case IV_GRAVITY:

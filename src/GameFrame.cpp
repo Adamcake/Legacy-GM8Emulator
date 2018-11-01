@@ -208,7 +208,7 @@ bool GameFrame() {
             instance->vspeed += -sin(instance->gravity_direction * GML_PI / 180.0) * instance->gravity;
 
             // Recalculate speed and direction from hspeed/vspeed
-            instance->direction = atan(-instance->vspeed / instance->hspeed) * 180.0 / GML_PI;
+            instance->direction = ::atan2(instance->vspeed, instance->hspeed) * 180.0 / GML_PI;
             instance->speed = sqrt(pow(instance->hspeed, 2) + pow(instance->vspeed, 2));
         }
 
