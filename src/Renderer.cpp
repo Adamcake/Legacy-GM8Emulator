@@ -188,16 +188,16 @@ bool RMakeGameWindow(GameSettings* settings, unsigned int w, unsigned int h) {
 	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	GLint vSize = (GLint)strlen(vertexShaderCode);
 	GLint fSize = (GLint)strlen(fragmentShaderCode);
-	glShaderSourceARB(vertexShader, 1, &vertexShaderCode, &vSize);
-	glShaderSourceARB(fragmentShader, 1, &fragmentShaderCode, &fSize);
-	glCompileShaderARB(vertexShader);
-	glCompileShaderARB(fragmentShader);
-	glGetObjectParameterivARB(vertexShader, GL_COMPILE_STATUS, &vertexCompiled);
-	glGetObjectParameterivARB(fragmentShader, GL_COMPILE_STATUS, &fragmentCompiled);
-	if ((!vertexCompiled) || (!fragmentCompiled)) {
-		// Failed to compile shaders
-		return false;
-	}
+	glShaderSource(vertexShader, 1, &vertexShaderCode, &vSize);
+	glShaderSource(fragmentShader, 1, &fragmentShaderCode, &fSize);
+	glCompileShader(vertexShader);
+	glCompileShader(fragmentShader);
+	//glGetObjectParameteriv(vertexShader, GL_COMPILE_STATUS, &vertexCompiled);
+	//glGetObjectParameteriv(fragmentShader, GL_COMPILE_STATUS, &fragmentCompiled);
+	//if ((!vertexCompiled) || (!fragmentCompiled)) {
+	//	// Failed to compile shaders
+	//	return false;
+	//}
 	_glProgram = glCreateProgram();
 	glAttachShader(_glProgram, vertexShader);
 	glAttachShader(_glProgram, fragmentShader);

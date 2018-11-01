@@ -45,6 +45,7 @@ namespace GM8Emulator {
         std::vector<const char*> _instanceVarNames;
         std::vector<const char*> _internalFuncNames;
         std::vector<bool (*)(unsigned int, GMLType*, GMLType*)> _gmlFuncs;
+        std::vector<char> _operatorPrecedence;
         std::map<const char*, int> _gmlConsts = {{"ANSI_CHARSET", 0}, {"ARABIC_CHARSET", 178}, {"BALTIC_CHARSET", 186}, {"CHINESEBIG5_CHARSET", 136}, {"DEFAULT_CHARSET", 1},
             {"EASTEUROPE_CHARSET", 238}, {"GB2312_CHARSET", 134}, {"GREEK_CHARSET", 161}, {"HANGEUL_CHARSET", 129}, {"HEBREW_CHARSET", 177}, {"JOHAB_CHARSET", 130}, {"MAC_CHARSET", 77},
             {"OEM_CHARSET", 255}, {"RUSSIAN_CHARSET", 204}, {"SHIFTJIS_CHARSET", 128}, {"SYMBOL_CHARSET", 2}, {"THAI_CHARSET", 222}, {"TURKISH_CHARSET", 162}, {"VIETNAMESE_CHARSET", 163}, {"all", -3},
@@ -87,6 +88,45 @@ namespace GM8Emulator {
 }
 
 bool GM8Emulator::Compiler::Init(GlobalValues* globals) {
+    for (unsigned int op = 0; op < 20; op++) {
+        switch (op) {
+            case OPERATOR_DIVIDE:
+            case OPERATOR_MULTIPLY:
+            case OPERATOR_MOD:
+            case OPERATOR_DIV:
+                _operatorPrecedence.push_back(5);
+                break;
+            case OPERATOR_ADD:
+            case OPERATOR_SUBTRACT:
+                _operatorPrecedence.push_back(4);
+                break;
+            case OPERATOR_LSHIFT:
+            case OPERATOR_RSHIFT:
+                _operatorPrecedence.push_back(3);
+                break;
+            case OPERATOR_BITWISE_AND:
+            case OPERATOR_BITWISE_OR:
+            case OPERATOR_BITWISE_XOR:
+                _operatorPrecedence.push_back(2);
+                break;
+            case OPERATOR_EQUALS:
+            case OPERATOR_NOT_EQUAL:
+            case OPERATOR_LT:
+            case OPERATOR_LTE:
+            case OPERATOR_GT:
+            case OPERATOR_GTE:
+                _operatorPrecedence.push_back(1);
+                break;
+            case OPERATOR_BOOLEAN_AND:
+            case OPERATOR_BOOLEAN_OR:
+            case OPERATOR_BOOLEAN_XOR:
+                _operatorPrecedence.push_back(0);
+                break;
+            default:
+                return false;
+        }
+    }
+
     _gameValueNames.reserve(_GAME_VALUE_COUNT);
     for (unsigned int var = 0; var < _GAME_VALUE_COUNT; var++) {
         switch (var) {
@@ -4653,7 +4693,7 @@ bool GM8Emulator::Compiler::Interpret(const TokenList& list, CRActionList* outpu
     return true;
 }
 
-bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpression* output, unsigned int* pos) {
+bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpression* output, unsigned int* pos, char precedence) {
     // pos can be nullptr
     unsigned int p = 0;
     if (!pos) pos = &p;
@@ -4919,12 +4959,12 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                 return false;
         }
         value->SetUnaries(std::move(unaries));
-        output->Append(value);
 
         // Parse an operator
         if ((*pos) >= list.tokens.size()) {
             // No operators here because it's the end of the code, so exit
-            value->SetOperator(CROperator::OPERATOR_STOP);
+            value->SetOperator(CROperator::OPERATOR_NONE);
+            output->Append(value);
             return true;
         }
         if (list.tokens[*pos].type == Token::token_type::Operator) {
@@ -4994,9 +5034,23 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                     return false;
             }
             (*pos)++;
+
+            char newPrec = _operatorPrecedence[value->GetOperator()];
+            if (newPrec > precedence) {
+                CRExpression newNested;
+                newNested.Append(value);
+                if(!InterpretExpression(list, &newNested, pos, newPrec)) return false;
+                output->Append(new CRExpNestedExpression(newNested));
+                return true;
+            }
+            else {
+                output->Append(value);
+                precedence = newPrec;
+            }
         }
         else {
-            value->SetOperator(CROperator::OPERATOR_STOP);
+            value->SetOperator(CROperator::OPERATOR_NONE);
+            output->Append(value);
             return true;
         }
     }
