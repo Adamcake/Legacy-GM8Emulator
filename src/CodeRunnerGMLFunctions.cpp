@@ -51,7 +51,7 @@ namespace Runtime {
     // Room order
     unsigned int** _roomOrder;
     unsigned int _roomOrderCount;
-    void Runtime::SetRoomOrder(unsigned int** order, unsigned int count) {
+    void SetRoomOrder(unsigned int** order, unsigned int count) {
         _roomOrder = order;
         _roomOrderCount = count;
     }
