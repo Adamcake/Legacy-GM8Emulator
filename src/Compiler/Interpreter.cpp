@@ -5222,7 +5222,7 @@ bool GM8Emulator::Compiler::_InterpretSwitch(const GM8Emulator::Compiler::TokenL
     unsigned int defaultOffset;
     std::vector<SwitchCase> cases;
     CRActionList actions;
-    while (++pos) {
+    while (true) {
         if (_TokenHasValue(list.tokens[pos], SeparatorType::BraceRight))
             break;
         else if (_TokenHasValue(list.tokens[pos], KeywordType::Case)) {
