@@ -69,6 +69,8 @@ void GM8Emulator::Compiler::TokenList::ParseGML(const char* gml, const size_t& l
                 key = KeywordType::Continue;
             else if (svw == "return")
                 key = KeywordType::Return;
+            else if (svw == "exit")
+                key = KeywordType::Exit;
             else if (svw == "mod") {
                 tokens.push_back(Token(OperatorType::Modulo));
                 continue;

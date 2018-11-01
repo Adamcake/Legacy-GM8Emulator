@@ -19,6 +19,7 @@ namespace GM8Emulator {
         bool _InterpretBreak(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos);
         bool _InterpretContinue(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos);
         bool _InterpretReturn(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos);
+        bool _InterpretExit(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos);
         bool _InterpretAssignment(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos);
         bool _InterpretFunction(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos);
         bool _InterpretBraces(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos);
@@ -5084,6 +5085,8 @@ bool GM8Emulator::Compiler::_InterpretLine(const GM8Emulator::Compiler::TokenLis
                     return _InterpretContinue(list, output, pos);
                 case KeywordType::Return:
                     return _InterpretReturn(list, output, pos);
+                case KeywordType::Exit:
+                    return _InterpretExit(list, output, pos);
                 default:
                     return false;
             }
@@ -5268,6 +5271,13 @@ bool GM8Emulator::Compiler::_InterpretReturn(const GM8Emulator::Compiler::TokenL
     pos++;
     if (!InterpretExpression(list, &exp, &pos)) return false;
     (*output) = new CRActionReturn(exp);
+    _SkipSemicolon(list, pos);
+    return true;
+}
+
+bool GM8Emulator::Compiler::_InterpretExit(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) {
+    (*output) = new CRActionExit();
+    pos++;
     _SkipSemicolon(list, pos);
     return true;
 }

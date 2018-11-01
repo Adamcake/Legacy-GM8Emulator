@@ -39,6 +39,8 @@ namespace GM8Emulator {
             Continue,
             /* Keyword 'return' */
             Return,
+            /* Keyword 'exit' */
+            Exit,
             /* Default value (empty) */
             None
         };

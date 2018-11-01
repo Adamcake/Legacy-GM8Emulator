@@ -23,6 +23,7 @@ namespace GM8Emulator {
             constexpr const char *KBreak = "break";
             constexpr const char *KContinue = "continue";
             constexpr const char *KReturn = "return";
+            constexpr const char* KExit = "exit";
 
             // Operators
             constexpr const char *OPAdd = "+";
