@@ -246,6 +246,8 @@ const char* GM8Emulator::Compiler::KeywordToString(GM8Emulator::Compiler::Keywor
             return "break";
         case GM8Emulator::Compiler::KeywordType::Continue:
             return "continue";
+        case GM8Emulator::Compiler::KeywordType::Exit:
+            return "exit";
         case GM8Emulator::Compiler::KeywordType::Return:
             return "return";
         case GM8Emulator::Compiler::KeywordType::None:
