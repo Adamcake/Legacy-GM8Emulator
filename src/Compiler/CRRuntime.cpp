@@ -14,6 +14,7 @@
 GlobalValues* _globalValues;
 std::map<unsigned int, std::map<unsigned int, GMLType>> _global;
 std::vector<bool (*)(unsigned int, GMLType*, GMLType*)> _gmlFuncs;
+std::string _error;
 
 void Runtime::Init(GlobalValues* globals, std::vector<bool (*)(unsigned int, GMLType*, GMLType*)>& gmlFuncs) {
     _globalValues = globals;
@@ -28,11 +29,56 @@ GlobalValues* Runtime::GetGlobals() { return _globalValues; }
 Runtime::Context _context;
 Runtime::Context Runtime::GetContext() { return _context; }
 
+GMLType returnBuffer;
+Runtime::ReturnCause _cause;
+Runtime::ReturnCause Runtime::GetReturnCause() {
+    return _cause;
+}
+void Runtime::SetReturnCause(Runtime::ReturnCause c) {
+    _cause = c;
+}
+
+
+// For verifying varargs
+bool Runtime::_assertArgs(unsigned int& argc, GMLType* argv, unsigned int arge, bool lenient, ...) {
+    if (argc != arge) {
+        _cause = ReturnCause::ExitError;
+        _error = "Failed to verify args: wrong number: expected " + std::to_string(arge) + ", got " + std::to_string(argc);
+        return false;
+    }
+
+    va_list vargs;
+    va_start(vargs, lenient);
+
+    for (size_t i = 0; i < argc; i++) {
+        GMLTypeState state = va_arg(vargs, GMLTypeState);
+        if (argv[i].state != state) {
+            if (lenient && (argv[i].state == GMLTypeState::String)) {
+                argv[i].state = GMLTypeState::Double;
+                argv[i].dVal = 0.0;
+            }
+            else {
+                _cause = ReturnCause::ExitError;
+                _error = "Failed to verify args: wrong type in position " + std::to_string(i) + ": expected ";
+                _error += (state == GMLTypeState::String ? "string" : "real");
+                _error += ", got ";
+                _error += (argv[i].state == GMLTypeState::String ? "string" : "real");
+                return false;
+            }
+        }
+    }
+    va_end(vargs);
+    return true;
+}
 
 bool CRExpressionValue::Evaluate(GMLType* output) {
     if(!this->_evaluate(output)) return false;
     for(CRUnaryOperator op : _unary) {
-        if(output->state == GMLTypeState::String) return false;
+        if(output->state == GMLTypeState::String) {
+            _cause = Runtime::ReturnCause::ExitError;
+            _error = "Tried to apply unary operator " + std::to_string(op) + " to string \"" + output->sVal + "\"";
+            return false;
+        }
         switch (op) {
             case OPERATOR_NOT:
                 output->dVal = (Runtime::_isTrue(output) ? GMLFalse : GMLTrue);
@@ -46,6 +92,8 @@ bool CRExpressionValue::Evaluate(GMLType* output) {
             case OPERATOR_POSITIVE:
                 break;
             default:
+                _cause = Runtime::ReturnCause::ExitError;
+                _error = "Unrecognized unary operator " + std::to_string(op);
                 return false;
         }
     }
@@ -61,8 +109,11 @@ bool _applySetMethod(GMLType* lhs, CRSetMethod method, const GMLType* const rhs)
     }
     else if (method == SM_ADD) {
         // Only other method that can be used on strings
-        if ((lhs->state == GMLTypeState::String) != (rhs->state == GMLTypeState::String)) {
-            // Incompatible operands
+        if (lhs->state != rhs->state) {
+            _cause = Runtime::ReturnCause::ExitError;
+            _error = "Incompatible operands for +, lhs: ";
+            _error += (lhs->state == GMLTypeState::Double) ? std::to_string(lhs->dVal) : ("\"" + lhs->sVal + "\"");
+            _error += ", rhs: " + (rhs->state == GMLTypeState::Double) ? std::to_string(rhs->dVal) : ("\"" + rhs->sVal + "\"");
             return false;
         }
         if (lhs->state == GMLTypeState::String) {
@@ -76,6 +127,10 @@ bool _applySetMethod(GMLType* lhs, CRSetMethod method, const GMLType* const rhs)
     else {
         // No other set methods can be used with strings, so we can error if either one is a string
         if ((lhs->state == GMLTypeState::String) || (rhs->state == GMLTypeState::String)) {
+            _cause = Runtime::ReturnCause::ExitError;
+            _error = "Incompatible operands for method " + std::to_string(method) + ", lhs: ";
+            _error += (lhs->state == GMLTypeState::Double) ? std::to_string(lhs->dVal) : ("\"" + lhs->sVal + "\"");
+            _error += ", rhs: " + (rhs->state == GMLTypeState::Double) ? std::to_string(rhs->dVal) : ("\"" + rhs->sVal + "\"");
             return false;
         }
         switch (method) {
@@ -217,6 +272,8 @@ bool _getGameValue(CRGameVar index, unsigned int arrayIndex, GMLType* out) {
             out->dVal = ( double )_globalValues->room_height;
             break;
         default:
+            _cause = Runtime::ReturnCause::ExitError;
+            _error = "Read unrecognized Game Var " + std::to_string(index);
             return false;
     }
     return true;
@@ -237,6 +294,8 @@ bool _setGameValue(CRGameVar index, unsigned int arrayIndex, CRSetMethod method,
             break;
         }
         default:
+            _cause = Runtime::ReturnCause::ExitError;
+            _error = "Tried to write unrecognized or read-only Game Var " + std::to_string(index);
             return false;
     }
     return true;
@@ -442,6 +501,8 @@ bool _setInstanceVar(Instance* instance, CRInstanceVar index, unsigned int array
             instance->timeline_position = t.dVal;
             break;
         default:
+            _cause = Runtime::ReturnCause::ExitError;
+            _error = "Tried to write unrecognized or read-only instance var " + std::to_string(index);
             return false;
     }
     return true;
@@ -528,7 +589,7 @@ bool _getInstanceVar(Instance* instance, CRInstanceVar index, unsigned int array
             break;
         case IV_SPRITE_HEIGHT:
             if (instance->sprite_index < 0 || instance->sprite_index >= ( int )AssetManager::GetSpriteCount()) {
-                out->dVal = 0;
+                out->dVal = 0.0;
             }
             else {
                 Sprite* s = AssetManager::GetSprite(instance->sprite_index);
@@ -606,6 +667,8 @@ bool _getInstanceVar(Instance* instance, CRInstanceVar index, unsigned int array
             out->dVal = instance->bbox_top;
             break;
         default:
+            _cause = Runtime::ReturnCause::ExitError;
+            _error = "Read unrecognized instance variable " + std::to_string(index);
             return false;
     }
     return true;
@@ -628,8 +691,18 @@ bool Runtime::_equal(double d1, double d2) {
     return cut_digits == 0.0;
 }
 
-bool Runtime::_isTrue(const GMLType* value) { return (value->state == GMLTypeState::Double) && (value->dVal >= 0.5); }
+bool Runtime::_isTrue(const GMLType* value) {
+    return (value->state == GMLTypeState::Double) && (value->dVal >= 0.5);
+}
 
+
+const char* Runtime::GetErrorMessage() {
+    return _error.c_str();
+}
+
+void Runtime::PushErrorMessage(const char* m) {
+    _error += m;
+}
 
 bool Runtime::Execute(CRActionList& actions, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, unsigned int argc, GMLType* argv) {
     Context c = _context;
@@ -642,7 +715,7 @@ bool Runtime::Execute(CRActionList& actions, Instance* self, Instance* other, in
     _context.argv = argv;
     bool result = actions.Run();
     _context = c;
-    return result;
+    return result ? true : (_cause == ReturnCause::Break || _cause == ReturnCause::Continue || _cause == ReturnCause::Return || _cause == ReturnCause::ExitNormal);
 }
 
 bool Runtime::EvalExpression(CRExpression& expression, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, GMLType* out) {
@@ -670,7 +743,11 @@ bool CRActionList::Run(unsigned int start) {
 }
 
 bool CRExpression::Evaluate(GMLType* output) {
-    if (!_values.size()) return false;
+    if (!_values.size()) {
+        _cause = Runtime::ReturnCause::ExitError;
+        _error = "Tried to evaluate empty expression";
+        return false;
+    }
 
     GMLType var;
     if (!_values[0]->Evaluate(&var)) return false;
@@ -685,27 +762,36 @@ bool CRExpression::Evaluate(GMLType* output) {
                 break;
             }
             case OPERATOR_SUBTRACT: {
-                if (var.state == GMLTypeState::String) return false;
-                var.dVal -= rhs.dVal;
+                if (!_applySetMethod(&var, SM_SUBTRACT, &rhs)) return false;
                 break;
             }
             case OPERATOR_MULTIPLY: {
-                if (var.state == GMLTypeState::String) return false;
-                var.dVal *= rhs.dVal;
+                if (!_applySetMethod(&var, SM_MULTIPLY, &rhs)) return false;
                 break;
             }
             case OPERATOR_DIVIDE: {
-                if (var.state == GMLTypeState::String) return false;
-                var.dVal /= rhs.dVal;
+                if (!_applySetMethod(&var, SM_DIVIDE, &rhs)) return false;
                 break;
             }
             case OPERATOR_MOD: {
-                if (var.state == GMLTypeState::String) return false;
+                if (var.state == GMLTypeState::String || rhs.state == GMLTypeState::String) {
+                    _cause = Runtime::ReturnCause::ExitError;
+                    _error = "Incompatible operands for operator mod: ";
+                    _error += (var.state == GMLTypeState::Double) ? std::to_string(var.dVal) : ("\"" + var.sVal + "\"");
+                    _error += ", rhs: " + (rhs.state == GMLTypeState::Double) ? std::to_string(rhs.dVal) : ("\"" + rhs.sVal + "\"");
+                    return false;
+                }
                 var.dVal = std::fmod(var.dVal, rhs.dVal);
                 break;
             }
             case OPERATOR_DIV: {
-                if (var.state == GMLTypeState::String) return false;
+                if (var.state == GMLTypeState::String || rhs.state == GMLTypeState::String) {
+                    _cause = Runtime::ReturnCause::ExitError;
+                    _error = "Incompatible operands for operator div: ";
+                    _error += (var.state == GMLTypeState::Double) ? std::to_string(var.dVal) : ("\"" + var.sVal + "\"");
+                    _error += ", rhs: " + (rhs.state == GMLTypeState::Double) ? std::to_string(rhs.dVal) : ("\"" + rhs.sVal + "\"");
+                    return false;
+                }
                 var.dVal = ::floor(var.dVal / rhs.dVal);
                 break;
             }
@@ -766,50 +852,102 @@ bool CRExpression::Evaluate(GMLType* output) {
                 break;
             }
             case OPERATOR_BOOLEAN_AND: {
-                if (var.state == GMLTypeState::String) return false;
                 var.dVal = (Runtime::_isTrue(&var) && Runtime::_isTrue(&rhs) ? GMLTrue : GMLFalse);
                 break;
             }
             case OPERATOR_BOOLEAN_OR: {
-                if (var.state == GMLTypeState::String) return false;
                 var.dVal = (Runtime::_isTrue(&var) || Runtime::_isTrue(&rhs) ? GMLTrue : GMLFalse);
                 break;
             }
             case OPERATOR_BOOLEAN_XOR: {
-                if (var.state == GMLTypeState::String) return false;
                 var.dVal = (Runtime::_isTrue(&var) != Runtime::_isTrue(&rhs) ? GMLTrue : GMLFalse);
                 break;
             }
             case OPERATOR_BITWISE_AND: {
-                if (var.state == GMLTypeState::String) return false;
-                var.dVal = ( double )(Runtime::_round(var.dVal) & Runtime::_round(rhs.dVal));
+                if (!_applySetMethod(&var, SM_BITWISE_AND, &rhs)) return false;
                 break;
             }
             case OPERATOR_BITWISE_OR: {
-                if (var.state == GMLTypeState::String) return false;
-                var.dVal = ( double )(Runtime::_round(var.dVal) | Runtime::_round(rhs.dVal));
+                if (!_applySetMethod(&var, SM_BITWISE_OR, &rhs)) return false;
                 break;
             }
             case OPERATOR_BITWISE_XOR: {
-                if (var.state == GMLTypeState::String) return false;
-                var.dVal = ( double )(Runtime::_round(var.dVal) ^ Runtime::_round(rhs.dVal));
+                if (!_applySetMethod(&var, SM_BITWISE_XOR, &rhs)) return false;
                 break;
             }
             case OPERATOR_LSHIFT: {
-                if (var.state == GMLTypeState::String) return false;
+                if (var.state == GMLTypeState::String || rhs.state == GMLTypeState::String) {
+                    _cause = Runtime::ReturnCause::ExitError;
+                    _error = "Incompatible operands for operator <<: ";
+                    _error += (var.state == GMLTypeState::Double) ? std::to_string(var.dVal) : ("\"" + var.sVal + "\"");
+                    _error += ", rhs: " + (rhs.state == GMLTypeState::Double) ? std::to_string(rhs.dVal) : ("\"" + rhs.sVal + "\"");
+                    return false;
+                }
                 var.dVal = ( double )(Runtime::_round(var.dVal) << Runtime::_round(rhs.dVal));
                 break;
             }
             case OPERATOR_RSHIFT: {
-                if (var.state == GMLTypeState::String) return false;
+                if (var.state == GMLTypeState::String || rhs.state == GMLTypeState::String) {
+                    _cause = Runtime::ReturnCause::ExitError;
+                    _error = "Incompatible operands for operator >>: ";
+                    _error += (var.state == GMLTypeState::Double) ? std::to_string(var.dVal) : ("\"" + var.sVal + "\"");
+                    _error += ", rhs: " + (rhs.state == GMLTypeState::Double) ? std::to_string(rhs.dVal) : ("\"" + rhs.sVal + "\"");
+                    return false;
+                }
                 var.dVal = ( double )(Runtime::_round(var.dVal) >> Runtime::_round(rhs.dVal));
                 break;
             }
-            default: { return false; }
+            default:
+                _cause = Runtime::ReturnCause::ExitError;
+                _error = "Unrecognized operator: " + std::to_string((*i)->GetOperator());
+                _error += (var.state == GMLTypeState::Double) ? std::to_string(var.dVal) : ("\"" + var.sVal + "\"");
+                _error += ", rhs: " + (rhs.state == GMLTypeState::Double) ? std::to_string(rhs.dVal) : ("\"" + rhs.sVal + "\"");
+                return false;
         }
         i++;
     }
     (*output) = var;
+    return true;
+}
+
+bool _evalArrayAccessor(std::vector<CRExpression>& dimensions, int* out) {
+    if (dimensions.size()) {
+        if (dimensions.size() > 2) {
+            _cause = Runtime::ReturnCause::ExitError;
+            _error = "Tried to access " + std::to_string(dimensions.size()) + "-dimensional array; 2-dimensional is the highest supported";
+            return false;
+        }
+        GMLType dim1;
+        if (!dimensions[0].Evaluate(&dim1)) return false;
+        if (dim1.state == GMLTypeState::String) {
+            _cause = Runtime::ReturnCause::ExitError;
+            _error = "Invalid array accessor: \"" + dim1.sVal + "\"";
+            return false;
+        }
+        (*out) = Runtime::_round(dim1.dVal);
+        if ((*out) < 0) {
+            _cause = Runtime::ReturnCause::ExitError;
+            _error = "Invalid array accessor: \"" + std::to_string(dim1.dVal) + "\"";
+            return false;
+        }
+
+        if (dimensions.size() == 2) {
+            GMLType dim2;
+            if (!dimensions[1].Evaluate(&dim2)) return false;
+            if (dim2.state == GMLTypeState::String) {
+                _cause = Runtime::ReturnCause::ExitError;
+                _error = "Invalid array accessor: \"" + dim1.sVal + "\"";
+                return false;
+            }
+            int id2 = Runtime::_round(dim2.dVal);
+            if (id2 < 0) {
+                _cause = Runtime::ReturnCause::ExitError;
+                _error = "Invalid array accessor: \"" + std::to_string(dim1.dVal) + "\"";
+                return false;
+            }
+            (*out) = ((*out) * 32000) + id2;
+        }
+    }
     return true;
 }
 
@@ -853,7 +991,11 @@ bool CRActionAssignmentField::Run() {
                 break;
             }
             default: {
-                if (id < 0) return false;
+                if (id < 0) {
+                    _cause = Runtime::ReturnCause::ExitError;
+                    _error = "Tried to dereference negative number: " + std::to_string(id);
+                    return false;
+                }
                 InstanceList::Iterator iter(( unsigned int )id);
                 Instance* i;
                 while (i = iter.Next()) {
@@ -880,23 +1022,7 @@ bool CRActionAssignmentArray::Run() {
     if (!_expression.Evaluate(&v)) return false;
 
     int index = 0;
-    if (_dimensions.size()) {
-        if (_dimensions.size() > 2) return false;
-        GMLType dim1;
-        if (!_dimensions[0].Evaluate(&dim1)) return false;
-        if (dim1.state == GMLTypeState::String) return false;
-        index = Runtime::_round(dim1.dVal);
-        if (index < 0) return false;
-
-        if (_dimensions.size() == 2) {
-            GMLType dim2;
-            if (!_dimensions[1].Evaluate(&dim2)) return false;
-            if (dim2.state == GMLTypeState::String) return false;
-            int id2 = Runtime::_round(dim2.dVal);
-            if (id2 < 0) return false;
-            index = (index * 32000) + id2;
-        }
-    }
+    if(!_evalArrayAccessor(_dimensions, &index)) return false;
 
     if (_hasDeref) {
         GMLType d;
@@ -929,7 +1055,11 @@ bool CRActionAssignmentArray::Run() {
                 break;
             }
             default: {
-                if (id < 0) return false;
+                if (id < 0) {
+                    _cause = Runtime::ReturnCause::ExitError;
+                    _error = "Tried to dereference negative number: " + std::to_string(id);
+                    return false;
+                }
                 InstanceList::Iterator iter(( unsigned int )id);
                 Instance* i;
                 while (i = iter.Next()) {
@@ -956,23 +1086,7 @@ bool CRActionAssignmentInstanceVar::Run() {
     if (!_expression.Evaluate(&v)) return false;
 
     int index = 0;
-    if (_dimensions.size()) {
-        if (_dimensions.size() > 2) return false;
-        GMLType dim1;
-        if (!_dimensions[0].Evaluate(&dim1)) return false;
-        if (dim1.state == GMLTypeState::String) return false;
-        index = Runtime::_round(dim1.dVal);
-        if (index < 0) return false;
-
-        if (_dimensions.size() == 2) {
-            GMLType dim2;
-            if (!_dimensions[1].Evaluate(&dim2)) return false;
-            if (dim2.state == GMLTypeState::String) return false;
-            int id2 = Runtime::_round(dim2.dVal);
-            if (id2 < 0) return false;
-            index = (index * 32000) + id2;
-        }
-    }
+    if (!_evalArrayAccessor(_dimensions, &index)) return false;
 
     if (_hasDeref) {
         GMLType d;
@@ -998,14 +1112,22 @@ bool CRActionAssignmentInstanceVar::Run() {
             }
             case GLOBAL: {
                 // uh
+                _cause = Runtime::ReturnCause::ExitError;
+                _error = "Tried to set global instance variable " + std::to_string(index);
                 return false;
             }
             case LOCAL: {
                 // uh
+                _cause = Runtime::ReturnCause::ExitError;
+                _error = "Tried to set local instance variable " + std::to_string(index);
                 return false;
             }
             default: {
-                if (id < 0) return false;
+                if (id < 0) {
+                    _cause = Runtime::ReturnCause::ExitError;
+                    _error = "Tried to dereference negative number: " + std::to_string(id);
+                    return false;
+                }
                 InstanceList::Iterator iter(( unsigned int )id);
                 Instance* i;
                 while (i = iter.Next()) {
@@ -1025,23 +1147,7 @@ bool CRActionAssignmentGameVar::Run() {
     if (!_expression.Evaluate(&v)) return false;
 
     int index = 0;
-    if (_dimensions.size()) {
-        if (_dimensions.size() > 2) return false;
-        GMLType dim1;
-        if (!_dimensions[0].Evaluate(&dim1)) return false;
-        if (dim1.state == GMLTypeState::String) return false;
-        index = Runtime::_round(dim1.dVal);
-        if (index < 0) return false;
-
-        if (_dimensions.size() == 2) {
-            GMLType dim2;
-            if (!_dimensions[1].Evaluate(&dim2)) return false;
-            if (dim2.state == GMLTypeState::String) return false;
-            int id2 = Runtime::_round(dim2.dVal);
-            if (id2 < 0) return false;
-            index = (index * 32000) + id2;
-        }
-    }
+    if (!_evalArrayAccessor(_dimensions, &index)) return false;
 
     return _setGameValue(_var, index, _method, v);
 }
@@ -1053,20 +1159,32 @@ bool CRActionBlock::Run() {
 bool CRActionRunFunction::Run() {
     GMLType argv[16];
     unsigned int argc = static_cast<unsigned int>(_args.size());
+    if(argc > 16) {
+        _cause = Runtime::ReturnCause::ExitError;
+        _error = "Too many args to internal function, argc: " + std::to_string(argc) + ", function ID: " + std::to_string(_function);
+        return false;
+    }
     for (unsigned int i = 0; i < argc; i++) {
         if (!_args[i].Evaluate(argv + i)) return false;
     }
-    return (*_gmlFuncs[_function])(argc, argv, NULL);
+    bool r = (*_gmlFuncs[_function])(argc, argv, NULL);
+    return r ? true : !(_cause == Runtime::ReturnCause::ExitError || _cause == Runtime::ReturnCause::ExitGameEnd);
 }
 
 bool CRActionRunScript::Run() {
     GMLType argv[16];
     unsigned int argc = static_cast<unsigned int>(_args.size());
+    if (argc > 16) {
+        _cause = Runtime::ReturnCause::ExitError;
+        _error = "Too many args to internal function, argc: " + std::to_string(argc) + ", function ID: " + std::to_string(_scriptID);
+        return false;
+    }
     for (unsigned int i = 0; i < argc; i++) {
         if (!_args[i].Evaluate(argv + i)) return false;
     }
     Script* scr = AssetManager::GetScript(_scriptID);
-    return CodeManager::Run(scr->codeObj, _context.self, _context.other, _context.eventId, _context.eventNumber, _context.objId, argc, argv);
+    bool r = CodeManager::Run(scr->codeObj, _context.self, _context.other, _context.eventId, _context.eventNumber, _context.objId, argc, argv);
+    return r ? true : !(_cause == Runtime::ReturnCause::ExitError || _cause == Runtime::ReturnCause::ExitGameEnd);
 }
 
 bool CRActionIfElse::Run() {
@@ -1084,7 +1202,11 @@ bool CRActionIfElse::Run() {
 bool CRActionWith::Run() {
     GMLType v;
     if (!_expression.Evaluate(&v)) return false;
-    if(v.state != GMLTypeState::Double) return false;
+    if(v.state != GMLTypeState::Double) {
+        _cause = Runtime::ReturnCause::ExitError;
+        _error = "Invalid 'with' parameter: \"" + v.sVal + "\"";
+        return false;
+    }
     int objID = Runtime::_round(v.dVal);
     
     switch(objID) {
@@ -1098,7 +1220,7 @@ bool CRActionWith::Run() {
             bool r = _code->Run();
             c.locals = _context.locals;
             _context = c;
-            return r;
+            return r ? true : (_cause == Runtime::ReturnCause::Break || _cause == Runtime::ReturnCause::Continue);
         }
         case ALL: {
             Runtime::Context c = _context;
@@ -1108,7 +1230,14 @@ bool CRActionWith::Run() {
             while(i = iter.Next()) {
                 _context.self = i;
                 _context.objId = i->id;
-                if(!_code->Run()) return false;
+                if(!_code->Run()) {
+                    if(_cause == Runtime::ReturnCause::Continue) continue;
+                    else {
+                        c.locals = _context.locals;
+                        _context = c;
+                        return (_cause == Runtime::ReturnCause::Break);
+                    }
+                }
             }
             c.locals = _context.locals;
             _context = c;
@@ -1118,7 +1247,11 @@ bool CRActionWith::Run() {
             return true;
         }
         default: {
-            if(objID < 0) return false;
+            if (objID < 0) {
+                _cause = Runtime::ReturnCause::ExitError;
+                _error = "Tried to pass negative number to 'with': " + std::to_string(objID);
+                return false;
+            }
             Runtime::Context c = _context;
             _context.other = c.self;
             InstanceList::Iterator iter(objID);
@@ -1126,7 +1259,14 @@ bool CRActionWith::Run() {
             while (i = iter.Next()) {
                 _context.self = i;
                 _context.objId = i->id;
-                if (!_code->Run()) return false;
+                if (!_code->Run()) {
+                    if (_cause == Runtime::ReturnCause::Continue) continue;
+                    else {
+                        c.locals = _context.locals;
+                        _context = c;
+                        return (_cause == Runtime::ReturnCause::Break);
+                    }
+                }
             }
             c.locals = _context.locals;
             _context = c;
@@ -1138,10 +1278,17 @@ bool CRActionWith::Run() {
 bool CRActionRepeat::Run() {
     GMLType v;
     if (!_expression.Evaluate(&v)) return false;
-    if(v.state != GMLTypeState::Double) return false; // repeat count must be a number
+    if(v.state != GMLTypeState::Double) {
+        _cause = Runtime::ReturnCause::ExitError;
+        _error = "Invalid repeat count: \"" + v.sVal + "\"";
+        return false;
+    }
     int count = Runtime::_round(v.dVal);
     for(int i = 0; i < count; i++) {
-        if(!_code->Run()) return false;
+        if(!_code->Run()) {
+            if (_cause == Runtime::ReturnCause::Continue) continue;
+            else return (_cause == Runtime::ReturnCause::Break);
+        }
     }
     return true;
 }
@@ -1151,7 +1298,10 @@ bool CRActionWhile::Run() {
         GMLType out;
         if(!_expression.Evaluate(&out)) return false;
         if(Runtime::_isTrue(&out)) {
-            if(!_code->Run()) return false;
+            if(!_code->Run()) {
+                if (_cause == Runtime::ReturnCause::Continue) continue;
+                else return (_cause == Runtime::ReturnCause::Break);
+            }
         }
         else {
             return true;
@@ -1161,7 +1311,10 @@ bool CRActionWhile::Run() {
 
 bool CRActionDoUntil::Run() {
     while (true) {
-        if (!_code->Run()) return false;
+        if(!_code->Run()) {
+            if (_cause == Runtime::ReturnCause::Continue) continue;
+            else return (_cause == Runtime::ReturnCause::Break);
+        }
         GMLType out;
         if (!_expression.Evaluate(&out)) return false;
         if (Runtime::_isTrue(&out)) {
@@ -1176,7 +1329,10 @@ bool CRActionFor::Run() {
         GMLType out;
         if (!_check.Evaluate(&out)) return false;
         if(Runtime::_isTrue(&out)) {
-            if (!_code->Run()) return false;
+            if(!_code->Run()) {
+                if (_cause == Runtime::ReturnCause::Continue) continue;
+                else return (_cause == Runtime::ReturnCause::Break);
+            }
             if (!_finalizer->Run()) return false;
         }
         else {
@@ -1185,15 +1341,32 @@ bool CRActionFor::Run() {
     }
 }
 
-bool CRActionSwitch::Run() { return false; }
+bool CRActionSwitch::Run() {
+    _cause = Runtime::ReturnCause::ExitError;
+    _error = "Switch not yet implemented";
+    return false;
+}
 
-bool CRActionBreak::Run() { return false; }
+bool CRActionBreak::Run() {
+    _cause = Runtime::ReturnCause::Break;
+    return false;
+}
 
-bool CRActionContinue::Run() { return false; }
+bool CRActionContinue::Run() {
+    _cause = Runtime::ReturnCause::Continue;
+    return false;
+}
 
-bool CRActionExit::Run() { return false; }
+bool CRActionExit::Run() {
+    _cause = Runtime::ReturnCause::ExitNormal;
+    return false;
+}
 
-bool CRActionReturn::Run() { return false; }
+bool CRActionReturn::Run() {
+    if (!_expression.Evaluate(&returnBuffer)) return false;
+    _cause = Runtime::ReturnCause::Return;
+    return false;
+}
 
 bool CRExpLiteral::_evaluate(GMLType* output) {
     (*output) = _value;
@@ -1206,7 +1379,8 @@ bool CRExpFunction::_evaluate(GMLType* output) {
     for (unsigned int i = 0; i < argc; i++) {
         if (!_args[i].Evaluate(argv + i)) return false;
     }
-    return (*_gmlFuncs[_function])(argc, argv, output);
+    bool r = (*_gmlFuncs[_function])(argc, argv, output);
+    return r ? true : !(_cause == Runtime::ReturnCause::ExitError || _cause == Runtime::ReturnCause::ExitGameEnd);
 }
 
 bool CRExpScript::_evaluate(GMLType* output) {
@@ -1216,7 +1390,8 @@ bool CRExpScript::_evaluate(GMLType* output) {
         if (!_args[i].Evaluate(argv + i)) return false;
     }
     Script* scr = AssetManager::GetScript(_script);
-    return CodeManager::Run(scr->codeObj, _context.self, _context.other, _context.eventId, _context.eventNumber, _context.objId, argc, argv);
+    bool r = CodeManager::Run(scr->codeObj, _context.self, _context.other, _context.eventId, _context.eventNumber, _context.objId, argc, argv);
+    return r ? true : !(_cause == Runtime::ReturnCause::ExitError || _cause == Runtime::ReturnCause::ExitGameEnd);
 }
 
 bool CRExpNestedExpression::_evaluate(GMLType* output) {
@@ -1256,7 +1431,11 @@ bool CRExpField::_evaluate(GMLType* output) {
                 return true;
             }
             default: {
-                if (id < 0) return false;
+                if (id < 0) {
+                    _cause = Runtime::ReturnCause::ExitError;
+                    _error = "Tried to dereference negative number: " + std::to_string(id);
+                    return false;
+                }
                 Instance* i = InstanceList::Iterator(( unsigned int )id).Next();
                 (*output) = *InstanceList::GetField(i->id, _fieldNumber);
                 return true;
@@ -1280,23 +1459,7 @@ bool CRExpField::_evaluate(GMLType* output) {
 
 bool CRExpArray::_evaluate(GMLType* output) {
     int index = 0;
-    if (_dimensions.size()) {
-        if (_dimensions.size() > 2) return false;
-        GMLType dim1;
-        if (!_dimensions[0].Evaluate(&dim1)) return false;
-        if (dim1.state == GMLTypeState::String) return false;
-        index = Runtime::_round(dim1.dVal);
-        if (index < 0) return false;
-
-        if (_dimensions.size() == 2) {
-            GMLType dim2;
-            if (!_dimensions[1].Evaluate(&dim2)) return false;
-            if (dim2.state == GMLTypeState::String) return false;
-            int id2 = Runtime::_round(dim2.dVal);
-            if (id2 < 0) return false;
-            index = (index * 32000) + id2;
-        }
-    }
+    if (!_evalArrayAccessor(_dimensions, &index)) return false;
 
     if (_hasDeref) {
         GMLType d;
@@ -1335,7 +1498,11 @@ bool CRExpArray::_evaluate(GMLType* output) {
                 return true;
             }
             default: {
-                if (id < 0) return false;
+                if (id < 0) {
+                    _cause = Runtime::ReturnCause::ExitError;
+                    _error = "Tried to dereference negative number: " + std::to_string(id);
+                    return false;
+                }
                 Instance* i = InstanceList::Iterator(( unsigned int )id).Next();
                 if (i) {
                     (*output) = *InstanceList::GetField(i->id, _fieldNumber, index);
@@ -1364,23 +1531,7 @@ bool CRExpArray::_evaluate(GMLType* output) {
 
 bool CRExpInstanceVar::_evaluate(GMLType* output) {
     int index = 0;
-    if (_dimensions.size()) {
-        if (_dimensions.size() > 2) return false;
-        GMLType dim1;
-        if (!_dimensions[0].Evaluate(&dim1)) return false;
-        if (dim1.state == GMLTypeState::String) return false;
-        index = Runtime::_round(dim1.dVal);
-        if (index < 0) return false;
-
-        if (_dimensions.size() == 2) {
-            GMLType dim2;
-            if (!_dimensions[1].Evaluate(&dim2)) return false;
-            if (dim2.state == GMLTypeState::String) return false;
-            int id2 = Runtime::_round(dim2.dVal);
-            if (id2 < 0) return false;
-            index = (index * 32000) + id2;
-        }
-    }
+    if (!_evalArrayAccessor(_dimensions, &index)) return false;
 
     if (_hasDeref) {
         GMLType d;
@@ -1406,14 +1557,22 @@ bool CRExpInstanceVar::_evaluate(GMLType* output) {
             }
             case GLOBAL: {
                 // uh
+                _cause = Runtime::ReturnCause::ExitError;
+                _error = "Tried to get global instance variable " + std::to_string(index);
                 return false;
             }
             case LOCAL: {
                 // uh
+                _cause = Runtime::ReturnCause::ExitError;
+                _error = "Tried to get local instance variable " + std::to_string(index);
                 return false;
             }
             default: {
-                if (id < 0) return false;
+                if (id < 0) {
+                    _cause = Runtime::ReturnCause::ExitError;
+                    _error = "Tried to dereference negative number: " + std::to_string(id);
+                    return false;
+                }
                 Instance* i = InstanceList::Iterator(( unsigned int )id).Next();
                 if (i) {
                     return _getInstanceVar(i, _var, index, output);
@@ -1433,23 +1592,6 @@ bool CRExpInstanceVar::_evaluate(GMLType* output) {
 
 bool CRExpGameVar::_evaluate(GMLType* output) {
     int index = 0;
-    if (_dimensions.size()) {
-        if (_dimensions.size() > 2) return false;
-        GMLType dim1;
-        if (!_dimensions[0].Evaluate(&dim1)) return false;
-        if (dim1.state == GMLTypeState::String) return false;
-        index = Runtime::_round(dim1.dVal);
-        if (index < 0) return false;
-
-        if (_dimensions.size() == 2) {
-            GMLType dim2;
-            if (!_dimensions[1].Evaluate(&dim2)) return false;
-            if (dim2.state == GMLTypeState::String) return false;
-            int id2 = Runtime::_round(dim2.dVal);
-            if (id2 < 0) return false;
-            index = (index * 32000) + id2;
-        }
-    }
-
+    if (!_evalArrayAccessor(_dimensions, &index)) return false;
     return _getGameValue(_var, index, output);
 }

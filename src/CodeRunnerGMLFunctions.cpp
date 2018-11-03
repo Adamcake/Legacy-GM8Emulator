@@ -13,29 +13,6 @@
 #include "Renderer.hpp"
 #include "Compiler/CRRuntime.hpp"
 
-// For verifying varargs
-bool _assertArgs(unsigned int& argc, GMLType* argv, unsigned int arge, bool lenient, ...) {
-    if (argc != arge) return false;
-
-    va_list vargs;
-    va_start(vargs, lenient);
-
-    for (size_t i = 0; i < argc; i++) {
-        GMLTypeState state = va_arg(vargs, GMLTypeState);
-        if (argv[i].state != state) {
-            if (lenient && (argv[i].state == GMLTypeState::String)) {
-                argv[i].state = GMLTypeState::Double;
-                argv[i].dVal = 0.0;
-            }
-            else {
-                return false;
-            }
-        }
-    }
-    va_end(vargs);
-    return true;
-}
-
 // Private vars
 namespace Runtime {
     // "draw" vars
@@ -577,7 +554,10 @@ bool Runtime::floor(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool Runtime::game_end(unsigned int argc, GMLType* argv, GMLType* out) { return false; }
+bool Runtime::game_end(unsigned int argc, GMLType* argv, GMLType* out) {
+    SetReturnCause(ReturnCause::ExitGameEnd);
+    return false;
+}
 
 bool Runtime::game_restart(unsigned int argc, GMLType* argv, GMLType* out) {
     GetGlobals()->changeRoom = true;

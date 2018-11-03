@@ -26,6 +26,20 @@ namespace Runtime {
     bool _equal(double, double);
     bool _isTrue(const GMLType* value);
 
+    // Return reasons
+    enum ReturnCause {
+        ExitNormal,
+        ExitGameEnd,
+        ExitError,
+        Continue,
+        Break,
+        Return
+    };
+    ReturnCause GetReturnCause();
+    void SetReturnCause(ReturnCause);
+    const char* GetErrorMessage();
+    void PushErrorMessage(const char*);
+
     // Runtime context
     struct Context {
         Instance* self;
@@ -36,14 +50,13 @@ namespace Runtime {
         unsigned int argc;
         const GMLType* argv;
         std::map<unsigned int, std::map<unsigned int, GMLType>> locals;
-        Context() : self(nullptr), other(nullptr), eventId(0), eventNumber(0), objId(0), argc(0), argv(nullptr) {}
-        Context(Instance* s, Instance* o, int e, int se, unsigned int oid, unsigned int ac = 0, const GMLType* av = NULL) : self(s), other(o), eventId(e), eventNumber(se), objId(oid), argc(ac), argv(av) {}
-        //Context(Instance* o, unsigned int id, unsigned int ac = 0, const GMLType* av = NULL) : other(o), argc(ac), argv(av) {}
     };
     Context GetContext();
 
     bool Execute(CRActionList&, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, unsigned int argc = 0, GMLType* argv = nullptr);
     bool EvalExpression(CRExpression&, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, GMLType* out);
+
+    bool _assertArgs(unsigned int& argc, GMLType* argv, unsigned int arge, bool lenient, ...);
 
     // GML internal functions
     bool abs(unsigned int argc, GMLType* argv, GMLType* out);
