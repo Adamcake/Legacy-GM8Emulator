@@ -37,6 +37,9 @@ namespace CodeManager {
     // Run a compiled GML question (boolean expression). Returns true on success, false on error (ie. the game should close.)
     // The output value is stored in the supplied pointer.
     bool Query(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, bool* response);
+
+    // Checks if there was a runtime error and, if so, gets the associated error message
+    bool GetError(const char** err);
 };
 
 #endif

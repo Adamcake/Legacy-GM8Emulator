@@ -91,3 +91,13 @@ void CodeManager::SetRoomOrder(unsigned int** order, unsigned int count) {
 bool CodeManager::Init() {
     return true;
 }
+
+bool CodeManager::GetError(const char** err) {
+    if(Runtime::GetReturnCause() == Runtime::ReturnCause::ExitError) {
+        (*err) = Runtime::GetErrorMessage();
+        return true;
+    }
+    else {
+        return false;
+    }
+}

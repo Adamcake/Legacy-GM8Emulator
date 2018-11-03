@@ -62,6 +62,10 @@ int main(int argc, char** argv) {
 	while (true) {
 		t1 = std::chrono::high_resolution_clock::now();
 		if (!GameFrame()) {
+            const char* err;
+            if(GameGetError(&err)) {
+                std::cout << "RUNTIME ERROR: " << err << std::endl;
+            }
 			break;
 		}
 		

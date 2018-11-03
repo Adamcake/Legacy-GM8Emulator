@@ -30,4 +30,7 @@ bool GameFrame();
 // Gets the current room_speed.
 unsigned int GameGetRoomSpeed();
 
+// Checks if the game closed because of an error and, if so, the associated error message
+bool GameGetError(const char**);
+
 #endif

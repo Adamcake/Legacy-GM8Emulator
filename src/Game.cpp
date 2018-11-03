@@ -1419,4 +1419,10 @@ bool GameStart() {
 	return GameLoadRoom(_roomOrder[0]);
 }
 
-unsigned int GameGetRoomSpeed() { return _globals.room_speed; }
+unsigned int GameGetRoomSpeed() {
+    return _globals.room_speed;
+}
+
+bool GameGetError(const char** err) {
+    return CodeManager::GetError(err);
+}
