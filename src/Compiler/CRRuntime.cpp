@@ -3,13 +3,13 @@
 #include "Alarm.hpp"
 #include "AssetManager.hpp"
 #include "CRRuntime.hpp"
+#include "CodeRunner.hpp"
 #include "Collision.hpp"
 #include "Compiled.hpp"
 #include "GlobalValues.hpp"
 #include "Instance.hpp"
 #include "InstanceList.hpp"
 #include "Renderer.hpp"
-#include "CodeRunner.hpp"
 
 GlobalValues* _globalValues;
 std::map<unsigned int, std::map<unsigned int, GMLType>> _global;
@@ -31,12 +31,8 @@ Runtime::Context Runtime::GetContext() { return _context; }
 
 GMLType returnBuffer;
 Runtime::ReturnCause _cause;
-Runtime::ReturnCause Runtime::GetReturnCause() {
-    return _cause;
-}
-void Runtime::SetReturnCause(Runtime::ReturnCause c) {
-    _cause = c;
-}
+Runtime::ReturnCause Runtime::GetReturnCause() { return _cause; }
+void Runtime::SetReturnCause(Runtime::ReturnCause c) { _cause = c; }
 
 
 // For verifying varargs
@@ -72,9 +68,9 @@ bool Runtime::_assertArgs(unsigned int& argc, GMLType* argv, unsigned int arge, 
 }
 
 bool CRExpressionValue::Evaluate(GMLType* output) {
-    if(!this->_evaluate(output)) return false;
-    for(CRUnaryOperator op : _unary) {
-        if(output->state == GMLTypeState::String) {
+    if (!this->_evaluate(output)) return false;
+    for (CRUnaryOperator op : _unary) {
+        if (output->state == GMLTypeState::String) {
             _cause = Runtime::ReturnCause::ExitError;
             _error = "Tried to apply unary operator " + std::to_string(op) + " to string \"" + output->sVal + "\"";
             return false;
@@ -282,10 +278,10 @@ bool _getGameValue(CRGameVar index, unsigned int arrayIndex, GMLType* out) {
 bool _setGameValue(CRGameVar index, unsigned int arrayIndex, CRSetMethod method, GMLType& value) {
     switch (index) {
         case ROOM:
-            _globalValues->roomTarget = (unsigned int)Runtime::_round(value.dVal);
+            _globalValues->roomTarget = ( unsigned int )Runtime::_round(value.dVal);
             break;
         case ROOM_SPEED:
-            _globalValues->room_speed = (unsigned int)Runtime::_round(value.dVal);
+            _globalValues->room_speed = ( unsigned int )Runtime::_round(value.dVal);
             break;
         case ROOM_CAPTION: {
             GMLType tCaption{GMLTypeState::String, 0.0, _globalValues->room_caption};
@@ -406,7 +402,7 @@ bool _setInstanceVar(Instance* instance, CRInstanceVar index, unsigned int array
             t.dVal = instance->speed;
             if (!_applySetMethod(&t, method, &value)) return false;
             instance->speed = t.dVal;
-            instance->hspeed =  ::cos(instance->direction * GML_PI / 180.0) * instance->speed;
+            instance->hspeed = ::cos(instance->direction * GML_PI / 180.0) * instance->speed;
             instance->vspeed = -::sin(instance->direction * GML_PI / 180.0) * instance->speed;
             break;
         case IV_VSPEED:
@@ -691,18 +687,12 @@ bool Runtime::_equal(double d1, double d2) {
     return cut_digits == 0.0;
 }
 
-bool Runtime::_isTrue(const GMLType* value) {
-    return (value->state == GMLTypeState::Double) && (value->dVal >= 0.5);
-}
+bool Runtime::_isTrue(const GMLType* value) { return (value->state == GMLTypeState::Double) && (value->dVal >= 0.5); }
 
 
-const char* Runtime::GetErrorMessage() {
-    return _error.c_str();
-}
+const char* Runtime::GetErrorMessage() { return _error.c_str(); }
 
-void Runtime::PushErrorMessage(const char* m) {
-    _error += m;
-}
+void Runtime::PushErrorMessage(const char* m) { _error += m; }
 
 bool Runtime::Execute(CRActionList& actions, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, unsigned int argc, GMLType* argv) {
     Context c = _context;
@@ -1022,7 +1012,7 @@ bool CRActionAssignmentArray::Run() {
     if (!_expression.Evaluate(&v)) return false;
 
     int index = 0;
-    if(!_evalArrayAccessor(_dimensions, &index)) return false;
+    if (!_evalArrayAccessor(_dimensions, &index)) return false;
 
     if (_hasDeref) {
         GMLType d;
@@ -1152,14 +1142,12 @@ bool CRActionAssignmentGameVar::Run() {
     return _setGameValue(_var, index, _method, v);
 }
 
-bool CRActionBlock::Run() {
-    return _list.Run();
-}
+bool CRActionBlock::Run() { return _list.Run(); }
 
 bool CRActionRunFunction::Run() {
     GMLType argv[16];
     unsigned int argc = static_cast<unsigned int>(_args.size());
-    if(argc > 16) {
+    if (argc > 16) {
         _cause = Runtime::ReturnCause::ExitError;
         _error = "Too many args to internal function, argc: " + std::to_string(argc) + ", function ID: " + std::to_string(_function);
         return false;
@@ -1190,10 +1178,10 @@ bool CRActionRunScript::Run() {
 bool CRActionIfElse::Run() {
     GMLType v;
     if (!_expression.Evaluate(&v)) return false;
-    if(Runtime::_isTrue(&v)) {
+    if (Runtime::_isTrue(&v)) {
         return _if->Run();
     }
-    else if(_else) {
+    else if (_else) {
         return _else->Run();
     }
     return true;
@@ -1202,14 +1190,14 @@ bool CRActionIfElse::Run() {
 bool CRActionWith::Run() {
     GMLType v;
     if (!_expression.Evaluate(&v)) return false;
-    if(v.state != GMLTypeState::Double) {
+    if (v.state != GMLTypeState::Double) {
         _cause = Runtime::ReturnCause::ExitError;
         _error = "Invalid 'with' parameter: \"" + v.sVal + "\"";
         return false;
     }
     int objID = Runtime::_round(v.dVal);
-    
-    switch(objID) {
+
+    switch (objID) {
         case SELF:
             return _code->Run();
         case OTHER: {
@@ -1227,11 +1215,12 @@ bool CRActionWith::Run() {
             _context.other = c.self;
             InstanceList::Iterator iter;
             Instance* i;
-            while(i = iter.Next()) {
+            while (i = iter.Next()) {
                 _context.self = i;
                 _context.objId = i->id;
-                if(!_code->Run()) {
-                    if(_cause == Runtime::ReturnCause::Continue) continue;
+                if (!_code->Run()) {
+                    if (_cause == Runtime::ReturnCause::Continue)
+                        continue;
                     else {
                         c.locals = _context.locals;
                         _context = c;
@@ -1260,7 +1249,8 @@ bool CRActionWith::Run() {
                 _context.self = i;
                 _context.objId = i->id;
                 if (!_code->Run()) {
-                    if (_cause == Runtime::ReturnCause::Continue) continue;
+                    if (_cause == Runtime::ReturnCause::Continue)
+                        continue;
                     else {
                         c.locals = _context.locals;
                         _context = c;
@@ -1278,29 +1268,33 @@ bool CRActionWith::Run() {
 bool CRActionRepeat::Run() {
     GMLType v;
     if (!_expression.Evaluate(&v)) return false;
-    if(v.state != GMLTypeState::Double) {
+    if (v.state != GMLTypeState::Double) {
         _cause = Runtime::ReturnCause::ExitError;
         _error = "Invalid repeat count: \"" + v.sVal + "\"";
         return false;
     }
     int count = Runtime::_round(v.dVal);
-    for(int i = 0; i < count; i++) {
-        if(!_code->Run()) {
-            if (_cause == Runtime::ReturnCause::Continue) continue;
-            else return (_cause == Runtime::ReturnCause::Break);
+    for (int i = 0; i < count; i++) {
+        if (!_code->Run()) {
+            if (_cause == Runtime::ReturnCause::Continue)
+                continue;
+            else
+                return (_cause == Runtime::ReturnCause::Break);
         }
     }
     return true;
 }
 
 bool CRActionWhile::Run() {
-    while(true) {
+    while (true) {
         GMLType out;
-        if(!_expression.Evaluate(&out)) return false;
-        if(Runtime::_isTrue(&out)) {
-            if(!_code->Run()) {
-                if (_cause == Runtime::ReturnCause::Continue) continue;
-                else return (_cause == Runtime::ReturnCause::Break);
+        if (!_expression.Evaluate(&out)) return false;
+        if (Runtime::_isTrue(&out)) {
+            if (!_code->Run()) {
+                if (_cause == Runtime::ReturnCause::Continue)
+                    continue;
+                else
+                    return (_cause == Runtime::ReturnCause::Break);
             }
         }
         else {
@@ -1311,9 +1305,11 @@ bool CRActionWhile::Run() {
 
 bool CRActionDoUntil::Run() {
     while (true) {
-        if(!_code->Run()) {
-            if (_cause == Runtime::ReturnCause::Continue) continue;
-            else return (_cause == Runtime::ReturnCause::Break);
+        if (!_code->Run()) {
+            if (_cause == Runtime::ReturnCause::Continue)
+                continue;
+            else
+                return (_cause == Runtime::ReturnCause::Break);
         }
         GMLType out;
         if (!_expression.Evaluate(&out)) return false;
@@ -1324,14 +1320,16 @@ bool CRActionDoUntil::Run() {
 }
 
 bool CRActionFor::Run() {
-    if(!_initializer->Run()) return false;
-    while(true) {
+    if (!_initializer->Run()) return false;
+    while (true) {
         GMLType out;
         if (!_check.Evaluate(&out)) return false;
-        if(Runtime::_isTrue(&out)) {
-            if(!_code->Run()) {
-                if (_cause == Runtime::ReturnCause::Continue) continue;
-                else return (_cause == Runtime::ReturnCause::Break);
+        if (Runtime::_isTrue(&out)) {
+            if (!_code->Run()) {
+                if (_cause == Runtime::ReturnCause::Continue)
+                    continue;
+                else
+                    return (_cause == Runtime::ReturnCause::Break);
             }
             if (!_finalizer->Run()) return false;
         }
@@ -1342,9 +1340,29 @@ bool CRActionFor::Run() {
 }
 
 bool CRActionSwitch::Run() {
-    _cause = Runtime::ReturnCause::ExitError;
-    _error = "Switch not yet implemented";
-    return false;
+    GMLType exp;
+    if (!_expression.Evaluate(&exp)) return false;
+    unsigned int offset = _defaultOffset;
+    for (SwitchCase& c : _cases) {
+        GMLType caseExp;
+        if (!c.expression.Evaluate(&caseExp)) return false;
+        if (caseExp.state == exp.state) {
+            if (exp.state == GMLTypeState::Double) {
+                if (Runtime::_equal(exp.dVal, caseExp.dVal)) {
+                    offset = c.offset;
+                    break;
+                }
+            }
+            else {
+                if(exp.sVal == caseExp.sVal) {
+                    offset = c.offset;
+                    break;
+                }
+            }
+        }
+    }
+    bool r = _actions.Run(offset);
+    return r ? true : (_cause == Runtime::ReturnCause::Break);
 }
 
 bool CRActionBreak::Run() {
@@ -1394,9 +1412,7 @@ bool CRExpScript::_evaluate(GMLType* output) {
     return r ? true : !(_cause == Runtime::ReturnCause::ExitError || _cause == Runtime::ReturnCause::ExitGameEnd);
 }
 
-bool CRExpNestedExpression::_evaluate(GMLType* output) {
-    return _expression.Evaluate(output);
-}
+bool CRExpNestedExpression::_evaluate(GMLType* output) { return _expression.Evaluate(output); }
 
 bool CRExpField::_evaluate(GMLType* output) {
     if (_hasDeref) {

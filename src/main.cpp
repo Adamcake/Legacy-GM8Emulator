@@ -1,18 +1,16 @@
 #include <pch.h>
-#define CHECK_MEMORY_LEAKS 0
-#define OUTPUT_FRAME_TIME 1
+#include <iostream>
 #include <chrono>
 #include <thread>
 #include "Game.hpp"
+
+#define CHECK_MEMORY_LEAKS 0
+#define OUTPUT_FRAME_TIME 1
 
 #if CHECK_MEMORY_LEAKS
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>  
 #include <crtdbg.h>
-#endif
-
-#if OUTPUT_FRAME_TIME
-#include <iostream>
 #endif
 
 int main(int argc, char** argv) {

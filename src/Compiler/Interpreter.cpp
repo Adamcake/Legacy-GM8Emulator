@@ -5238,7 +5238,7 @@ bool GM8Emulator::Compiler::_InterpretSwitch(const GM8Emulator::Compiler::TokenL
             pos++;
             if (!_TokenHasValue(list.tokens[pos], SeparatorType::Colon)) return false;
             pos++;
-            if (!defaulted) defaultOffset = actions.Count();
+            defaultOffset = actions.Count();
         }
         else {
             CRAction* act;
