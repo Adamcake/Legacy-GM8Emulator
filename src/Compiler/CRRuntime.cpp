@@ -12,7 +12,8 @@
 #include "Renderer.hpp"
 
 GlobalValues* _globalValues;
-std::map<unsigned int, std::map<unsigned int, GMLType>> _global;
+std::map<unsigned int,  std::map<unsigned int, GMLType>> _global;
+std::map<CRInstanceVar, std::map<unsigned int, GMLType>> _globalInstance;
 std::vector<bool (*)(unsigned int, GMLType*, GMLType*)> _gmlFuncs;
 std::string _error;
 
@@ -266,6 +267,10 @@ bool _getGameValue(CRGameVar index, unsigned int arrayIndex, GMLType* out) {
             break;
         case ROOM_HEIGHT:
             out->dVal = ( double )_globalValues->room_height;
+            break;
+        case ROOM_CAPTION:
+            out->state = GMLTypeState::String;
+            out->sVal = _globalValues->room_caption;
             break;
         default:
             _cause = Runtime::ReturnCause::ExitError;
@@ -732,6 +737,13 @@ bool CRActionList::Run(unsigned int start) {
     return true;
 }
 
+void CRActionList::Finalize() {
+    for(CRAction* action : _actions) {
+        action->Finalize();
+        delete action;
+    }
+}
+
 bool CRExpression::Evaluate(GMLType* output) {
     if (!_values.size()) {
         _cause = Runtime::ReturnCause::ExitError;
@@ -898,6 +910,13 @@ bool CRExpression::Evaluate(GMLType* output) {
     }
     (*output) = var;
     return true;
+}
+
+void CRExpression::Finalize() {
+    for(CRExpressionValue* value : _values) {
+        value->Finalize();
+        delete value;
+    }
 }
 
 bool _evalArrayAccessor(std::vector<CRExpression>& dimensions, int* out) {
@@ -1101,16 +1120,12 @@ bool CRActionAssignmentInstanceVar::Run() {
                 break;
             }
             case GLOBAL: {
-                // uh
-                _cause = Runtime::ReturnCause::ExitError;
-                _error = "Tried to set global instance variable " + std::to_string(index);
-                return false;
+                if(!_applySetMethod(&_globalInstance[_var][index], _method, &v)) return false;
+                return true;
             }
             case LOCAL: {
-                // uh
-                _cause = Runtime::ReturnCause::ExitError;
-                _error = "Tried to set local instance variable " + std::to_string(index);
-                return false;
+                if (!_applySetMethod(&_context.localInstance[_var][index], _method, &v)) return false;
+                return true;
             }
             default: {
                 if (id < 0) {
@@ -1207,6 +1222,7 @@ bool CRActionWith::Run() {
             _context.objId = c.other->id;
             bool r = _code->Run();
             c.locals = _context.locals;
+            c.localInstance = _context.localInstance;
             _context = c;
             return r ? true : (_cause == Runtime::ReturnCause::Break || _cause == Runtime::ReturnCause::Continue);
         }
@@ -1223,12 +1239,14 @@ bool CRActionWith::Run() {
                         continue;
                     else {
                         c.locals = _context.locals;
+                        c.localInstance = _context.localInstance;
                         _context = c;
                         return (_cause == Runtime::ReturnCause::Break);
                     }
                 }
             }
             c.locals = _context.locals;
+            c.localInstance = _context.localInstance;
             _context = c;
             return true;
         }
@@ -1253,12 +1271,14 @@ bool CRActionWith::Run() {
                         continue;
                     else {
                         c.locals = _context.locals;
+                        c.localInstance = _context.localInstance;
                         _context = c;
                         return (_cause == Runtime::ReturnCause::Break);
                     }
                 }
             }
             c.locals = _context.locals;
+            c.localInstance = _context.localInstance;
             _context = c;
             return true;
         }
@@ -1572,16 +1592,12 @@ bool CRExpInstanceVar::_evaluate(GMLType* output) {
                 }
             }
             case GLOBAL: {
-                // uh
-                _cause = Runtime::ReturnCause::ExitError;
-                _error = "Tried to get global instance variable " + std::to_string(index);
-                return false;
+                (*output) = _globalInstance[_var][index];
+                return true;
             }
             case LOCAL: {
-                // uh
-                _cause = Runtime::ReturnCause::ExitError;
-                _error = "Tried to get local instance variable " + std::to_string(index);
-                return false;
+                (*output) = _context.localInstance[_var][index];
+                return true;
             }
             default: {
                 if (id < 0) {

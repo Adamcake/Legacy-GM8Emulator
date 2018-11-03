@@ -4,8 +4,8 @@
 #include <thread>
 #include "Game.hpp"
 
-#define CHECK_MEMORY_LEAKS 0
-#define OUTPUT_FRAME_TIME 1
+#define CHECK_MEMORY_LEAKS 1
+#define OUTPUT_FRAME_TIME 0
 
 #if CHECK_MEMORY_LEAKS
 #define _CRTDBG_MAP_ALLOC
@@ -44,6 +44,11 @@ int main(int argc, char** argv) {
 
 	if (!GameStart()) {
 		// Starting game failed
+        const char* err;
+        if (GameGetError(&err)) {
+            std::cout << "RUNTIME ERROR: " << err << std::endl;
+        }
+
 		GameTerminate();
 		return 3;
 	}

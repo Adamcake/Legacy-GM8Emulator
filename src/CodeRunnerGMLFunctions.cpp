@@ -225,7 +225,7 @@ bool Runtime::draw_sprite_ext(unsigned int argc, GMLType* argv, GMLType* out) {
 }
 
 bool Runtime::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!_assertArgs(argc, argv, 3, false, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::String)) return false;
+    if(argc != 3) return false;
     const char* str = argv[2].sVal.c_str();
     std::string st;
     if (argv[2].state == GMLTypeState::Double) {

@@ -1,6 +1,7 @@
 #ifndef _A_CRRUNTIME_HPP_
 #define _A_CRRUNTIME_HPP_
 #include <pch.h>
+#include "CREnums.hpp"
 struct GMLType;
 struct GlobalValues;
 struct Instance;
@@ -49,7 +50,8 @@ namespace Runtime {
         unsigned int objId;
         unsigned int argc;
         const GMLType* argv;
-        std::map<unsigned int, std::map<unsigned int, GMLType>> locals;
+        std::map<unsigned int,  std::map<unsigned int, GMLType>> locals;
+        std::map<CRInstanceVar, std::map<unsigned int, GMLType>> localInstance;
     };
     Context GetContext();
 

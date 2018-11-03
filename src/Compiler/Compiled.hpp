@@ -8,6 +8,8 @@
 class CRAction {
   public:
     virtual bool Run() = 0;
+    virtual void Finalize() {}
+    virtual ~CRAction() {}
 };
 
 // Abstract super-class for compiled expression values
@@ -21,6 +23,9 @@ class CRExpressionValue {
 
   public:
     bool Evaluate(GMLType* output);
+    virtual void Finalize() {}
+    virtual ~CRExpressionValue() {}
+
     inline CROperator GetOperator() { return _operator; }
     inline void SetOperator(CROperator op) { _operator = op; }
     inline void SetUnaries(const std::vector<CRUnaryOperator>&& v) { _unary = v; }
@@ -34,6 +39,8 @@ class CRActionList {
   public:
     inline void Append(CRAction* a) { _actions.push_back(a); }
     bool Run(unsigned int start = 0);
+    virtual void Finalize();
+
     inline size_t Count() {return _actions.size();}
 };
 
@@ -45,6 +52,7 @@ class CRExpression {
   public:
     inline void Append(CRExpressionValue* a) { _values.push_back(a); }
     bool Evaluate(GMLType* output);
+    virtual void Finalize();
 };
 
 
@@ -73,6 +81,7 @@ class CRActionAssignmentField : public CRAction {
     CRActionAssignmentField(unsigned int field, CRSetMethod method, CRExpression deref, CRExpression exp) :
         _field(field), _method(method), _deref(deref), _expression(exp), _hasDeref(true) {}
     virtual bool Run() override;
+    virtual void Finalize() override {_deref.Finalize(); _expression.Finalize();}
 };
 
 class CRActionAssignmentArray : public CRAction {
@@ -90,6 +99,13 @@ class CRActionAssignmentArray : public CRAction {
     CRActionAssignmentArray(unsigned int field, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression deref, CRExpression exp) :
         _field(field), _method(method), _dimensions(dimensions), _deref(deref), _expression(exp), _hasDeref(true) {}
     virtual bool Run() override;
+    virtual void Finalize() override {
+        _deref.Finalize();
+        _expression.Finalize();
+        for(CRExpression& exp : _dimensions) {
+            exp.Finalize();
+        }
+    }
 };
 
 class CRActionAssignmentInstanceVar : public CRAction {
@@ -107,6 +123,13 @@ class CRActionAssignmentInstanceVar : public CRAction {
     CRActionAssignmentInstanceVar(CRInstanceVar var, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression deref, CRExpression exp) :
         _var(var), _method(method), _dimensions(dimensions), _deref(deref), _expression(exp), _hasDeref(true) {}
     virtual bool Run() override;
+    virtual void Finalize() override {
+        _deref.Finalize();
+        _expression.Finalize();
+        for (CRExpression& exp : _dimensions) {
+            exp.Finalize();
+        }
+    }
 };
 
 class CRActionAssignmentGameVar : public CRAction {
@@ -120,6 +143,12 @@ class CRActionAssignmentGameVar : public CRAction {
     CRActionAssignmentGameVar(CRGameVar var, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression expression) :
         _var(var), _method(method), _dimensions(dimensions), _expression(expression) {}
     virtual bool Run() override;
+    virtual void Finalize() override {
+        _expression.Finalize();
+        for (CRExpression& exp : _dimensions) {
+            exp.Finalize();
+        }
+    }
 };
 
 class CRActionBlock : public CRAction {
@@ -129,6 +158,7 @@ class CRActionBlock : public CRAction {
   public:
     CRActionBlock(CRActionList list) : _list(list) {}
     virtual bool Run() override;
+    virtual void Finalize() override {_list.Finalize();}
 };
 
 class CRActionRunFunction : public CRAction {
@@ -139,6 +169,11 @@ class CRActionRunFunction : public CRAction {
   public:
     CRActionRunFunction(CRInternalFunction func, std::vector<CRExpression>& args) : _function(func), _args(args) {}
     virtual bool Run() override;
+    virtual void Finalize() override {
+        for (CRExpression& exp : _args) {
+            exp.Finalize();
+        }
+    }
 };
 
 class CRActionRunScript : public CRAction {
@@ -149,6 +184,11 @@ class CRActionRunScript : public CRAction {
   public:
     CRActionRunScript(unsigned int id, std::vector<CRExpression>& args) : _scriptID(id), _args(args) {}
     virtual bool Run() override;
+    virtual void Finalize() override {
+        for (CRExpression& exp : _args) {
+            exp.Finalize();
+        }
+    }
 };
 
 class CRActionIfElse : public CRAction {
@@ -160,6 +200,15 @@ class CRActionIfElse : public CRAction {
   public:
     CRActionIfElse(CRAction* i, CRAction* e, CRExpression exp) : _if(i), _else(e), _expression(exp) {}
     virtual bool Run() override;
+    virtual void Finalize() override {
+        _if->Finalize();
+        delete _if;
+        if(_else) {
+            _else->Finalize();
+            delete _else;
+        }
+        _expression.Finalize();
+    }
 };
 
 class CRActionWith : public CRAction {
@@ -170,6 +219,11 @@ class CRActionWith : public CRAction {
   public:
     CRActionWith(CRExpression exp, CRAction* code) : _expression(exp), _code(code) {}
     virtual bool Run() override;
+    virtual void Finalize() override {
+        _code->Finalize();
+        delete _code;
+        _expression.Finalize();
+    }
 };
 
 class CRActionRepeat : public CRAction {
@@ -180,6 +234,11 @@ class CRActionRepeat : public CRAction {
   public:
     CRActionRepeat(CRExpression exp, CRAction* code) : _expression(exp), _code(code) {}
     virtual bool Run() override;
+    virtual void Finalize() override {
+        _code->Finalize();
+        delete _code;
+        _expression.Finalize();
+    }
 };
 
 class CRActionWhile : public CRAction {
@@ -190,11 +249,16 @@ class CRActionWhile : public CRAction {
   public:
     CRActionWhile(CRExpression exp, CRAction* code) : _expression(exp), _code(code) {}
     virtual bool Run() override;
+    virtual void Finalize() override {
+        _code->Finalize();
+        delete _code;
+        _expression.Finalize();
+    }
 };
 
 class CRActionFor : public CRAction {
   private:
-      CRAction* _initializer;
+    CRAction* _initializer;
     CRExpression _check;
     CRAction* _finalizer;
     CRAction* _code;
@@ -202,6 +266,15 @@ class CRActionFor : public CRAction {
   public:
     CRActionFor(CRAction* init, CRExpression exp, CRAction* final, CRAction* code) : _initializer(init), _check(exp), _finalizer(final), _code(code) {}
     virtual bool Run() override;
+    virtual void Finalize() override {
+        _initializer->Finalize();
+        delete _initializer;
+        _finalizer->Finalize();
+        delete _finalizer;
+        _code->Finalize();
+        delete _code;
+        _check.Finalize();
+    }
 };
 
 class CRActionDoUntil : public CRAction {
@@ -212,6 +285,11 @@ class CRActionDoUntil : public CRAction {
   public:
     CRActionDoUntil(CRExpression exp, CRAction* code) : _expression(exp), _code(code) {}
     virtual bool Run() override;
+    virtual void Finalize() override {
+        _code->Finalize();
+        delete _code;
+        _expression.Finalize();
+    }
 };
 
 struct SwitchCase {
@@ -219,6 +297,7 @@ struct SwitchCase {
     unsigned int offset;
     SwitchCase(CRExpression exp, unsigned int off) : expression(exp), offset(off) {}
 };
+
 class CRActionSwitch : public CRAction {
   private:
     CRExpression _expression;
@@ -229,6 +308,13 @@ class CRActionSwitch : public CRAction {
   public:
     CRActionSwitch(CRExpression exp, CRActionList actions, std::vector<SwitchCase>& offsets, unsigned int def) : _expression(exp), _actions(actions), _cases(offsets), _defaultOffset(def) {}
     virtual bool Run() override;
+    virtual void Finalize() override {
+        _expression.Finalize();
+        _actions.Finalize();
+        for(SwitchCase& c : _cases) {
+            c.expression.Finalize();
+        }
+    }
 };
 
 class CRActionBreak : public CRAction {
@@ -256,6 +342,7 @@ class CRActionReturn : public CRAction {
   public:
     CRActionReturn(CRExpression exp) : _expression(exp) {}
     virtual bool Run() override;
+    virtual void Finalize() override {_expression.Finalize();}
 };
 
 // Expression value types
@@ -284,6 +371,11 @@ class CRExpFunction : public CRExpressionValue {
   public:
     CRExpFunction(CRInternalFunction func, std::vector<CRExpression>& args) : _function(func), _args(args) {}
     bool _evaluate(GMLType* output) override;
+    void Finalize() override {
+        for(CRExpression& arg : _args) {
+            arg.Finalize();
+        }
+    }
 };
 
 class CRExpScript : public CRExpressionValue {
@@ -294,6 +386,11 @@ class CRExpScript : public CRExpressionValue {
   public:
     CRExpScript(unsigned int id, std::vector<CRExpression>& args) : _script(id), _args(args) {}
     bool _evaluate(GMLType* output) override;
+    void Finalize() override {
+        for (CRExpression& arg : _args) {
+            arg.Finalize();
+        }
+    }
 };
 
 class CRExpNestedExpression : public CRExpressionValue {
@@ -303,6 +400,7 @@ class CRExpNestedExpression : public CRExpressionValue {
   public:
     CRExpNestedExpression(CRExpression exp) : _expression(exp) {}
     bool _evaluate(GMLType* output) override;
+    void Finalize() override {_expression.Finalize();}
 };
 
 class CRExpField : public CRExpressionValue {
@@ -315,6 +413,7 @@ class CRExpField : public CRExpressionValue {
     CRExpField(unsigned int field) : _fieldNumber(field), _hasDeref(false) {}
     CRExpField(unsigned int field, CRExpression deref) : _fieldNumber(field), _deref(deref), _hasDeref(true) {}
     bool _evaluate(GMLType* output) override;
+    void Finalize() override { _deref.Finalize(); }
 };
 
 class CRExpArray : public CRExpressionValue {
@@ -328,6 +427,12 @@ class CRExpArray : public CRExpressionValue {
     CRExpArray(unsigned int field, std::vector<CRExpression>& dimensions) : _fieldNumber(field), _dimensions(dimensions), _hasDeref(false) {}
     CRExpArray(unsigned int field, std::vector<CRExpression>& dimensions, CRExpression deref) : _fieldNumber(field), _dimensions(dimensions), _deref(deref), _hasDeref(true) {}
     bool _evaluate(GMLType* output) override;
+    void Finalize() override {
+        for (CRExpression& arg : _dimensions) {
+            arg.Finalize();
+        }
+        _deref.Finalize();
+    }
 };
 
 class CRExpInstanceVar : public CRExpressionValue {
@@ -341,6 +446,12 @@ class CRExpInstanceVar : public CRExpressionValue {
     CRExpInstanceVar(CRInstanceVar var, std::vector<CRExpression>& dimensions) : _var(var), _dimensions(dimensions), _hasDeref(false) {}
     CRExpInstanceVar(CRInstanceVar var, std::vector<CRExpression>& dimensions, CRExpression deref) : _var(var), _dimensions(dimensions), _deref(deref), _hasDeref(true) {}
     bool _evaluate(GMLType* output) override;
+    void Finalize() override {
+        for (CRExpression& arg : _dimensions) {
+            arg.Finalize();
+        }
+        _deref.Finalize();
+    }
 };
 
 class CRExpGameVar : public CRExpressionValue {
@@ -351,6 +462,11 @@ class CRExpGameVar : public CRExpressionValue {
   public:
     CRExpGameVar(CRGameVar var, std::vector<CRExpression>& dimensions) : _var(var), _dimensions(dimensions) {}
     bool _evaluate(GMLType* output) override;
+    void Finalize() override {
+        for (CRExpression& arg : _dimensions) {
+            arg.Finalize();
+        }
+    }
 };
 
 #endif

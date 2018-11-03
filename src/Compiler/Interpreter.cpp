@@ -5505,6 +5505,7 @@ bool GM8Emulator::Compiler::_InterpretBraces(const GM8Emulator::Compiler::TokenL
     CRActionList actions;
     if (!Interpret(innerList, &actions)) return false;
     (*output) = new CRActionBlock(actions);
+    _SkipSemicolon(list, pos);
     return true;
 }
 

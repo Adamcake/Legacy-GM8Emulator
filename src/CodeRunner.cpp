@@ -37,8 +37,14 @@ bool CodeManager::Init(GlobalValues* globals) {
 }
 
 void CodeManager::Finalize() {
-    for (unsigned int i = 0; i < _codeObjects.size(); i++) {
-        // todo
+    for (CRCodeObject& obj : _codeObjects) {
+        if(obj.question) {
+            obj._expression.Finalize();
+        }
+        else {
+            obj._actions.Finalize();
+        }
+        free(obj._code);
     }
     Runtime::Finalize();
 }

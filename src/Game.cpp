@@ -266,6 +266,7 @@ void GameTerminate() {
 	delete[] _roomOrder;
 	RTerminate();
     InstanceList::Finalize();
+    CodeManager::Finalize();
 }
 
 bool GameLoad(const char *pFilename) {
