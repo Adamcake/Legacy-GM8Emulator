@@ -28,6 +28,7 @@ class CRExpressionValue {
 
     inline CROperator GetOperator() { return _operator; }
     inline void SetOperator(CROperator op) { _operator = op; }
+    inline std::vector<CRUnaryOperator>* GetUnaries() {return &_unary;}
     inline void SetUnaries(const std::vector<CRUnaryOperator>&& v) { _unary = v; }
 };
 
@@ -52,6 +53,7 @@ class CRExpression {
   public:
     inline void Append(CRExpressionValue* a) { _values.push_back(a); }
     bool Evaluate(GMLType* output);
+    inline std::vector<CRExpressionValue*>* GetValues() {return &_values;}
     virtual void Finalize();
 };
 

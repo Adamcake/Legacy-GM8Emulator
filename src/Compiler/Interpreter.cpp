@@ -4683,9 +4683,7 @@ unsigned int GM8Emulator::Compiler::_RegisterField(const std::string_view& name)
 }
 
 std::set<unsigned int> _locals;
-void GM8Emulator::Compiler::FlushLocals() {
-    _locals.clear();
-}
+void GM8Emulator::Compiler::FlushLocals() { _locals.clear(); }
 
 bool GM8Emulator::Compiler::Interpret(const TokenList& list, CRActionList* output) {
     unsigned int pos = 0;
@@ -4829,7 +4827,12 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                 (*pos)++;
                 CRExpression inner;
                 if (!InterpretExpression(innerList, &inner)) return false;
-                value = new CRExpNestedExpression(inner);
+                if (inner.GetValues()->size() == 1) {
+                    value = (*inner.GetValues())[0];
+                }
+                else {
+                    value = new CRExpNestedExpression(inner);
+                }
                 break;
             }
 
@@ -4965,6 +4968,12 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
             default:
                 return false;
         }
+        if (value->GetUnaries()->size()) {
+            std::copy(value->GetUnaries()->begin(), value->GetUnaries()->end(), std::back_inserter(unaries));
+        }
+
+        // Reverse unary operator list before adding it to value
+        std::reverse(unaries.begin(), unaries.end());
         value->SetUnaries(std::move(unaries));
 
         // Parse an operator
@@ -5046,7 +5055,7 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
             if (newPrec > precedence) {
                 CRExpression newNested;
                 newNested.Append(value);
-                if(!InterpretExpression(list, &newNested, pos, newPrec)) return false;
+                if (!InterpretExpression(list, &newNested, pos, newPrec)) return false;
                 output->Append(new CRExpNestedExpression(newNested));
                 return true;
             }
@@ -5236,14 +5245,14 @@ bool GM8Emulator::Compiler::_InterpretSwitch(const GM8Emulator::Compiler::TokenL
             if (!InterpretExpression(list, &c, &pos)) return false;
             if (!_TokenHasValue(list.tokens[pos], SeparatorType::Colon)) return false;
             pos++;
-            if (!defaulted) cases.push_back(SwitchCase(c, (unsigned int)actions.Count()));
+            if (!defaulted) cases.push_back(SwitchCase(c, ( unsigned int )actions.Count()));
         }
         else if (_TokenHasValue(list.tokens[pos], KeywordType::Default)) {
             defaulted = true;
             pos++;
             if (!_TokenHasValue(list.tokens[pos], SeparatorType::Colon)) return false;
             pos++;
-            defaultOffset = (unsigned int)actions.Count();
+            defaultOffset = ( unsigned int )actions.Count();
         }
         else {
             CRAction* act;
@@ -5252,7 +5261,7 @@ bool GM8Emulator::Compiler::_InterpretSwitch(const GM8Emulator::Compiler::TokenL
         }
     }
     pos++;
-    if (!defaulted) defaultOffset = (unsigned int)actions.Count();
+    if (!defaulted) defaultOffset = ( unsigned int )actions.Count();
     (*output) = new CRActionSwitch(exp, actions, cases, defaultOffset);
     return true;
 }
