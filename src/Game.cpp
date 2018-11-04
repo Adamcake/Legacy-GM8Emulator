@@ -235,10 +235,7 @@ bool InflateBlock(unsigned char* pStream, unsigned int* pPos, unsigned char** pO
 #pragma endregion
 
 #pragma region Global extern definitions
-InstanceList _instances;
 GlobalValues _globals;
-CodeRunner* _runner;
-CodeActionManager* _codeActions;
 GameInfo _info;
 unsigned int* _roomOrder;
 unsigned int _roomOrderCount;
@@ -249,34 +246,32 @@ unsigned int _lastUsedRoomSpeed;
 void GameInit() {
 	_info.caption = NULL;
 	_info.gameInfo = NULL;
-	_codeActions = new CodeActionManager();
 	RInit();
-	_runner = new CodeRunner(&_instances, &_globals, _codeActions);
-	_codeActions->SetRunner(_runner);
+    InstanceList::Init();
 	_roomOrder = NULL;
 	_lastUsedRoomSpeed = 0;
 }
 
 void GameTerminate() {
 	// Run "Game End" events
-	InstanceList::Iterator iter = InstanceList::Iterator(&_instances);
+	InstanceList::Iterator iter;
 	Instance* instance;
 	while (instance = iter.Next()) {
-		if (!_codeActions->RunInstanceEvent(7, 3, instance, NULL, instance->object_index)) break;
+		if (!CodeActionManager::RunInstanceEvent(7, 3, instance, NULL, instance->object_index)) break;
 	}
 
 	// Clean up
 	free(_info.caption);
 	free(_info.gameInfo);
-	delete _codeActions;
-	delete _runner;
 	delete[] _roomOrder;
 	RTerminate();
+    InstanceList::Finalize();
+    CodeManager::Finalize();
 }
 
 bool GameLoad(const char *pFilename) {
 	// Init the runner
-	if (! _runner->Init()) {
+    if (!CodeManager::Init(&_globals)) {
 		return false;
 	}
 
@@ -492,9 +487,9 @@ bool GameLoad(const char *pFilename) {
 	unsigned char* charTable = NULL;
 	unsigned int count = ReadDword(buffer, &pos);
 	if(count) charTable = (unsigned char*)malloc(0x200);
-	AMReserveExtensions(count);
+	AssetManager::ReserveExtensions(count);
 	for (; count > 0; count--) {
-		Extension* extension = AMAddExtension();
+		Extension* extension = AssetManager::AddExtension();
 
 		pos += 4; // Data version, 700
 		extension->name = ReadString(buffer, &pos);
@@ -600,7 +595,7 @@ bool GameLoad(const char *pFilename) {
 	pos += 4;
 	count = ReadDword(buffer, &pos);
 	unsigned int triggerCount = count;
-	AMReserveTriggers(count);
+	AssetManager::ReserveTriggers(count);
 	for (; count > 0; count--) {
 
 		if (! InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -610,7 +605,7 @@ bool GameLoad(const char *pFilename) {
 			return false;
 		}
 
-		Trigger* trigger = AMAddTrigger();
+		Trigger* trigger = AssetManager::AddTrigger();
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
@@ -624,7 +619,7 @@ bool GameLoad(const char *pFilename) {
 		char* condition = ReadString(data, &dataPos, &condLength);
 		trigger->checkMoment = ReadDword(data, &dataPos);
 		trigger->constantName = ReadString(data, &dataPos);
-		trigger->codeObj = _runner->RegisterQuestion(condition, condLength);
+		trigger->codeObj = CodeManager::RegisterQuestion(condition, condLength);
 		free(condition);
 	}
 
@@ -633,9 +628,9 @@ bool GameLoad(const char *pFilename) {
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	AMReserveConstants(count);
+	AssetManager::ReserveConstants(count);
 	for (; count > 0; count--) {
-		Constant* constant = AMAddConstant();
+		Constant* constant = AssetManager::AddConstant();
 		constant->name = ReadString(buffer, &pos);
 		constant->value = ReadString(buffer, &pos);
 	}
@@ -645,7 +640,7 @@ bool GameLoad(const char *pFilename) {
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	AMReserveSounds(count);
+	AssetManager::ReserveSounds(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -655,7 +650,7 @@ bool GameLoad(const char *pFilename) {
 			return false;
 		}
 
-		Sound* sound = AMAddSound();
+		Sound* sound = AssetManager::AddSound();
 
 		unsigned int dataPos = 0;
 		if (! ReadDword(data, &dataPos)) {
@@ -691,7 +686,7 @@ bool GameLoad(const char *pFilename) {
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	AMReserveSprites(count);
+	AssetManager::ReserveSprites(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -701,7 +696,7 @@ bool GameLoad(const char *pFilename) {
 			return false;
 		}
 
-		Sprite* sprite = AMAddSprite();
+		Sprite* sprite = AssetManager::AddSprite();
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
@@ -804,7 +799,7 @@ bool GameLoad(const char *pFilename) {
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	AMReserveBackgrounds(count);
+	AssetManager::ReserveBackgrounds(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -814,7 +809,7 @@ bool GameLoad(const char *pFilename) {
 			return false;
 		}
 
-		Background* background = AMAddBackground();
+		Background* background = AssetManager::AddBackground();
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
@@ -849,7 +844,7 @@ bool GameLoad(const char *pFilename) {
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	AMReservePaths(count);
+	AssetManager::ReservePaths(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -859,7 +854,7 @@ bool GameLoad(const char *pFilename) {
 			return false;
 		}
 
-		Path* path = AMAddPath();
+		Path* path = AssetManager::AddPath();
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
@@ -890,7 +885,7 @@ bool GameLoad(const char *pFilename) {
 	pos += 4;
 	count = ReadDword(buffer, &pos);
 	unsigned int scriptCount = count;
-	AMReserveScripts(count);
+	AssetManager::ReserveScripts(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -900,7 +895,7 @@ bool GameLoad(const char *pFilename) {
 			return false;
 		}
 
-		Script* script = AMAddScript();
+		Script* script = AssetManager::AddScript();
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
@@ -912,7 +907,7 @@ bool GameLoad(const char *pFilename) {
 		dataPos += 4;
 		unsigned int codeLen;
 		char* code = ReadString(data, &dataPos, &codeLen);
-		script->codeObj = _runner->Register(code, codeLen);
+        script->codeObj = CodeManager::Register(code, codeLen);
 		free(code);
 	}
 
@@ -921,7 +916,7 @@ bool GameLoad(const char *pFilename) {
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	AMReserveFonts(count);
+	AssetManager::ReserveFonts(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -931,7 +926,7 @@ bool GameLoad(const char *pFilename) {
 			return false;
 		}
 
-		Font* font = AMAddFont();
+		Font* font = AssetManager::AddFont();
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
@@ -988,7 +983,7 @@ bool GameLoad(const char *pFilename) {
 	pos += 4;
 	count = ReadDword(buffer, &pos);
 	unsigned int timelineCount = count;
-	AMReserveTimelines(count);
+	AssetManager::ReserveTimelines(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -998,7 +993,7 @@ bool GameLoad(const char *pFilename) {
 			return false;
 		}
 
-		Timeline* timeline = AMAddTimeline();
+		Timeline* timeline = AssetManager::AddTimeline();
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
@@ -1019,7 +1014,7 @@ bool GameLoad(const char *pFilename) {
 			timeline->moments[index].actions = new CodeAction[timeline->moments[index].actionCount];
 
 			for (unsigned int j = 0; j < timeline->moments[index].actionCount; j++) {
-				if(!_codeActions->Read(data, &dataPos, timeline->moments[index].actions + j)) {
+				if(!CodeActionManager::Read(data, &dataPos, timeline->moments[index].actions + j)) {
 					// Error reading action
 					free(data);
 					delete [] buffer;
@@ -1035,7 +1030,7 @@ bool GameLoad(const char *pFilename) {
 	pos += 4;
 	count = ReadDword(buffer, &pos);
 	unsigned int objectCount = count;
-	AMReserveObjects(count);
+	AssetManager::ReserveObjects(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -1045,7 +1040,7 @@ bool GameLoad(const char *pFilename) {
 			return false;
 		}
 
-		Object* object = AMAddObject();
+		Object* object = AssetManager::AddObject();
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
@@ -1077,7 +1072,7 @@ bool GameLoad(const char *pFilename) {
 				e.actionCount = ReadDword(data, &dataPos);
 				e.actions = new CodeAction[e.actionCount];
 				for (unsigned int i = 0; i < e.actionCount; i++) {
-					if (!_codeActions->Read(data, &dataPos, e.actions + i)) {
+                    if (!CodeActionManager::Read(data, &dataPos, e.actions + i)) {
 						// Error reading action
 						free(data);
 						delete [] buffer;
@@ -1095,12 +1090,10 @@ bool GameLoad(const char *pFilename) {
 
 	// Rooms
 
-	unsigned int nextInstanceId = 100001;
-
 	pos += 4;
 	count = ReadDword(buffer, &pos);
 	unsigned int roomCount = count;
-	AMReserveRooms(count);
+	AssetManager::ReserveRooms(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -1110,7 +1103,7 @@ bool GameLoad(const char *pFilename) {
 			return false;
 		}
 
-		Room* room = AMAddRoom();
+		Room* room = AssetManager::AddRoom();
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
@@ -1130,7 +1123,7 @@ bool GameLoad(const char *pFilename) {
 		room->drawBackgroundColour = ReadDword(data, &dataPos);
 		unsigned int creationLen;
 		char* creation = ReadString(data, &dataPos, &creationLen);
-		room->creationCode = _runner->Register(creation, creationLen);
+        room->creationCode = CodeManager::Register(creation, creationLen);
 		free(creation);
 
 		// Room backgrounds
@@ -1183,12 +1176,8 @@ bool GameLoad(const char *pFilename) {
 			instance->id = ReadDword(data, &dataPos);
 			unsigned int codeLen;
 			char* code = ReadString(data, &dataPos, &codeLen);
-			instance->creation = _runner->Register(code, codeLen);
+            instance->creation = CodeManager::Register(code, codeLen);
 			free(code);
-
-			if (nextInstanceId <= instance->id) {
-				nextInstanceId = instance->id + 1;
-			}
 		}
 
 		// Room tiles
@@ -1208,15 +1197,16 @@ bool GameLoad(const char *pFilename) {
 		}
 	}
 
-	// ... not sure
-	pos += 8;
+	// Last instance and tile ID placed
+    InstanceList::SetLastInstanceID(ReadDword(buffer, &pos));
+    unsigned int lastTileID = ReadDword(buffer, &pos); // todo - unused
 
 	
 	// Include files
 
 	pos += 4;
 	count = ReadDword(buffer, &pos);
-	AMReserveIncludeFiles(count);
+	AssetManager::ReserveIncludeFiles(count);
 	for (; count > 0; count--) {
 
 		if (!InflateBlock(buffer, &pos, &data, &dataLength, &outputSize)) {
@@ -1226,7 +1216,7 @@ bool GameLoad(const char *pFilename) {
 			return false;
 		}
 
-		IncludeFile* file = AMAddIncludeFile();
+		IncludeFile* file = AssetManager::AddIncludeFile();
 
 		unsigned int dataPos = 0;
 		if (!ReadDword(data, &dataPos)) {
@@ -1295,14 +1285,11 @@ bool GameLoad(const char *pFilename) {
 	for (unsigned int i = 0; i < _roomOrderCount; i++) {
 		_roomOrder[i] = ReadDword(buffer, &pos);
 	}
-	_runner->SetRoomOrder(&_roomOrder, _roomOrderCount);
-
-	// Update runner with end of static instance id range
-	_runner->SetNextInstanceID(nextInstanceId);
+    CodeManager::SetRoomOrder(&_roomOrder, _roomOrderCount);
 
 	// Compile object parented event lists and identities
 	for (unsigned int i = 0; i < objectCount; i++) {
-		Object* obj = AMGetObject(i);
+		Object* obj = AssetManager::GetObject(i);
 		if (!obj->exists) continue;
 
 		// event lists
@@ -1315,7 +1302,7 @@ bool GameLoad(const char *pFilename) {
 					}
 				}
 				if (o->parentIndex < 0) break;
-				o = AMGetObject(o->parentIndex);
+				o = AssetManager::GetObject(o->parentIndex);
 			}
 			std::sort(obj->evList[j].begin(), obj->evList[j].end());
 		}
@@ -1325,15 +1312,15 @@ bool GameLoad(const char *pFilename) {
 		Object* o = obj;
 		while (o->parentIndex >= 0) {
 			obj->identities.insert(o->parentIndex);
-			o = AMGetObject(o->parentIndex);
+			o = AssetManager::GetObject(o->parentIndex);
 		}
 	}
 
 	// Compile scripts
 	for (unsigned int i = 0; i < scriptCount; i++) {
-		Script* s = AMGetScript(i);
+		Script* s = AssetManager::GetScript(i);
 		if (s->exists) {
-			if (!_runner->Compile(s->codeObj)) {
+            if (!CodeManager::Compile(s->codeObj)) {
 				// Error compiling script
 				free(data);
 				delete [] buffer;
@@ -1343,11 +1330,11 @@ bool GameLoad(const char *pFilename) {
 	}
 	// Compile timelines
 	for (unsigned int i = 0; i < timelineCount; i++) {
-		Timeline* t = AMGetTimeline(i);
+		Timeline* t = AssetManager::GetTimeline(i);
 		if (t->exists) {
 			for (const auto& j : t->moments) {
 				for (unsigned int k = 0; k < j.second.actionCount; k++) {
-					if(!_codeActions->Compile(j.second.actions[k])) {
+                    if (!CodeActionManager::Compile(j.second.actions[k])) {
 						// Error compiling script
 						free(data);
 						delete [] buffer;
@@ -1359,12 +1346,12 @@ bool GameLoad(const char *pFilename) {
 	}
 	// Compile object events
 	for (unsigned int i = 0; i < objectCount; i++) {
-		Object* o = AMGetObject(i);
+		Object* o = AssetManager::GetObject(i);
 		if (o->exists) {
 			for (unsigned int j = 0; j < 12; j++) {
 				for (auto const& ev : o->events[j]) {
 					for (unsigned int k = 0; k < ev.second.actionCount; k++) {
-						if (!_codeActions->Compile(ev.second.actions[k])) {
+                        if (!CodeActionManager::Compile(ev.second.actions[k])) {
 							// Error compiling script
 							free(data);
 							delete [] buffer;
@@ -1377,9 +1364,9 @@ bool GameLoad(const char *pFilename) {
 	}
 	// Compile triggers
 	for (unsigned int i = 0; i < triggerCount; i++) {
-		Trigger* t = AMGetTrigger(i);
+		Trigger* t = AssetManager::GetTrigger(i);
 		if (t->exists) {
-			if (!_runner->Compile(t->codeObj)) {
+            if (!CodeManager::Compile(t->codeObj)) {
 				// Error compiling script
 				free(data);
 				delete [] buffer;
@@ -1389,16 +1376,16 @@ bool GameLoad(const char *pFilename) {
 	}
 	// Compile room creation code (includes creation code of room-instances)
 	for (unsigned int i = 0; i < roomCount; i++) {
-		Room* r = AMGetRoom(i);
+		Room* r = AssetManager::GetRoom(i);
 		if (r->exists) {
-			if (!_runner->Compile(r->creationCode)) {
+            if (!CodeManager::Compile(r->creationCode)) {
 				// Error compiling script
 				free(data);
 				delete [] buffer;
 				return false;
 			}
 			for (unsigned int j = 0; j < r->instanceCount; j++) {
-				if (!_runner->Compile(r->instances[j].creation)) {
+                if (!CodeManager::Compile(r->instances[j].creation)) {
 					// Error compiling script
 					free(data);
 					delete [] buffer;
@@ -1418,13 +1405,13 @@ bool GameLoad(const char *pFilename) {
 
 bool GameStart() {
 	// Clear out the instances if there were any
-	_instances.ClearAll();
+	InstanceList::ClearAll();
 
 	// Reset the room to its default value so that LoadRoom() won't ever fail when restarting
 	_globals.room = 0xFFFFFFFF;
 
 	// Start up game window (this will safely destroy the old one if one existed)
-	if (!RMakeGameWindow(&settings, AMGetRoom(_roomOrder[0])->width, AMGetRoom(_roomOrder[0])->height)) {
+	if (!RMakeGameWindow(&settings, AssetManager::GetRoom(_roomOrder[0])->width, AssetManager::GetRoom(_roomOrder[0])->height)) {
 		// Failed to create GLFW window
 		return false;
 	}
@@ -1433,4 +1420,10 @@ bool GameStart() {
 	return GameLoadRoom(_roomOrder[0]);
 }
 
-unsigned int GameGetRoomSpeed() { return _globals.room_speed; }
+unsigned int GameGetRoomSpeed() {
+    return _globals.room_speed;
+}
+
+bool GameGetError(const char** err) {
+    return CodeManager::GetError(err);
+}

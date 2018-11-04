@@ -5,6 +5,7 @@
 
 // I put these in their own header because they're gonna be like, really big
 
+/*
 enum CRInstruction {
 	OP_NOP = 0x0,
 	OP_EXIT = 0x1,
@@ -34,6 +35,7 @@ enum CRInstruction {
 	OP_VARSTACK_POP = 0x19,
 	OP_RETURN = 0x1A
 };
+*/
 
 enum CRSetMethod {
 	SM_ASSIGN = 0,
@@ -46,41 +48,46 @@ enum CRSetMethod {
 	SM_BITWISE_XOR = 7
 };
 
+/*
 enum CRVarType {
 	VARTYPE_INSTANCE,
 	VARTYPE_FIELD,
 	VARTYPE_GAME
 };
+*/
 
 enum CROperator {
-	OPERATOR_STOP = 0x0,
-	OPERATOR_ADD = 0x1,
-	OPERATOR_SUBTRACT = 0x2,
-	OPERATOR_MULTIPLY = 0x3,
-	OPERATOR_DIVIDE = 0x4,
-	OPERATOR_MOD = 0x5,
-	OPERATOR_DIV = 0x6,
-	OPERATOR_EQUALS = 0x7,
-	OPERATOR_NOT_EQUAL = 0x8,
-	OPERATOR_LT = 0x9,
-	OPERATOR_LTE = 0xA,
-	OPERATOR_GT = 0xB,
-	OPERATOR_GTE = 0xC,
-	OPERATOR_BITWISE_OR = 0xD,
-	OPERATOR_BOOLEAN_OR = 0xE,
-	OPERATOR_BITWISE_AND = 0xF,
-	OPERATOR_BOOLEAN_AND = 0x10,
-	OPERATOR_BITWISE_XOR = 0x11,
-	OPERATOR_BOOLEAN_XOR = 0x12,
-	OPERATOR_LSHIFT = 0x13,
-	OPERATOR_RSHIFT = 0x14,
-	OPERATOR_DEREF = 0x15,
-
-	EVMOD_NOT = 0x16,
-	EVMOD_NEGATIVE = 0x17,
-	EVMOD_TILDE = 0x18
+	OPERATOR_ADD,
+	OPERATOR_SUBTRACT,
+	OPERATOR_MULTIPLY,
+	OPERATOR_DIVIDE,
+	OPERATOR_MOD,
+	OPERATOR_DIV,
+	OPERATOR_EQUALS,
+	OPERATOR_NOT_EQUAL,
+	OPERATOR_LT,
+	OPERATOR_LTE,
+	OPERATOR_GT,
+	OPERATOR_GTE,
+	OPERATOR_BITWISE_OR,
+	OPERATOR_BOOLEAN_OR,
+	OPERATOR_BITWISE_AND,
+	OPERATOR_BOOLEAN_AND,
+	OPERATOR_BITWISE_XOR,
+	OPERATOR_BOOLEAN_XOR,
+	OPERATOR_LSHIFT,
+	OPERATOR_RSHIFT,
+    OPERATOR_NONE
 };
 
+enum CRUnaryOperator {
+    OPERATOR_NOT = 0x0,
+    OPERATOR_TILDE = 0x1,
+    OPERATOR_NEGATIVE = 0x2,
+    OPERATOR_POSITIVE = 0x3
+};
+
+/*
 enum CRExpVType {
 	EVTYPE_NONE = 0x0,
 	EVTYPE_VAL = 0x1,
@@ -92,6 +99,7 @@ enum CRExpVType {
 	EVTYPE_SCRIPT = 0x7,
 	EVTYPE_STACK = 0x8,
 };
+*/
 
 enum CRInternalFunction {
 	ABS,
@@ -1255,6 +1263,7 @@ enum CRInstanceVar {
 	_INSTANCE_VAR_COUNT // As long as this one is last, it'll tell us how many things are in this enum. So don't move it.
 };
 
+/*
 enum CRSpecialNames {
 	SP_SELF,
 	SP_OTHER,
@@ -1262,5 +1271,6 @@ enum CRSpecialNames {
 	SP_NOONE,
 	SP_GLOBAL
 };
+*/
 
 #endif

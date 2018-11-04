@@ -5,7 +5,6 @@
 #include "GlobalValues.hpp"
 #include "GameSettings.hpp"
 class CodeRunner;
-class CodeActionManager;
 
 // Wrapper for game information
 struct GameInfo {
@@ -23,17 +22,11 @@ struct GameInfo {
 	char* gameInfo;
 };
 
-// All active instances
-extern InstanceList _instances;
-
 // All global values such as room_speed, health, etc
 extern GlobalValues _globals;
 
 // Object for compiling and running GML
 extern CodeRunner* _runner;
-
-// Manager for drag-n-drop code actions
-extern CodeActionManager* _codeActions;
 
 // This refers to the "game information" text box that comes up if you press F1.
 extern GameInfo _info;

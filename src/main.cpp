@@ -1,18 +1,16 @@
 #include <pch.h>
-#define CHECK_MEMORY_LEAKS 0
-#define OUTPUT_FRAME_TIME 1
+#include <iostream>
 #include <chrono>
 #include <thread>
 #include "Game.hpp"
+
+#define CHECK_MEMORY_LEAKS 1
+#define OUTPUT_FRAME_TIME 0
 
 #if CHECK_MEMORY_LEAKS
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>  
 #include <crtdbg.h>
-#endif
-
-#if OUTPUT_FRAME_TIME
-#include <iostream>
 #endif
 
 int main(int argc, char** argv) {
@@ -46,6 +44,11 @@ int main(int argc, char** argv) {
 
 	if (!GameStart()) {
 		// Starting game failed
+        const char* err;
+        if (GameGetError(&err)) {
+            std::cout << "RUNTIME ERROR: " << err << std::endl;
+        }
+
 		GameTerminate();
 		return 3;
 	}
@@ -62,6 +65,10 @@ int main(int argc, char** argv) {
 	while (true) {
 		t1 = std::chrono::high_resolution_clock::now();
 		if (!GameFrame()) {
+            const char* err;
+            if(GameGetError(&err)) {
+                std::cout << "RUNTIME ERROR: " << err << std::endl;
+            }
 			break;
 		}
 		

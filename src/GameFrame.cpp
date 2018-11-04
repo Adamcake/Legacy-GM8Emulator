@@ -12,25 +12,26 @@
 bool GameLoadRoom(int id) {
     // Check room index is valid
     if (id < 0) return false;
-    if (id >= ( int )AMGetRoomCount()) return false;
+    if (id >= ( int )AssetManager::GetRoomCount()) return false;
 
     // Get the Room object for the room we're going to
-    Room* room = AMGetRoom(id);
+    Room* room = AssetManager::GetRoom(id);
 
     // Check room exists
     if (!room->exists) return false;
 
-    unsigned int count = _instances.Count();
-    for (unsigned int i = 0; i < count; i++) {
+    InstanceList::Iterator iter;
+    Instance* i;
+    while(i = iter.Next()) {
         // run "room end" event for _instances[i]
-        Object* o = AMGetObject(_instances[i]->object_index);
+        Object* o = AssetManager::GetObject(i->object_index);
         if (o->events[7].count(5)) {
-            if (!_codeActions->RunInstanceEvent(7, 5, _instances[i], NULL, _instances[i]->object_index)) return false;
+            if (!CodeActionManager::RunInstanceEvent(7, 5, i, NULL, i->object_index)) return false;
         }
     }
 
     // Delete non-persistent instances
-    _instances.ClearNonPersistent();
+    InstanceList::ClearNonPersistent();
 
     // Clear inputs, because gm8 does this for some reason
     InputClearKeys();
@@ -52,31 +53,31 @@ bool GameLoadRoom(int id) {
 
     // Create all instances in new room
     for (unsigned int i = 0; i < room->instanceCount; i++) {
-        if (!_instances.GetInstanceByNumber(room->instances[i].id)) {
+        if (!InstanceList::GetInstanceByNumber(room->instances[i].id)) {
             unsigned int id = room->instances[i].id;
-            Instance* instance = _instances.AddInstance(id, room->instances[i].x, room->instances[i].y, room->instances[i].objectIndex);
+            Instance* instance = InstanceList::AddInstance(id, room->instances[i].x, room->instances[i].y, room->instances[i].objectIndex);
             if (!instance) {
                 // Failed to create instance
                 return false;
             }
             // run room->instances[i] creation code
-            if (!_runner->Run(room->instances[i].creation, instance, NULL, 0, 0, 0)) return false;  // not sure if it matters what event id and number I pass here?
+            if (!CodeManager::Run(room->instances[i].creation, instance, NULL, 0, 0, 0)) return false;  // not sure if it matters what event id and number I pass here?
             // run instance create event
-            Object* o = AMGetObject(instance->object_index);
-            if (!_codeActions->RunInstanceEvent(0, 0, instance, NULL, instance->object_index)) return false;
+            Object* o = AssetManager::GetObject(instance->object_index);
+            if (!CodeActionManager::RunInstanceEvent(0, 0, instance, NULL, instance->object_index)) return false;
         }
     }
 
     // run room's creation code
-    if (!_runner->Run(room->creationCode, NULL, NULL, 0, 0, 0)) return false;  // not sure if it matters what event id and number I pass here
+    if (!CodeManager::Run(room->creationCode, NULL, NULL, 0, 0, 0)) return false;  // not sure if it matters what event id and number I pass here
 
-    InstanceList::Iterator iter(&_instances);
+    iter = InstanceList::Iterator();
     Instance* instance;
     while (instance = iter.Next()) {
         // run _instance's room start event
-        Object* o = AMGetObject(instance->object_index);
+        Object* o = AssetManager::GetObject(instance->object_index);
         if (o->events[7].count(4)) {
-            if (!_codeActions->RunInstanceEvent(7, 4, instance, NULL, instance->object_index)) return false;
+            if (!CodeActionManager::RunInstanceEvent(7, 4, instance, NULL, instance->object_index)) return false;
         }
     }
 
@@ -86,7 +87,7 @@ bool GameLoadRoom(int id) {
 
 bool GameFrame() {
     Instance* instance;
-    InstanceList::Iterator iter(&_instances);
+    InstanceList::Iterator iter;
 
     // Update inputs from keyboard and mouse (doesn't really matter where this is in the event order as far as I know)
     InputUpdate();
@@ -94,25 +95,25 @@ bool GameFrame() {
     // TODO: "begin step" trigger events
 
     // Run "begin step" event for all instances
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
-        Object* o = AMGetObject(instance->object_index);
-        if (!_codeActions->RunInstanceEvent(3, 1, instance, NULL, instance->object_index)) return false;
+        Object* o = AssetManager::GetObject(instance->object_index);
+        if (!CodeActionManager::RunInstanceEvent(3, 1, instance, NULL, instance->object_index)) return false;
         if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
     }
 
     // TODO: if timeline_running, add timeline_speed to timeline_position and then run any events in that timeline indexed BELOW (not equal to) the current timeline_position
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         if (instance->timeline_running) {
-            Timeline* timeline = AMGetTimeline(instance->timeline_index);
+            Timeline* timeline = AssetManager::GetTimeline(instance->timeline_index);
             if (timeline->exists) {
                 double oldTPos = instance->timeline_position;
                 instance->timeline_position += instance->timeline_speed;
 
                 for (const auto& m : timeline->moments) {
                     if (m.first >= oldTPos && m.first < instance->timeline_position) {
-                        if (!_codeActions->Run(m.second.actions, m.second.actionCount, instance, NULL, 0, 0, instance->object_index)) return false;
+                        if (!CodeActionManager::Run(m.second.actions, m.second.actionCount, instance, NULL, 0, 0, instance->object_index)) return false;
                     }
                 }
             }
@@ -121,11 +122,11 @@ bool GameFrame() {
 
     // Subtract from alarms and run event if they reach 0
     AlarmUpdateAll();
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         for (const auto j : AlarmGetMap(instance->id)) {
             if (j.second == 0) {
-                if (!_codeActions->RunInstanceEvent(2, j.first, instance, NULL, instance->object_index)) return false;
+                if (!CodeActionManager::RunInstanceEvent(2, j.first, instance, NULL, instance->object_index)) return false;
                 if (AlarmGet(instance->id, j.first) == 0) AlarmDelete(instance->id, j.first);  // Only remove entry if it's still 0
                 if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
             }
@@ -133,12 +134,12 @@ bool GameFrame() {
     }
 
     // Key events
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
-        Object* o = AMGetObject(instance->object_index);
+        Object* o = AssetManager::GetObject(instance->object_index);
         for (unsigned int e : o->evList[5]) {
             if (InputCheckKey(e)) {
-                if (!_codeActions->RunInstanceEvent(5, e, instance, NULL, instance->object_index)) return false;  // Animation End event
+                if (!CodeActionManager::RunInstanceEvent(5, e, instance, NULL, instance->object_index)) return false;  // Animation End event
                 if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
             }
         }
@@ -147,24 +148,24 @@ bool GameFrame() {
     // TODO: mouse events
 
     // Key press events
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
-        Object* o = AMGetObject(instance->object_index);
+        Object* o = AssetManager::GetObject(instance->object_index);
         for (unsigned int e : o->evList[9]) {
             if (InputCheckKeyPressed(e)) {
-                if (!_codeActions->RunInstanceEvent(9, e, instance, NULL, instance->object_index)) return false;  // Animation End event
+                if (!CodeActionManager::RunInstanceEvent(9, e, instance, NULL, instance->object_index)) return false;  // Animation End event
                 if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
             }
         }
     }
 
     // Key release events
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
-        Object* o = AMGetObject(instance->object_index);
+        Object* o = AssetManager::GetObject(instance->object_index);
         for (unsigned int e : o->evList[10]) {
             if (InputCheckKey(e)) {
-                if (!_codeActions->RunInstanceEvent(10, e, instance, NULL, instance->object_index)) return false;  // Animation End event
+                if (!CodeActionManager::RunInstanceEvent(10, e, instance, NULL, instance->object_index)) return false;  // Animation End event
                 if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
             }
         }
@@ -173,15 +174,15 @@ bool GameFrame() {
     // TODO: "normal step" trigger events
 
     // Run "step" event for all instances
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     unsigned int a = 0;
     while (instance = iter.Next()) {
-        if (!_codeActions->RunInstanceEvent(3, 0, instance, NULL, instance->object_index)) return false;
+        if (!CodeActionManager::RunInstanceEvent(3, 0, instance, NULL, instance->object_index)) return false;
         if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
     }
 
     // Movement
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         // Set xprevious and yprevious
         instance->xprevious = instance->x;
@@ -197,17 +198,17 @@ bool GameFrame() {
                 instance->speed = -instance->speed;
 
             // Recalculate hspeed/vspeed
-            instance->hspeed = cos(instance->direction * PI / 180.0) * instance->speed;
-            instance->vspeed = -sin(instance->direction * PI / 180.0) * instance->speed;
+            instance->hspeed = cos(instance->direction * GML_PI / 180.0) * instance->speed;
+            instance->vspeed = -sin(instance->direction * GML_PI / 180.0) * instance->speed;
         }
 
         if (instance->gravity) {
             // Apply gravity in gravity_direction to hspeed and vspeed
-            instance->hspeed += cos(instance->gravity_direction * PI / 180.0) * instance->gravity;
-            instance->vspeed += -sin(instance->gravity_direction * PI / 180.0) * instance->gravity;
+            instance->hspeed += cos(instance->gravity_direction * GML_PI / 180.0) * instance->gravity;
+            instance->vspeed += -sin(instance->gravity_direction * GML_PI / 180.0) * instance->gravity;
 
             // Recalculate speed and direction from hspeed/vspeed
-            instance->direction = atan(-instance->vspeed / instance->hspeed) * 180.0 / PI;
+            instance->direction = ::atan2(instance->vspeed, instance->hspeed) * 180.0 / GML_PI;
             instance->speed = sqrt(pow(instance->hspeed, 2) + pow(instance->vspeed, 2));
         }
 
@@ -218,26 +219,26 @@ bool GameFrame() {
     }
 
     // Outside Room event
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
-        Object* o = AMGetObject(instance->object_index);
+        Object* o = AssetManager::GetObject(instance->object_index);
         if (std::find(o->evList[7].begin(), o->evList[7].end(), 0) != o->evList[7].end()) {
             RefreshInstanceBbox(instance);
             if (instance->bbox_bottom < 0 || instance->bbox_right < 0 || instance->bbox_top >= (int)_globals.room_height || instance->bbox_left >= (int)_globals.room_width) {
-                if (!_codeActions->RunInstanceEvent(7, 0, instance, NULL, instance->object_index)) return false;
+                if (!CodeActionManager::RunInstanceEvent(7, 0, instance, NULL, instance->object_index)) return false;
                 if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 			}
 		}
     }
 
     // Intersect boundary event
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
-        Object* o = AMGetObject(instance->object_index);
+        Object* o = AssetManager::GetObject(instance->object_index);
         if (std::find(o->evList[7].begin(), o->evList[7].end(), 1) != o->evList[7].end()) {
             RefreshInstanceBbox(instance);
             if (instance->bbox_bottom >= (int)_globals.room_height || instance->bbox_right >= (int)_globals.room_width || instance->bbox_top < 0 || instance->bbox_left < 0) {
-                if (!_codeActions->RunInstanceEvent(7, 1, instance, NULL, instance->object_index)) return false;
+                if (!CodeActionManager::RunInstanceEvent(7, 1, instance, NULL, instance->object_index)) return false;
                 if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
             }
         }
@@ -246,11 +247,11 @@ bool GameFrame() {
     // TODO: in this order, if views are enabled: "outside view x" events for all instances, "intersect boundary view x" events for all instances
 
     // Collision events
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
-        Object* o = AMGetObject(instance->object_index);
+        Object* o = AssetManager::GetObject(instance->object_index);
         for (unsigned int e : o->evList[4]) {
-            InstanceList::Iterator iter2(&_instances, e);
+            InstanceList::Iterator iter2(e);
 
             Instance* target = iter2.Next();
             while (target) {
@@ -262,7 +263,7 @@ bool GameFrame() {
                             instance->y = instance->yprevious;
                             instance->bboxIsStale = true;
                         }
-                        if (!_codeActions->RunInstanceEvent(4, e, instance, target, instance->object_index)) return false;
+                        if (!CodeActionManager::RunInstanceEvent(4, e, instance, target, instance->object_index)) return false;
                         if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 
                         if (target->solid) {
@@ -280,9 +281,9 @@ bool GameFrame() {
     // TODO: "end step" trigger events
 
     // Run "end step" event for all instances
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
-        if (!_codeActions->RunInstanceEvent(3, 2, instance, NULL, instance->object_index)) return false;
+        if (!CodeActionManager::RunInstanceEvent(3, 2, instance, NULL, instance->object_index)) return false;
         if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
     }
 
@@ -290,11 +291,11 @@ bool GameFrame() {
     RStartFrame();
 
     // Draw room backgrounds
-    Room* room = AMGetRoom(_globals.room);
+    Room* room = AssetManager::GetRoom(_globals.room);
     for (unsigned int i = 0; i < room->backgroundCount; i++) {
         RoomBackground bg = room->backgrounds[i];
         if (bg.visible && !bg.foreground && bg.backgroundIndex >= 0) {
-            Background* b = AMGetBackground(bg.backgroundIndex);
+            Background* b = AssetManager::GetBackground(bg.backgroundIndex);
             if (b->exists) {
                 unsigned int stretchedW = (bg.stretch ? room->width : b->width);
                 unsigned int stretchedH = (bg.stretch ? room->height : b->height);
@@ -313,12 +314,12 @@ bool GameFrame() {
     // Draw all tiles
     for (unsigned int i = 0; i < room->tileCount; i++) {
         RoomTile tile = room->tiles[i];
-        RDrawPartialImage(AMGetBackground(tile.backgroundIndex)->image, tile.x, tile.y, 1, 1, 0, 0xFFFFFFFF, 1, tile.tileX, tile.tileY, tile.width, tile.height, tile.depth);
+        RDrawPartialImage(AssetManager::GetBackground(tile.backgroundIndex)->image, tile.x, tile.y, 1, 1, 0, 0xFFFFFFFF, 1, tile.tileX, tile.tileY, tile.width, tile.height, tile.depth);
     }
 
     // Run draw event for all instances in depth order
     int nextDepth = INT_MIN;
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         if (instance->depth > nextDepth && instance->exists && instance->visible) nextDepth = instance->depth;
     }
@@ -326,21 +327,21 @@ bool GameFrame() {
     while (true) {
         int currentDepth = nextDepth;
         nextDepth = INT_MIN;
-        iter = InstanceList::Iterator(&_instances);
+        iter = InstanceList::Iterator();
         while (instance = iter.Next()) {
             // Don't run draw event for instances that don't exist or aren't visible.
             if (instance->visible) {
                 if (instance->depth == currentDepth) {
-                    Object* obj = AMGetObject(instance->object_index);
+                    Object* obj = AssetManager::GetObject(instance->object_index);
                     if (obj->events[8].count(0)) {
                         // This object has a custom draw event.
-                        if (!_codeActions->RunInstanceEvent(8, 0, instance, NULL, instance->object_index)) return false;
+                        if (!CodeActionManager::RunInstanceEvent(8, 0, instance, NULL, instance->object_index)) return false;
                         if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
                     }
                     else {
                         // This is the default draw action if no draw event is present for this object.
                         if (instance->sprite_index >= 0) {
-                            Sprite* sprite = AMGetSprite(instance->sprite_index);
+                            Sprite* sprite = AssetManager::GetSprite(instance->sprite_index);
                             if (sprite->exists) {
                                 RDrawImage(sprite->frames[(( int )instance->image_index) % sprite->frameCount], instance->x, instance->y, instance->image_xscale, instance->image_yscale,
                                     instance->image_angle, instance->image_blend, instance->image_alpha, instance->depth);
@@ -364,7 +365,7 @@ bool GameFrame() {
     for (unsigned int i = 0; i < room->backgroundCount; i++) {
         RoomBackground bg = room->backgrounds[i];
         if (bg.visible && bg.foreground) {
-            Background* b = AMGetBackground(bg.backgroundIndex);
+            Background* b = AssetManager::GetBackground(bg.backgroundIndex);
             unsigned int stretchedW = (bg.stretch ? room->width : b->width);
             unsigned int stretchedH = (bg.stretch ? room->height : b->height);
             double scaleX = (bg.stretch ? (( double )room->width / b->width) : 1);
@@ -386,22 +387,22 @@ bool GameFrame() {
     if (RShouldClose()) return false;
 
     // Update sprite info
-    iter = InstanceList::Iterator(&_instances);
+    iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         instance->image_index += instance->image_speed;
 
         if (instance->sprite_index >= 0) {
-            Sprite* s = AMGetSprite(instance->sprite_index);
+            Sprite* s = AssetManager::GetSprite(instance->sprite_index);
             if (instance->image_index >= s->frameCount) {
                 instance->image_index -= s->frameCount;
-                if (!_codeActions->RunInstanceEvent(7, 7, instance, NULL, instance->object_index)) return false;  // Animation End event
+                if (!CodeActionManager::RunInstanceEvent(7, 7, instance, NULL, instance->object_index)) return false;  // Animation End event
                 if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
             }
             if (instance->image_speed && s->separateCollision) instance->bboxIsStale = true;
         }
     }
 
-    _instances.ClearDeleted();
+    InstanceList::ClearDeleted();
 
     return true;
 }

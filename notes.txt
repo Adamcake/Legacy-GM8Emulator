@@ -178,6 +178,22 @@ The only regular operators which may be used on two string types are "+" and the
 The tilde operator will round its provided value with FISTP before evaluating. The <<, >>, &, | and ^ operators will round the values on both sides with FISTP before evaluating.
 
 
+================
+ASSET PRECEDENCE
+================
+Asset names are compiled to literal reals. Two or more assets can have the same name. This includes constants and triggers. The precedence of asset names in the compiler is as follows, from first to last:
+OBJECT
+SPRITE
+SOUND
+BACKGROUND
+PATH
+FONT
+TIMELINE
+SCRIPT
+ROOM
+TRIGGER
+CONSTANT
+
 =====
 FONTS
 =====

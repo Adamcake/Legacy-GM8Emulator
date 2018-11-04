@@ -6,6 +6,16 @@
 #include "Instance.hpp"
 #include "StreamUtil.hpp"
 
+// Private vars
+namespace CodeActionManager {
+    struct CACodeAction {
+        unsigned int actionID;
+        CodeObject codeObj;
+        bool question;
+        unsigned int param;  // Currently only used for repeat blocks because the game object needs to know how many times to repeat.
+    };
+    std::vector<CACodeAction> _actions;
+}
 
 bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, CodeAction* out) {
 	CACodeAction action;
@@ -374,10 +384,10 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
 
 	// Register the code we just generated
 	if (action.question) {
-		action.codeObj = _runner->RegisterQuestion(gml, gmlLen);
+        action.codeObj = CodeManager::RegisterQuestion(gml, gmlLen);
 	}
 	else {
-		action.codeObj = _runner->Register(gml, gmlLen);
+        action.codeObj = CodeManager::Register(gml, gmlLen);
 	}
 
 	// Clean up
@@ -392,7 +402,7 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
 }
 
 bool CodeActionManager::Compile(CodeAction action) {
-	return _runner->Compile(_actions[action].codeObj);
+	return CodeManager::Compile(_actions[action].codeObj);
 }
 
 bool CodeActionManager::Run(CodeAction* actions, unsigned int count, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId) {
@@ -404,7 +414,7 @@ bool CodeActionManager::Run(CodeAction* actions, unsigned int count, Instance* s
 			while (_actions[actions[pos]].question) {
 				if (run) {
 					bool r;
-					if (!_runner->Query(_actions[actions[pos]].codeObj, self, other, &r)) return false;
+                    if (!CodeManager::Query(_actions[actions[pos]].codeObj, self, other, ev, sub, asObjId, &r)) return false;
 					run &= r;
 				}
 				pos++;
@@ -412,7 +422,7 @@ bool CodeActionManager::Run(CodeAction* actions, unsigned int count, Instance* s
 		}
 
 		if(run) {
-			if (!_runner->Run(_actions[actions[pos]].codeObj, self, other, ev, sub, asObjId)) return false;
+            if (!CodeManager::Run(_actions[actions[pos]].codeObj, self, other, ev, sub, asObjId)) return false;
 			pos++;
 		}
 		else {
@@ -438,10 +448,10 @@ bool CodeActionManager::Run(CodeAction* actions, unsigned int count, Instance* s
 
 
 bool CodeActionManager::RunInstanceEvent(int ev, int sub, Instance* target, Instance* other, unsigned int asObjId) {
-	Object* o = AMGetObject(asObjId);
+	Object* o = AssetManager::GetObject(asObjId);
 	while (!CheckObjectEvent(ev, sub, o)) {
 		if (o->parentIndex < 0) return true;
-		o = AMGetObject(o->parentIndex);
+		o = AssetManager::GetObject(o->parentIndex);
 	}
 	return o->events[ev].count(sub) ? Run(o->events[ev][sub].actions, o->events[ev][sub].actionCount, target, other, ev, sub, asObjId) : true;
 }

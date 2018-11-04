@@ -16,10 +16,6 @@
 #include <set>
 // namespace fs = std::filesystem; // comfy alias
 
-// GM8Emulator
-#include "CREnums.hpp"
-#include "File.hpp"
-
 // Third Party
 #include <glad/glad.h> // GLAD
 #include <GLFW/glfw3.h> // GLFW
@@ -28,3 +24,4 @@
 
 constexpr double GMLTrue = 1.0;
 constexpr double GMLFalse = 0.0;
+constexpr double GML_PI = 3.141592654;  // Actual value of PI used by the official runner. Please don't make it more accurate.

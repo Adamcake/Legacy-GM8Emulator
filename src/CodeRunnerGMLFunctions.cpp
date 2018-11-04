@@ -11,6 +11,28 @@
 #include "InstanceList.hpp"
 #include "RNG.hpp"
 #include "Renderer.hpp"
+#include "Compiler/CRRuntime.hpp"
+
+// Private vars
+namespace Runtime {
+    // "draw" vars
+    unsigned int _drawFont = -1;
+    int _drawColour = 0;
+    int _drawValign = 0;
+    int _drawHalign = 0;
+    double _drawAlpha = 1.0;
+
+    // User files
+    std::fstream _userFiles[32];
+
+    // Room order
+    unsigned int** _roomOrder;
+    unsigned int _roomOrderCount;
+    void SetRoomOrder(unsigned int** order, unsigned int count) {
+        _roomOrder = order;
+        _roomOrderCount = count;
+    }
+}
 
 /*
 All GML functions have this format:
@@ -28,8 +50,8 @@ Your implementation must account for "out" being NULL. For example, instance_cre
 but if out is NULL then it doesn't output anything, as the runner has indicated that the output isn't required.
 */
 
-bool CodeRunner::abs(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::abs(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ::abs(argv[0].dVal);
@@ -37,8 +59,8 @@ bool CodeRunner::abs(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::arcsin(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::arcsin(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ::asin(argv[0].dVal);
@@ -46,8 +68,8 @@ bool CodeRunner::arcsin(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::arccos(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::arccos(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ::acos(argv[0].dVal);
@@ -55,8 +77,8 @@ bool CodeRunner::arccos(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::arctan(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::arctan(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ::atan(argv[0].dVal);
@@ -64,8 +86,8 @@ bool CodeRunner::arctan(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::ceil(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::ceil(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ::ceil(argv[0].dVal);
@@ -73,7 +95,7 @@ bool CodeRunner::ceil(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::choose(unsigned int argc, GMLType* argv, GMLType* out) {
+bool Runtime::choose(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!argc) {
         if (out) {
             out->state = GMLTypeState::Double;
@@ -87,8 +109,8 @@ bool CodeRunner::choose(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::cos(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::cos(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ::cos(argv[0].dVal);
@@ -96,20 +118,20 @@ bool CodeRunner::cos(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::degtorad(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::degtorad(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
-        out->dVal = (PI * argv[0].dVal) / 180.0;
+        out->dVal = (GML_PI * argv[0].dVal) / 180.0;
     }
     return true;
 }
 
-bool CodeRunner::distance_to_object(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
-    Instance* self = _contexts.top().self;
+bool Runtime::distance_to_object(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+    Instance* self = GetContext().self;
     Instance* other;
-    InstanceList::Iterator iter(_instances, _round(argv[0].dVal));
+    InstanceList::Iterator iter(_round(argv[0].dVal));
     double lowestDist = 1000000.0;  // GML default
     RefreshInstanceBbox(self);
 
@@ -149,61 +171,61 @@ bool CodeRunner::distance_to_object(unsigned int argc, GMLType* argv, GMLType* o
     return true;
 }
 
-bool CodeRunner::draw_rectangle(unsigned int argc, GMLType* argv, GMLType* out) {
+bool Runtime::draw_rectangle(unsigned int argc, GMLType* argv, GMLType* out) {
     // todo
     return true;
 }
 
-bool CodeRunner::draw_set_alpha(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::draw_set_alpha(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     _drawAlpha = argv[0].dVal;
     return true;
 }
 
-bool CodeRunner::draw_set_color(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::draw_set_color(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     _drawColour = _round(argv[0].dVal);
     return true;
 }
 
-bool CodeRunner::draw_set_font(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::draw_set_font(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     _drawFont = _round(argv[0].dVal);
     return true;
 }
 
-bool CodeRunner::draw_set_halign(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::draw_set_halign(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     _drawHalign = _round(argv[0].dVal);
     return true;
 }
 
-bool CodeRunner::draw_set_valign(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::draw_set_valign(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     _drawValign = _round(argv[0].dVal);
     return true;
 }
 
-bool CodeRunner::draw_sprite(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 4, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
-    Sprite* spr = AMGetSprite(_round(argv[0].dVal));
-    Instance* self = _contexts.top().self;
+bool Runtime::draw_sprite(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 4, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
+    Sprite* spr = AssetManager::GetSprite(_round(argv[0].dVal));
+    Instance* self = GetContext().self;
     RDrawImage(spr->frames[_round(argv[1].dVal) % spr->frameCount], argv[2].dVal, argv[3].dVal, self->image_xscale, self->image_yscale, self->image_angle, self->image_blend, self->image_alpha, self->depth);
     return true;
 }
 
-bool CodeRunner::draw_sprite_ext(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 9, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double,
+bool Runtime::draw_sprite_ext(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 9, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double,
             GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double))
         return false;
-    Sprite* spr = AMGetSprite(_round(argv[0].dVal));
-    Instance* self = _contexts.top().self;
+    Sprite* spr = AssetManager::GetSprite(_round(argv[0].dVal));
+    Instance* self = GetContext().self;
     RDrawImage(spr->frames[_round(argv[1].dVal) % spr->frameCount], argv[2].dVal, argv[3].dVal, argv[4].dVal, argv[5].dVal, argv[6].dVal, _round(argv[7].dVal), argv[8].dVal, self->depth);
     return true;
 }
 
-bool CodeRunner::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 3, false, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::String)) return false;
+bool Runtime::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
+    if(argc != 3) return false;
     const char* str = argv[2].sVal.c_str();
     std::string st;
     if (argv[2].state == GMLTypeState::Double) {
@@ -214,7 +236,7 @@ bool CodeRunner::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
         str = st.c_str();
     }
 
-    Font* font = AMGetFont(_drawFont);
+    Font* font = AssetManager::GetFont(_drawFont);
     if (font && font->exists) {
         int cursorX = _round(argv[0].dVal);
         int cursorY = _round(argv[1].dVal);
@@ -276,7 +298,7 @@ bool CodeRunner::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
                 unsigned int cCW = *(dmapPos + 4);
                 unsigned int cCO = *(dmapPos + 5);
 
-                RDrawPartialImage(font->image, cursorX + ( int )cCO, cursorY, 1, 1, 0.0, _drawColour, _drawAlpha, cX, cY, cW, cH, _contexts.top().self->depth);
+                RDrawPartialImage(font->image, cursorX + ( int )cCO, cursorY, 1, 1, 0.0, _drawColour, _drawAlpha, cX, cY, cW, cH, GetContext().self->depth);
                 cursorX += cCW;
             }
         }
@@ -288,24 +310,24 @@ bool CodeRunner::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::event_inherited(unsigned int argc, GMLType* argv, GMLType* out) {
-    Object* o = AMGetObject(_contexts.top().objId);
+bool Runtime::event_inherited(unsigned int argc, GMLType* argv, GMLType* out) {
+    Object* o = AssetManager::GetObject(GetContext().objId);
     unsigned int id;
 
     while (o->parentIndex >= 0) {
         id = o->parentIndex;
-        o = AMGetObject(id);
+        o = AssetManager::GetObject(id);
 
-        if (_codeActions->CheckObjectEvent(_contexts.top().eventId, _contexts.top().eventNumber, o)) {
-            return _codeActions->RunInstanceEvent(_contexts.top().eventId, _contexts.top().eventNumber, _contexts.top().self, _contexts.top().other, id);
+        if (CodeActionManager::CheckObjectEvent(GetContext().eventId, GetContext().eventNumber, o)) {
+            return CodeActionManager::RunInstanceEvent(GetContext().eventId, GetContext().eventNumber, GetContext().self, GetContext().other, id);
         }
     }
     return true;
 }
 
-bool CodeRunner::event_perform(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
-    return _codeActions->RunInstanceEvent(_round(argv[0].dVal), _round(argv[1].dVal), _contexts.top().self, _contexts.top().other, _contexts.top().self->object_index);
+bool Runtime::event_perform(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
+    return CodeActionManager::RunInstanceEvent(_round(argv[0].dVal), _round(argv[1].dVal), GetContext().self, GetContext().other, GetContext().self->object_index);
 }
 
 
@@ -316,8 +338,8 @@ bool fsExists(std::string& path) {
     return ifs.good() && ifs.is_open();
 }
 
-bool CodeRunner::file_bin_open(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 2, true, GMLTypeState::String, GMLTypeState::Double)) return false;
+bool Runtime::file_bin_open(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 2, true, GMLTypeState::String, GMLTypeState::Double)) return false;
     // fs::path filePath = fs::path(argv[0].sVal);
 
     ::std::string filePath = argv[0].sVal;
@@ -362,8 +384,8 @@ bool CodeRunner::file_bin_open(unsigned int argc, GMLType* argv, GMLType* out) {
     }
 }
 
-bool CodeRunner::file_bin_close(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::file_bin_close(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     int idx = _round(argv[0].dVal);
     if (_userFiles[idx - 1].is_open()) {
         _userFiles[idx - 1].close();
@@ -374,8 +396,8 @@ bool CodeRunner::file_bin_close(unsigned int argc, GMLType* argv, GMLType* out) 
     }
 }
 
-bool CodeRunner::file_bin_read_byte(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::file_bin_read_byte(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     int idx = _round(argv[0].dVal);
 
     if (_userFiles[idx - 1].is_open()) {
@@ -395,8 +417,8 @@ bool CodeRunner::file_bin_read_byte(unsigned int argc, GMLType* argv, GMLType* o
     }
 }
 
-bool CodeRunner::file_bin_write_byte(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
+bool Runtime::file_bin_write_byte(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
     int idx = _round(argv[0].dVal);
     int oByte = _round(argv[1].dVal);
 
@@ -409,13 +431,13 @@ bool CodeRunner::file_bin_write_byte(unsigned int argc, GMLType* argv, GMLType* 
     }
 }
 
-bool CodeRunner::file_delete(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, false, GMLTypeState::String)) return false;
+bool Runtime::file_delete(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, false, GMLTypeState::String)) return false;
     return std::remove(argv[0].sVal.c_str()) == 0;
 }
 
-bool CodeRunner::file_exists(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::String)) return false;
+bool Runtime::file_exists(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::String)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         // (fs::exists(fs::path(argv[0].sVal))
@@ -428,37 +450,36 @@ bool CodeRunner::file_exists(unsigned int argc, GMLType* argv, GMLType* out) {
 // --- FILE END ---
 
 
-bool CodeRunner::instance_create(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 3, false, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
+bool Runtime::instance_create(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 3, false, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
     unsigned int objID = _round(argv[2].dVal);
-    Instance* i = _instances->AddInstance(_nextInstanceID, argv[0].dVal, argv[1].dVal, objID);
+    Instance* i = InstanceList::AddInstance(argv[0].dVal, argv[1].dVal, objID);
     if (out) {
         out->state = GMLTypeState::Double;
-        out->dVal = ( double )_nextInstanceID;
+        out->dVal = i->id;
     }
-    _nextInstanceID++;
-    if (!_codeActions->RunInstanceEvent(0, 0, i, NULL, i->object_index)) return false;
+    if (!CodeActionManager::RunInstanceEvent(0, 0, i, NULL, i->object_index)) return false;
     return true;
 }
 
-bool CodeRunner::instance_destroy(unsigned int argc, GMLType* argv, GMLType* out) {
-    _contexts.top().self->exists = false;
+bool Runtime::instance_destroy(unsigned int argc, GMLType* argv, GMLType* out) {
+    GetContext().self->exists = false;
     return true;
 }
 
-bool CodeRunner::instance_exists(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::instance_exists(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     int objId = _round(argv[0].dVal);
-    InstanceList::Iterator it(_instances, ( unsigned int )objId);
+    InstanceList::Iterator it((unsigned int)objId);
     out->state = GMLTypeState::Double;
     out->dVal = (it.Next() ? GMLTrue : GMLFalse);
     return true;
 }
 
-bool CodeRunner::instance_number(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::instance_number(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     int objId = _round(argv[0].dVal);
-    InstanceList::Iterator it(_instances, ( unsigned int )objId);
+    InstanceList::Iterator it((unsigned int)objId);
     out->state = GMLTypeState::Double;
     unsigned int count = 0;
     while (it.Next()) count++;
@@ -466,14 +487,14 @@ bool CodeRunner::instance_number(unsigned int argc, GMLType* argv, GMLType* out)
     return true;
 }
 
-bool CodeRunner::instance_position(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 3, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
+bool Runtime::instance_position(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 3, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
     if (out) {
         int objId = _round(argv[2].dVal);
         int x = _round(argv[0].dVal);
         int y = _round(argv[1].dVal);
-        InstanceList::Iterator it(_instances, ( unsigned int )objId);
-        if (objId == -3) it = InstanceList::Iterator(_instances);
+        InstanceList::Iterator it((unsigned int)objId);
+        if (objId == -3) it = InstanceList::Iterator();
         Instance* instance;
         double ret = -4.0;
         while (instance = it.Next()) {
@@ -488,8 +509,8 @@ bool CodeRunner::instance_position(unsigned int argc, GMLType* argv, GMLType* ou
     return true;
 }
 
-bool CodeRunner::irandom(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, false, GMLTypeState::Double)) return false;
+bool Runtime::irandom(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, false, GMLTypeState::Double)) return false;
     int rand = RNGIrandom(_round(argv[0].dVal));
     if (out) {
         out->state = GMLTypeState::Double;
@@ -498,8 +519,8 @@ bool CodeRunner::irandom(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::irandom_range(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
+bool Runtime::irandom_range(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
     int rand = RNGIrandom(::abs(_round(argv[1].dVal) - _round(argv[0].dVal)) + 1);
     if (out) {
         out->state = GMLTypeState::Double;
@@ -508,7 +529,7 @@ bool CodeRunner::irandom_range(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::is_real(unsigned int argc, GMLType* argv, GMLType* out) {
+bool Runtime::is_real(unsigned int argc, GMLType* argv, GMLType* out) {
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = (argv[0].state == GMLTypeState::Double) ? GMLTrue : GMLFalse;
@@ -516,7 +537,7 @@ bool CodeRunner::is_real(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::is_string(unsigned int argc, GMLType* argv, GMLType* out) {
+bool Runtime::is_string(unsigned int argc, GMLType* argv, GMLType* out) {
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = (argv[0].state == GMLTypeState::String) ? GMLTrue : GMLFalse;
@@ -524,8 +545,8 @@ bool CodeRunner::is_string(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::floor(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::floor(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ::floor(argv[0].dVal);
@@ -533,12 +554,15 @@ bool CodeRunner::floor(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::game_end(unsigned int argc, GMLType* argv, GMLType* out) { return false; }
+bool Runtime::game_end(unsigned int argc, GMLType* argv, GMLType* out) {
+    SetReturnCause(ReturnCause::ExitGameEnd);
+    return false;
+}
 
-bool CodeRunner::game_restart(unsigned int argc, GMLType* argv, GMLType* out) {
-    _globalValues->changeRoom = true;
-    _globalValues->roomTarget = (*_roomOrder)[0];
-    InstanceList::Iterator iter(_instances);
+bool Runtime::game_restart(unsigned int argc, GMLType* argv, GMLType* out) {
+    GetGlobals()->changeRoom = true;
+    GetGlobals()->roomTarget = (*_roomOrder)[0];
+    InstanceList::Iterator iter;
     Instance* i;
     while (i = iter.Next()) {
         i->exists = false;
@@ -546,40 +570,40 @@ bool CodeRunner::game_restart(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::keyboard_check(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::keyboard_check(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     out->state = GMLTypeState::Double;
     int gmlKeycode = _round(argv[0].dVal);
     out->dVal = (InputCheckKey(gmlKeycode) ? GMLTrue : GMLFalse);
     return true;
 }
 
-bool CodeRunner::keyboard_check_direct(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::keyboard_check_direct(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     out->state = GMLTypeState::Double;
     int gmlKeycode = _round(argv[0].dVal);
     out->dVal = (InputCheckKeyDirect(gmlKeycode) ? GMLTrue : GMLFalse);
     return true;
 }
 
-bool CodeRunner::keyboard_check_pressed(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::keyboard_check_pressed(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     out->state = GMLTypeState::Double;
     int gmlKeycode = _round(argv[0].dVal);
     out->dVal = (InputCheckKeyPressed(gmlKeycode) ? GMLTrue : GMLFalse);
     return true;
 }
 
-bool CodeRunner::keyboard_check_released(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::keyboard_check_released(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     out->state = GMLTypeState::Double;
     int gmlKeycode = _round(argv[0].dVal);
     out->dVal = (InputCheckKeyReleased(gmlKeycode) ? GMLTrue : GMLFalse);
     return true;
 }
 
-bool CodeRunner::log2(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::log2(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ::log2(argv[0].dVal);
@@ -587,8 +611,8 @@ bool CodeRunner::log2(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::log10(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::log10(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ::log10(argv[0].dVal);
@@ -596,8 +620,8 @@ bool CodeRunner::log10(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::logn(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 2, true, GMLTypeState::Double)) return false;
+bool Runtime::logn(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 2, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ::log(argv[1].dVal) / ::log(argv[0].dVal);
@@ -605,8 +629,8 @@ bool CodeRunner::logn(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::ln(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::ln(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ::log(argv[0].dVal);
@@ -614,8 +638,8 @@ bool CodeRunner::ln(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::make_color_hsv(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 3, false, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
+bool Runtime::make_color_hsv(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 3, false, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
     if (out) {
         float fH = ( float )((argv[0].dVal / 255.0) * 360.0);
         float fS = ( float )(argv[1].dVal / 255.0);
@@ -672,7 +696,7 @@ bool CodeRunner::make_color_hsv(unsigned int argc, GMLType* argv, GMLType* out) 
     return true;
 }
 
-bool CodeRunner::max(unsigned int argc, GMLType* argv, GMLType* out) {
+bool Runtime::max(unsigned int argc, GMLType* argv, GMLType* out) {
     if (out) {
         GMLType ret;
         if (argc == 0) {
@@ -704,7 +728,7 @@ bool CodeRunner::max(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::min(unsigned int argc, GMLType* argv, GMLType* out) {
+bool Runtime::min(unsigned int argc, GMLType* argv, GMLType* out) {
     if (out) {
         GMLType ret;
         if (argc == 0) {
@@ -739,36 +763,36 @@ bool CodeRunner::min(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::motion_set(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
-    Instance* self = _contexts.top().self;
+bool Runtime::motion_set(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
+    Instance* self = GetContext().self;
     self->direction = argv[0].dVal;
     self->speed = argv[1].dVal;
     return true;
 }
 
-bool CodeRunner::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (_isTrue(argv)) {
 		// advanced bouncing - TODO
         return false;
 	}
     else {
 		// Basic bouncing
-        Instance* self = _contexts.top().self;
+        Instance* self = GetContext().self;
         double startx = self->x, starty = self->y;
         Instance* target;
-        bool doThirdCheck = true;
 
 		// First collision check - x offset only
         self->x += self->hspeed;
         self->bboxIsStale = true;
-        InstanceList::Iterator iter(_instances);
+        bool didChange = false;
+        InstanceList::Iterator iter;
         while (target = iter.Next()) {
             if (target->solid) {
                 if (CollisionCheck(self, target)) {
                     self->hspeed = -self->hspeed;
-                    doThirdCheck = false;
+                    didChange = true;
                     break;
 				}
 			}
@@ -778,27 +802,28 @@ bool CodeRunner::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* ou
         self->x = startx;
         self->y += self->vspeed;
         self->bboxIsStale = true;
-		iter = InstanceList::Iterator(_instances);
+		iter = InstanceList::Iterator();
         while (target = iter.Next()) {
             if (target->solid) {
                 if (CollisionCheck(self, target)) {
                     self->vspeed = -self->vspeed;
-                    doThirdCheck = false;
+                    didChange = true;
                     break;
                 }
             }
         }
 
-		if (doThirdCheck) {
+		if (!didChange) {
 			// Third collision check - x and y offset
             self->x += self->hspeed;
             self->bboxIsStale = true;
-            iter = InstanceList::Iterator(_instances);
+            iter = InstanceList::Iterator();
             while (target = iter.Next()) {
                 if (target->solid) {
                     if (CollisionCheck(self, target)) {
                         self->hspeed = -self->hspeed;
                         self->vspeed = -self->vspeed;
+                        didChange = true;
                         break;
                     }
                 }
@@ -809,21 +834,26 @@ bool CodeRunner::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* ou
         self->y = starty;
         self->bboxIsStale = true;
 
+        if(didChange) {
+            self->direction = ::atan2(-self->vspeed * GML_PI / 180.0, self->hspeed * GML_PI / 180.0) * 180.0 / GML_PI;
+            self->speed = ::sqrt(pow(self->hspeed, 2) + pow(self->vspeed, 2));
+        }
+
 		return true;
 	}
 }
 
-bool CodeRunner::move_contact_solid(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
+bool Runtime::move_contact_solid(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
     int maxdist = _round(argv[1].dVal);
     if (maxdist <= 0) maxdist = 1000;  // GML default
-    double hspeed = ::cos(argv[0].dVal * PI / 180.0);
-    double vspeed = -::sin(argv[0].dVal * PI / 180.0);
-    Instance* self = _contexts.top().self;
+    double hspeed = ::cos(argv[0].dVal * GML_PI / 180.0);
+    double vspeed = -::sin(argv[0].dVal * GML_PI / 180.0);
+    Instance* self = GetContext().self;
     bool moved = false;
 
     for (int i = 0; i <= maxdist; i++) {
-        InstanceList::Iterator iter(_instances);
+        InstanceList::Iterator iter;
         bool collision = false;
 
         Instance* target;
@@ -859,15 +889,15 @@ bool CodeRunner::move_contact_solid(unsigned int argc, GMLType* argv, GMLType* o
     return true;
 }
 
-bool CodeRunner::move_wrap(unsigned int argc, GMLType* argv, GMLType* out) {
+bool Runtime::move_wrap(unsigned int argc, GMLType* argv, GMLType* out) {
     if (argv[2].state == GMLTypeState::String) return false;
     bool hor = _isTrue(argv + 0);
     bool ver = _isTrue(argv + 1);
     double margin = argv[2].dVal;
-    Instance* instance = _contexts.top().self;
+    Instance* instance = GetContext().self;
 
     if (hor) {
-        unsigned int roomW = AMGetRoom(_globalValues->room)->width;
+        unsigned int roomW = AssetManager::GetRoom(GetGlobals()->room)->width;
         if (instance->x < -margin) {
             instance->x += roomW;
         }
@@ -877,7 +907,7 @@ bool CodeRunner::move_wrap(unsigned int argc, GMLType* argv, GMLType* out) {
     }
 
     if (ver) {
-        unsigned int roomH = AMGetRoom(_globalValues->room)->height;
+        unsigned int roomH = AssetManager::GetRoom(GetGlobals()->room)->height;
         if (instance->y < -margin) {
             instance->y += roomH;
         }
@@ -889,8 +919,8 @@ bool CodeRunner::move_wrap(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::ord(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::ord(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ( double )argv[0].sVal[0];
@@ -898,14 +928,14 @@ bool CodeRunner::ord(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::place_free(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
+bool Runtime::place_free(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = GMLTrue;
 
-        InstanceList::Iterator iter(_instances);
-        Instance* self = _contexts.top().self;
+        InstanceList::Iterator iter;
+        Instance* self = GetContext().self;
         double oldX = self->x;
         double oldY = self->y;
         self->x = argv[0].dVal;
@@ -929,16 +959,16 @@ bool CodeRunner::place_free(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::place_meeting(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 3, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
+bool Runtime::place_meeting(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 3, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = GMLFalse;
         int obj = _round(argv[2].dVal);
-        InstanceList::Iterator iter(_instances, ( unsigned int )obj);
-        if (obj == -3) iter = InstanceList::Iterator(_instances);
+        InstanceList::Iterator iter((unsigned int)obj);
+        if (obj == -3) iter = InstanceList::Iterator();
 
-        Instance* self = _contexts.top().self;
+        Instance* self = GetContext().self;
         double oldX = self->x;
         double oldY = self->y;
         self->x = argv[0].dVal;
@@ -962,8 +992,8 @@ bool CodeRunner::place_meeting(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::point_distance(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 4, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
+bool Runtime::point_distance(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 4, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ::sqrt(::pow(argv[1].dVal - argv[3].dVal, 2) + ::pow(argv[2].dVal - argv[0].dVal, 2));
@@ -971,17 +1001,17 @@ bool CodeRunner::point_distance(unsigned int argc, GMLType* argv, GMLType* out) 
     return true;
 }
 
-bool CodeRunner::point_direction(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 4, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
+bool Runtime::point_direction(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 4, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
-        out->dVal = (::atan2((argv[1].dVal - argv[3].dVal), (argv[2].dVal - argv[0].dVal))) * 180.0 / PI;
+        out->dVal = (::atan2((argv[1].dVal - argv[3].dVal), (argv[2].dVal - argv[0].dVal))) * 180.0 / GML_PI;
     }
     return true;
 }
 
-bool CodeRunner::power(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
+bool Runtime::power(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
     if (out) {
         (*out).state = GMLTypeState::Double;
         (*out).dVal = ::pow(argv[0].dVal, argv[1].dVal);
@@ -989,17 +1019,17 @@ bool CodeRunner::power(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::radtodeg(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::radtodeg(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
-        out->dVal = (180.0 * argv[0].dVal) / PI;
+        out->dVal = (180.0 * argv[0].dVal) / GML_PI;
     }
     return true;
 }
 
-bool CodeRunner::random(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, false, GMLTypeState::Double)) return false;
+bool Runtime::random(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, false, GMLTypeState::Double)) return false;
     double rand = RNGRandom(argv[0].dVal);
     if (out) {
         out->state = GMLTypeState::Double;
@@ -1008,8 +1038,8 @@ bool CodeRunner::random(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::random_range(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 2, false, GMLTypeState::Double, GMLTypeState::Double)) return false;
+bool Runtime::random_range(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 2, false, GMLTypeState::Double, GMLTypeState::Double)) return false;
     double rand = RNGRandom(argv[1].dVal - argv[0].dVal);
     if (out) {
         out->state = GMLTypeState::Double;
@@ -1018,7 +1048,7 @@ bool CodeRunner::random_range(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::random_get_seed(unsigned int argc, GMLType* argv, GMLType* out) {
+bool Runtime::random_get_seed(unsigned int argc, GMLType* argv, GMLType* out) {
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ( double )RNGGetSeed();
@@ -1026,46 +1056,46 @@ bool CodeRunner::random_get_seed(unsigned int argc, GMLType* argv, GMLType* out)
     return true;
 }
 
-bool CodeRunner::random_set_seed(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::random_set_seed(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     RNGSetSeed(_round(argv[0].dVal));
     return true;
 }
 
-bool CodeRunner::room_goto(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, false, GMLTypeState::Double)) return false;
-    _globalValues->changeRoom = true;
-    _globalValues->roomTarget = _round(argv[0].dVal);
+bool Runtime::room_goto(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, false, GMLTypeState::Double)) return false;
+    GetGlobals()->changeRoom = true;
+    GetGlobals()->roomTarget = _round(argv[0].dVal);
 
     return true;
 }
 
-bool CodeRunner::room_goto_next(unsigned int argc, GMLType* argv, GMLType* out) {
-    _globalValues->changeRoom = true;
-    if ((*_roomOrder)[_roomOrderCount - 1] == _globalValues->room) return false;  // Trying to go to next room from last room
+bool Runtime::room_goto_next(unsigned int argc, GMLType* argv, GMLType* out) {
+    GetGlobals()->changeRoom = true;
+    if ((*_roomOrder)[_roomOrderCount - 1] == GetGlobals()->room) return false;  // Trying to go to next room from last room
     for (unsigned int i = 0; i < _roomOrderCount; i++) {
-        if ((*_roomOrder)[i] == _globalValues->room) {
-            _globalValues->roomTarget = (*_roomOrder)[i + 1];
+        if ((*_roomOrder)[i] == GetGlobals()->room) {
+            GetGlobals()->roomTarget = (*_roomOrder)[i + 1];
             return true;
         }
     }
     return false;
 }
 
-bool CodeRunner::room_goto_previous(unsigned int argc, GMLType* argv, GMLType* out) {
-    _globalValues->changeRoom = true;
-    if ((*_roomOrder)[0] == _globalValues->room) return false;  // Trying to go to next room from last room
+bool Runtime::room_goto_previous(unsigned int argc, GMLType* argv, GMLType* out) {
+    GetGlobals()->changeRoom = true;
+    if ((*_roomOrder)[0] == GetGlobals()->room) return false;  // Trying to go to next room from last room
     for (unsigned int i = 0; i < _roomOrderCount; i++) {
-        if ((*_roomOrder)[i] == _globalValues->room) {
-            _globalValues->roomTarget = (*_roomOrder)[i - 1];
+        if ((*_roomOrder)[i] == GetGlobals()->room) {
+            GetGlobals()->roomTarget = (*_roomOrder)[i - 1];
             return true;
         }
     }
     return false;
 }
 
-bool CodeRunner::round(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::round(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = _round(argv[0].dVal);
@@ -1073,8 +1103,8 @@ bool CodeRunner::round(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::sign(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::sign(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = (argv[0].dVal == 0 ? 0 : (argv[0].dVal < 0 ? -1 : 1));
@@ -1082,8 +1112,8 @@ bool CodeRunner::sign(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::sin(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::sin(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ::sin(argv[0].dVal);
@@ -1091,8 +1121,8 @@ bool CodeRunner::sin(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::sqr(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::sqr(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = argv[0].dVal * argv[0].dVal;
@@ -1100,8 +1130,8 @@ bool CodeRunner::sqr(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::sqrt(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::sqrt(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (argv[0].dVal < 0) return false;
     if (out) {
         out->state = GMLTypeState::Double;
@@ -1110,7 +1140,7 @@ bool CodeRunner::sqrt(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::string(unsigned int argc, GMLType* argv, GMLType* out) {
+bool Runtime::string(unsigned int argc, GMLType* argv, GMLType* out) {
     if (argc != 1) return false;
     if (out) {
         out->state = GMLTypeState::String;
@@ -1127,7 +1157,7 @@ bool CodeRunner::string(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::string_width(unsigned int argc, GMLType* argv, GMLType* out) {
+bool Runtime::string_width(unsigned int argc, GMLType* argv, GMLType* out) {
     if (argc != 1) return false;
     if (out) {
         out->state = GMLTypeState::Double;
@@ -1136,7 +1166,7 @@ bool CodeRunner::string_width(unsigned int argc, GMLType* argv, GMLType* out) {
             return true;
         }
 
-        Font* font = AMGetFont(_drawFont);
+        Font* font = AssetManager::GetFont(_drawFont);
         if (!font->exists) {
             // Default font not sure what to do here
             out->dVal = GMLFalse;
@@ -1161,7 +1191,7 @@ bool CodeRunner::string_width(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::string_height(unsigned int argc, GMLType* argv, GMLType* out) {
+bool Runtime::string_height(unsigned int argc, GMLType* argv, GMLType* out) {
     if (argc != 1) return false;
     if (out) {
         out->state = GMLTypeState::Double;
@@ -1170,7 +1200,7 @@ bool CodeRunner::string_height(unsigned int argc, GMLType* argv, GMLType* out) {
             return true;
         }
 
-        Font* font = AMGetFont(_drawFont);
+        Font* font = AssetManager::GetFont(_drawFont);
         if (!font->exists) {
             // Default font not sure what to do here
             out->dVal = GMLFalse;
@@ -1194,8 +1224,8 @@ bool CodeRunner::string_height(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::tan(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
+bool Runtime::tan(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ::tan(argv[0].dVal);
@@ -1203,22 +1233,23 @@ bool CodeRunner::tan(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
-bool CodeRunner::window_set_caption(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!this->_assertArgs(argc, argv, 1, true, GMLTypeState::String)) return false;
+bool Runtime::window_set_caption(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::String)) return false;
     RSetGameWindowTitle(argv->sVal.c_str());
     return true;
 }
 
-bool CodeRunner::window_get_caption(unsigned int argc, GMLType* argv, GMLType* out) {
+bool Runtime::window_get_caption(unsigned int argc, GMLType* argv, GMLType* out) {
     if (argc != 0) return false;
     if (out) {
         out->state = GMLTypeState::String;
-        out->sVal = std::string(_globalValues->room_caption);
+        out->sVal = std::string(GetGlobals()->room_caption);
     }
     return true;
 }
 
-bool CodeRunner::unimplemented(unsigned int argc, GMLType* argv, GMLType* out) {
+constexpr bool CRErrorOnUnimplemented = false;
+bool Runtime::unimplemented(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!CRErrorOnUnimplemented) {
         if (out) {
             out->state = GMLTypeState::Double;

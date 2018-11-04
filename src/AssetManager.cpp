@@ -15,7 +15,7 @@ std::vector<Object> _objects;
 std::vector<Room> _rooms;
 std::vector<IncludeFile> _includeFiles;
 
-void AMClear() {
+void AssetManager::Clear() {
 	_extensions.clear();
 	_triggers.clear();
 	_constants.clear();
@@ -30,198 +30,198 @@ void AMClear() {
 	_rooms.clear();
 }
 
-void AMReserveExtensions(unsigned int count) {
+void AssetManager::ReserveExtensions(unsigned int count) {
 	_extensions.reserve(count);
 }
 
-void AMReserveTriggers(unsigned int count) {
+void AssetManager::ReserveTriggers(unsigned int count) {
 	_triggers.reserve(count);
 }
 
-void AMReserveConstants(unsigned int count) {
+void AssetManager::ReserveConstants(unsigned int count) {
 	_constants.reserve(count);
 }
 
-void AMReserveSounds(unsigned int count) {
+void AssetManager::ReserveSounds(unsigned int count) {
 	_sounds.reserve(count);
 }
 
-void AMReserveSprites(unsigned int count) {
+void AssetManager::ReserveSprites(unsigned int count) {
 	_sprites.reserve(count);
 }
 
-void AMReserveBackgrounds(unsigned int count) {
+void AssetManager::ReserveBackgrounds(unsigned int count) {
 	_backgrounds.reserve(count);
 }
 
-void AMReservePaths(unsigned int count) {
+void AssetManager::ReservePaths(unsigned int count) {
 	_paths.reserve(count);
 }
 
-void AMReserveScripts(unsigned int count) {
+void AssetManager::ReserveScripts(unsigned int count) {
 	_scripts.reserve(count);
 }
 
-void AMReserveFonts(unsigned int count) {
+void AssetManager::ReserveFonts(unsigned int count) {
 	_fonts.reserve(count);
 }
 
-void AMReserveTimelines(unsigned int count) {
+void AssetManager::ReserveTimelines(unsigned int count) {
 	_timelines.reserve(count);
 }
 
-void AMReserveObjects(unsigned int count) {
+void AssetManager::ReserveObjects(unsigned int count) {
 	_objects.reserve(count);
 }
 
-void AMReserveRooms(unsigned int count) {
+void AssetManager::ReserveRooms(unsigned int count) {
 	_rooms.reserve(count);
 }
 
-void AMReserveIncludeFiles(unsigned int count) {
+void AssetManager::ReserveIncludeFiles(unsigned int count) {
 	_includeFiles.reserve(count);
 }
 
-Extension * AMAddExtension() {
+Extension * AssetManager::AddExtension() {
 	_extensions.push_back(Extension());
 	return _extensions.data() + (_extensions.size() - 1);
 }
 
-Trigger * AMAddTrigger() {
+Trigger * AssetManager::AddTrigger() {
 	_triggers.push_back(Trigger());
 	return _triggers.data() + (_triggers.size() - 1);
 }
 
-Constant * AMAddConstant() {
+Constant * AssetManager::AddConstant() {
 	_constants.push_back(Constant());
 	return _constants.data() + (_constants.size() - 1);
 }
 
-Sound * AMAddSound() {
+Sound * AssetManager::AddSound() {
 	_sounds.push_back(Sound());
 	return _sounds.data() + (_sounds.size() - 1);
 }
 
-Sprite * AMAddSprite() {
+Sprite * AssetManager::AddSprite() {
 	_sprites.push_back(Sprite());
 	return _sprites.data() + (_sprites.size() - 1);
 }
 
-Background * AMAddBackground() {
+Background * AssetManager::AddBackground() {
 	_backgrounds.push_back(Background());
 	return _backgrounds.data() + (_backgrounds.size() - 1);
 }
 
-Path * AMAddPath() {
+Path * AssetManager::AddPath() {
 	_paths.push_back(Path());
 	return _paths.data() + (_paths.size() - 1);
 }
 
-Script * AMAddScript() {
+Script * AssetManager::AddScript() {
 	_scripts.push_back(Script());
 	return _scripts.data() + (_scripts.size() - 1);
 }
 
-Font * AMAddFont() {
+Font * AssetManager::AddFont() {
 	_fonts.push_back(Font());
 	return _fonts.data() + (_fonts.size() - 1);
 }
 
-Timeline * AMAddTimeline() {
+Timeline * AssetManager::AddTimeline() {
 	_timelines.push_back(Timeline());
 	return _timelines.data() + (_timelines.size() - 1);
 }
 
-Object * AMAddObject() {
+Object * AssetManager::AddObject() {
 	_objects.push_back(Object());
 	return _objects.data() + (_objects.size() - 1);
 }
 
-Room * AMAddRoom() {
+Room * AssetManager::AddRoom() {
 	_rooms.push_back(Room());
 	return _rooms.data() + (_rooms.size() - 1);
 }
 
-IncludeFile * AMAddIncludeFile() {
+IncludeFile * AssetManager::AddIncludeFile() {
 	_includeFiles.push_back(IncludeFile());
 	return _includeFiles.data() + (_includeFiles.size() - 1);
 }
 
-Extension * AMGetExtension(unsigned int index) {
+Extension * AssetManager::GetExtension(unsigned int index) {
 	return _extensions.data() + index;
 }
 
-Trigger * AMGetTrigger(unsigned int index)
+Trigger * AssetManager::GetTrigger(unsigned int index)
 {
 	return _triggers.data() + index;
 }
 
-Constant * AMGetConstant(unsigned int index)
+Constant * AssetManager::GetConstant(unsigned int index)
 {
 	return _constants.data() + index;
 }
 
-Sound * AMGetSound(unsigned int index)
+Sound * AssetManager::GetSound(unsigned int index)
 {
 	return _sounds.data() + index;
 }
 
-Sprite * AMGetSprite(unsigned int index)
+Sprite * AssetManager::GetSprite(unsigned int index)
 {
 	return _sprites.data() + index;
 }
 
-Background * AMGetBackground(unsigned int index)
+Background * AssetManager::GetBackground(unsigned int index)
 {
 	return _backgrounds.data() + index;
 }
 
-Path * AMGetPath(unsigned int index)
+Path * AssetManager::GetPath(unsigned int index)
 {
 	return _paths.data() + index;
 }
 
-Script * AMGetScript(unsigned int index)
+Script * AssetManager::GetScript(unsigned int index)
 {
 	return _scripts.data() + index;
 }
 
-Font * AMGetFont(unsigned int index)
+Font * AssetManager::GetFont(unsigned int index)
 {
 	return _fonts.data() + index;
 }
 
-Timeline * AMGetTimeline(unsigned int index)
+Timeline * AssetManager::GetTimeline(unsigned int index)
 {
 	return _timelines.data() + index;
 }
 
-Object * AMGetObject(unsigned int index)
+Object * AssetManager::GetObject(unsigned int index)
 {
 	return _objects.data() + index;
 }
 
-Room * AMGetRoom(unsigned int index)
+Room * AssetManager::GetRoom(unsigned int index)
 {
 	return _rooms.data() + index;
 }
 
-IncludeFile * AMGetIncludeFile(unsigned int index)
+IncludeFile * AssetManager::GetIncludeFile(unsigned int index)
 {
 	return _includeFiles.data() + index;
 }
 
 
-unsigned int AMGetExtensionCount() { return (unsigned int)_extensions.size(); }
-unsigned int AMGetTriggerCount() { return (unsigned int)_triggers.size(); }
-unsigned int AMGetConstantCount() { return (unsigned int)_constants.size(); }
-unsigned int AMGetSoundCount() { return (unsigned int)_sounds.size(); }
-unsigned int AMGetSpriteCount() { return (unsigned int)_sprites.size(); }
-unsigned int AMGetBackgroundCount() { return (unsigned int)_backgrounds.size(); }
-unsigned int AMGetPathCount() { return (unsigned int)_paths.size(); }
-unsigned int AMGetScriptCount() { return (unsigned int)_scripts.size(); }
-unsigned int AMGetFontCount() { return (unsigned int)_fonts.size(); }
-unsigned int AMGetTimelineCount() { return (unsigned int)_timelines.size(); }
-unsigned int AMGetObjectCount() { return (unsigned int)_objects.size(); }
-unsigned int AMGetRoomCount() { return (unsigned int)_rooms.size(); }
-unsigned int AMGetIncludeFileCount() { return (unsigned int)_includeFiles.size(); }
+unsigned int AssetManager::GetExtensionCount() { return (unsigned int)_extensions.size(); }
+unsigned int AssetManager::GetTriggerCount() { return (unsigned int)_triggers.size(); }
+unsigned int AssetManager::GetConstantCount() { return (unsigned int)_constants.size(); }
+unsigned int AssetManager::GetSoundCount() { return (unsigned int)_sounds.size(); }
+unsigned int AssetManager::GetSpriteCount() { return (unsigned int)_sprites.size(); }
+unsigned int AssetManager::GetBackgroundCount() { return (unsigned int)_backgrounds.size(); }
+unsigned int AssetManager::GetPathCount() { return (unsigned int)_paths.size(); }
+unsigned int AssetManager::GetScriptCount() { return (unsigned int)_scripts.size(); }
+unsigned int AssetManager::GetFontCount() { return (unsigned int)_fonts.size(); }
+unsigned int AssetManager::GetTimelineCount() { return (unsigned int)_timelines.size(); }
+unsigned int AssetManager::GetObjectCount() { return (unsigned int)_objects.size(); }
+unsigned int AssetManager::GetRoomCount() { return (unsigned int)_rooms.size(); }
+unsigned int AssetManager::GetIncludeFileCount() { return (unsigned int)_includeFiles.size(); }
