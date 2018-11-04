@@ -4682,6 +4682,11 @@ unsigned int GM8Emulator::Compiler::_RegisterField(const std::string_view& name)
     return ( unsigned int )(_fieldNames.size() - 1);
 }
 
+std::set<unsigned int> _locals;
+void GM8Emulator::Compiler::FlushLocals() {
+    _locals.clear();
+}
+
 bool GM8Emulator::Compiler::Interpret(const TokenList& list, CRActionList* output) {
     unsigned int pos = 0;
     CRAction* action;
@@ -4922,17 +4927,18 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                                 }
                                 else {
                                     unsigned int fieldNumber = _RegisterField(identifier);
+                                    bool isLocal = _locals.count(fieldNumber);
                                     if (!dimensions.size()) {
                                         if (hasDeref)
-                                            value = new CRExpField(fieldNumber, derefCompiled);
+                                            value = new CRExpField(fieldNumber, derefCompiled, isLocal);
                                         else
-                                            value = new CRExpField(fieldNumber);
+                                            value = new CRExpField(fieldNumber, isLocal);
                                     }
                                     else {
                                         if (hasDeref)
-                                            value = new CRExpArray(fieldNumber, dimensions, derefCompiled);
+                                            value = new CRExpArray(fieldNumber, dimensions, derefCompiled, isLocal);
                                         else
-                                            value = new CRExpArray(fieldNumber, dimensions);
+                                            value = new CRExpArray(fieldNumber, dimensions, isLocal);
                                     }
                                 }
                             }
@@ -5118,15 +5124,14 @@ bool GM8Emulator::Compiler::_InterpretLine(const GM8Emulator::Compiler::TokenLis
 bool GM8Emulator::Compiler::_InterpretVar(const GM8Emulator::Compiler::TokenList& list, CRAction** output, unsigned int& pos) {
     pos++;
     if (list.tokens[pos].type != Token::token_type::Identifier) return false;
-    std::vector<unsigned int> fields;
-    fields.push_back(_RegisterField(list.tokens[pos++].value.str));
+    _locals.insert(_RegisterField(list.tokens[pos++].value.str));
     while (_TokenHasValue(list.tokens[pos], SeparatorType::Comma)) {
         pos++;
         if (list.tokens[pos].type != Token::token_type::Identifier) return false;
-        fields.push_back(_RegisterField(list.tokens[pos++].value.str));
+        _locals.insert(_RegisterField(list.tokens[pos++].value.str));
     }
     _SkipSemicolon(list, pos);
-    (*output) = new CRActionBindVars(fields);
+    (*output) = new CRActionBindVars();
     return true;
 }
 
@@ -5231,14 +5236,14 @@ bool GM8Emulator::Compiler::_InterpretSwitch(const GM8Emulator::Compiler::TokenL
             if (!InterpretExpression(list, &c, &pos)) return false;
             if (!_TokenHasValue(list.tokens[pos], SeparatorType::Colon)) return false;
             pos++;
-            if (!defaulted) cases.push_back(SwitchCase(c, actions.Count()));
+            if (!defaulted) cases.push_back(SwitchCase(c, (unsigned int)actions.Count()));
         }
         else if (_TokenHasValue(list.tokens[pos], KeywordType::Default)) {
             defaulted = true;
             pos++;
             if (!_TokenHasValue(list.tokens[pos], SeparatorType::Colon)) return false;
             pos++;
-            defaultOffset = actions.Count();
+            defaultOffset = (unsigned int)actions.Count();
         }
         else {
             CRAction* act;
@@ -5247,7 +5252,7 @@ bool GM8Emulator::Compiler::_InterpretSwitch(const GM8Emulator::Compiler::TokenL
         }
     }
     pos++;
-    if (!defaulted) defaultOffset = actions.Count();
+    if (!defaulted) defaultOffset = (unsigned int)actions.Count();
     (*output) = new CRActionSwitch(exp, actions, cases, defaultOffset);
     return true;
 }
@@ -5414,32 +5419,37 @@ bool GM8Emulator::Compiler::_InterpretAssignment(const GM8Emulator::Compiler::To
     CRExpression exp;
     if (!InterpretExpression(list, &exp, &pos)) return false;
 
+
     // Work out what type of field we're compiling
     unsigned int index;
     switch (_getVarType(var, &index)) {
-        case VarType::VARTYPE_FIELD:
+        case VarType::VARTYPE_FIELD: {
+            bool isLocal = _locals.count(index);
             if (dimensions.size()) {
                 if (hasDeref)
-                    (*output) = new CRActionAssignmentArray(index, method, dimensions, derefCompiled, exp);
+                    (*output) = new CRActionAssignmentArray(index, method, dimensions, derefCompiled, exp, isLocal);
                 else
-                    (*output) = new CRActionAssignmentArray(index, method, dimensions, exp);
+                    (*output) = new CRActionAssignmentArray(index, method, dimensions, exp, isLocal);
             }
             else {
                 if (hasDeref)
-                    (*output) = new CRActionAssignmentField(index, method, derefCompiled, exp);
+                    (*output) = new CRActionAssignmentField(index, method, derefCompiled, exp, isLocal);
                 else
-                    (*output) = new CRActionAssignmentField(index, method, exp);
+                    (*output) = new CRActionAssignmentField(index, method, exp, isLocal);
             }
             break;
-        case VarType::VARTYPE_INSTANCE:
+        }
+        case VarType::VARTYPE_INSTANCE: {
             if (hasDeref)
                 (*output) = new CRActionAssignmentInstanceVar(( CRInstanceVar )index, method, dimensions, derefCompiled, exp);
             else
                 (*output) = new CRActionAssignmentInstanceVar(( CRInstanceVar )index, method, dimensions, exp);
             break;
-        case VarType::VARTYPE_GAME:
+        }
+        case VarType::VARTYPE_GAME: {
             (*output) = new CRActionAssignmentGameVar(( CRGameVar )index, method, dimensions, exp);
             break;
+        }
         default:
             return false;
     }

@@ -962,9 +962,6 @@ bool _evalArrayAccessor(std::vector<CRExpression>& dimensions, int* out) {
 
 
 bool CRActionBindVars::Run() {
-    for (unsigned int field : _fields) {
-        _context.locals[field][0] = GMLType();
-    }
     return true;
 }
 
@@ -1014,7 +1011,7 @@ bool CRActionAssignmentField::Run() {
         }
     }
     else {
-        if (_context.locals.count(_field)) {
+        if (_isLocal) {
             // Local
             if (!_applySetMethod(&_context.locals[_field][0], _method, &v)) return false;
         }
@@ -1078,7 +1075,7 @@ bool CRActionAssignmentArray::Run() {
         }
     }
     else {
-        if (_context.locals.count(_field)) {
+        if (_isLocal) {
             // Local
             if (!_applySetMethod(&_context.locals[_field][index], _method, &v)) return false;
         }
@@ -1479,7 +1476,7 @@ bool CRExpField::_evaluate(GMLType* output) {
         }
     }
     else {
-        if (_context.locals.count(_fieldNumber)) {
+        if (_isLocal) {
             // Local
             (*output) = _context.locals[_fieldNumber][0];
             return true;
@@ -1551,7 +1548,7 @@ bool CRExpArray::_evaluate(GMLType* output) {
         }
     }
     else {
-        if (_context.locals.count(_fieldNumber)) {
+        if (_isLocal) {
             // Local
             (*output) = _context.locals[_fieldNumber][index];
             return true;

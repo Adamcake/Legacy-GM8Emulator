@@ -71,6 +71,7 @@ bool CodeManager::Compile(CodeObject object) {
         else {
             if (!GM8Emulator::Compiler::Interpret(_codeObjects[object]._tokenized, &_codeObjects[object]._actions)) return false;
         }
+        GM8Emulator::Compiler::FlushLocals();
         return true;
     }
     catch (const std::runtime_error&) {

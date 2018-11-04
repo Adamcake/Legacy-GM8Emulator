@@ -12,6 +12,8 @@ namespace GM8Emulator {
 
         bool Interpret(const TokenList& list, CRActionList* output);
         bool InterpretExpression(const TokenList& list, CRExpression* output, unsigned int* pos = nullptr, char precedence = 5);
+
+        void FlushLocals();
     }
 }
 

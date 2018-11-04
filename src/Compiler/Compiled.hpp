@@ -59,12 +59,9 @@ class CRExpression {
 // Actual action types
 
 class CRActionBindVars : public CRAction {
-  private:
-    std::vector<unsigned int> _fields;
-
   public:
     virtual bool Run() override;
-    CRActionBindVars(std::vector<unsigned int>& fields) : _fields(fields) {}
+    CRActionBindVars() {}
 };
 
 class CRActionAssignmentField : public CRAction {
@@ -74,12 +71,13 @@ class CRActionAssignmentField : public CRAction {
     CRExpression _deref;
     bool _hasDeref;
     CRExpression _expression;
+    bool _isLocal;
 
   public:
-    CRActionAssignmentField(unsigned int field, CRSetMethod method, CRExpression exp) :
-        _field(field), _method(method), _expression(exp), _hasDeref(false) {}
-    CRActionAssignmentField(unsigned int field, CRSetMethod method, CRExpression deref, CRExpression exp) :
-        _field(field), _method(method), _deref(deref), _expression(exp), _hasDeref(true) {}
+    CRActionAssignmentField(unsigned int field, CRSetMethod method, CRExpression exp, bool isLocal) :
+        _field(field), _method(method), _expression(exp), _hasDeref(false), _isLocal(isLocal) {}
+    CRActionAssignmentField(unsigned int field, CRSetMethod method, CRExpression deref, CRExpression exp, bool isLocal) :
+        _field(field), _method(method), _deref(deref), _expression(exp), _hasDeref(true), _isLocal(isLocal) {}
     virtual bool Run() override;
     virtual void Finalize() override {_deref.Finalize(); _expression.Finalize();}
 };
@@ -92,12 +90,13 @@ class CRActionAssignmentArray : public CRAction {
     CRExpression _deref;
     bool _hasDeref;
     CRExpression _expression;
+    bool _isLocal;
 
   public:
-    CRActionAssignmentArray(unsigned int field, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression exp) :
-        _field(field), _method(method), _expression(exp), _dimensions(dimensions), _hasDeref(false) {}
-    CRActionAssignmentArray(unsigned int field, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression deref, CRExpression exp) :
-        _field(field), _method(method), _dimensions(dimensions), _deref(deref), _expression(exp), _hasDeref(true) {}
+    CRActionAssignmentArray(unsigned int field, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression exp, bool isLocal) :
+        _field(field), _method(method), _expression(exp), _dimensions(dimensions), _hasDeref(false), _isLocal(isLocal) {}
+    CRActionAssignmentArray(unsigned int field, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression deref, CRExpression exp, bool isLocal) :
+        _field(field), _method(method), _dimensions(dimensions), _deref(deref), _expression(exp), _hasDeref(true), _isLocal(isLocal) {}
     virtual bool Run() override;
     virtual void Finalize() override {
         _deref.Finalize();
@@ -408,10 +407,11 @@ class CRExpField : public CRExpressionValue {
     unsigned int _fieldNumber;
     CRExpression _deref;
     bool _hasDeref;
+    bool _isLocal;
 
   public:
-    CRExpField(unsigned int field) : _fieldNumber(field), _hasDeref(false) {}
-    CRExpField(unsigned int field, CRExpression deref) : _fieldNumber(field), _deref(deref), _hasDeref(true) {}
+    CRExpField(unsigned int field, bool isLocal) : _fieldNumber(field), _hasDeref(false), _isLocal(isLocal) {}
+    CRExpField(unsigned int field, CRExpression deref, bool isLocal) : _fieldNumber(field), _deref(deref), _hasDeref(true), _isLocal(isLocal) {}
     bool _evaluate(GMLType* output) override;
     void Finalize() override { _deref.Finalize(); }
 };
@@ -422,10 +422,11 @@ class CRExpArray : public CRExpressionValue {
     std::vector<CRExpression> _dimensions;
     CRExpression _deref;
     bool _hasDeref;
+    bool _isLocal;
 
   public:
-    CRExpArray(unsigned int field, std::vector<CRExpression>& dimensions) : _fieldNumber(field), _dimensions(dimensions), _hasDeref(false) {}
-    CRExpArray(unsigned int field, std::vector<CRExpression>& dimensions, CRExpression deref) : _fieldNumber(field), _dimensions(dimensions), _deref(deref), _hasDeref(true) {}
+    CRExpArray(unsigned int field, std::vector<CRExpression>& dimensions, bool isLocal) : _fieldNumber(field), _dimensions(dimensions), _hasDeref(false), _isLocal(isLocal) {}
+    CRExpArray(unsigned int field, std::vector<CRExpression>& dimensions, CRExpression deref, bool isLocal) : _fieldNumber(field), _dimensions(dimensions), _deref(deref), _hasDeref(true), _isLocal(isLocal) {}
     bool _evaluate(GMLType* output) override;
     void Finalize() override {
         for (CRExpression& arg : _dimensions) {
