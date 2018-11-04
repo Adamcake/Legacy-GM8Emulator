@@ -56,7 +56,7 @@ namespace Runtime {
     Context GetContext();
 
     bool Execute(CRActionList&, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, unsigned int argc = 0, GMLType* argv = nullptr);
-    bool EvalExpression(CRExpression&, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, GMLType* out);
+    bool EvalExpression(CRExpression&, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, GMLType* out, unsigned int argc = 0, GMLType* argv = nullptr);
 
     bool _assertArgs(unsigned int& argc, GMLType* argv, unsigned int arge, bool lenient, ...);
 

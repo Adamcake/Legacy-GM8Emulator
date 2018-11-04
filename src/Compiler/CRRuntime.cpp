@@ -512,12 +512,14 @@ bool _setInstanceVar(Instance* instance, CRInstanceVar index, unsigned int array
 bool _getInstanceVar(Instance* instance, CRInstanceVar index, unsigned int arrayIndex, GMLType* out) {
     out->state = GMLTypeState::Double;
     switch (index) {
-        case IV_ALARM: {
+        case IV_ALARM:
             out->dVal = ( double )AlarmGet(instance->id, arrayIndex);
             break;
-        }
         case IV_INSTANCE_ID:
             out->dVal = instance->id;
+            break;
+        case IV_OBJECT_INDEX:
+            out->dVal = instance->object_index;
             break;
         case IV_X:
             out->dVal = instance->x;
@@ -713,15 +715,15 @@ bool Runtime::Execute(CRActionList& actions, Instance* self, Instance* other, in
     return result ? true : (_cause == ReturnCause::Break || _cause == ReturnCause::Continue || _cause == ReturnCause::Return || _cause == ReturnCause::ExitNormal);
 }
 
-bool Runtime::EvalExpression(CRExpression& expression, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, GMLType* out) {
+bool Runtime::EvalExpression(CRExpression& expression, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, GMLType* out, unsigned int argc, GMLType* argv) {
     Context c = _context;
     _context.self = self;
     _context.other = other;
     _context.eventId = ev;
     _context.eventNumber = sub;
     _context.objId = asObjId;
-    _context.argc = 0;
-    _context.argv = nullptr;
+    _context.argc = argc;
+    _context.argv = argv;
     bool result = expression.Evaluate(out);
     _context = c;
     return result;

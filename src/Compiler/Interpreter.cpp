@@ -5327,6 +5327,11 @@ bool GM8Emulator::Compiler::_InterpretAssignment(const GM8Emulator::Compiler::To
         // This token will indicate a var. Now, we need to work out if there's a period after this variable indication. If so, it's part of the deref.
         unsigned int startPos = pos;
         pos++;
+        if(pos == list.tokens.size()) {
+            pos--;
+            break;
+        }
+
         if (_TokenHasValue(list.tokens[pos], SeparatorType::SquareBracketLeft)) {
             // Skip over an array accessor...
             unsigned int depth = 1;
@@ -5372,22 +5377,24 @@ bool GM8Emulator::Compiler::_InterpretAssignment(const GM8Emulator::Compiler::To
 
     // Parse array accessor
     std::vector<CRExpression> dimensions;
-    if (_TokenHasValue(list.tokens[pos], SeparatorType::SquareBracketLeft)) {
-        pos++;
-        while (true) {
-            if (_TokenHasValue(list.tokens[pos], SeparatorType::SquareBracketRight)) break;
-            CRExpression dim;
-            if (!InterpretExpression(list, &dim, &pos)) return false;
-            dimensions.push_back(dim);
-            if (_TokenHasValue(list.tokens[pos], SeparatorType::Comma)) {
-                pos++;
+    if(pos < list.tokens.size()) {
+        if (_TokenHasValue(list.tokens[pos], SeparatorType::SquareBracketLeft)) {
+            pos++;
+            while (true) {
+                if (_TokenHasValue(list.tokens[pos], SeparatorType::SquareBracketRight)) break;
+                CRExpression dim;
+                if (!InterpretExpression(list, &dim, &pos)) return false;
+                dimensions.push_back(dim);
+                if (_TokenHasValue(list.tokens[pos], SeparatorType::Comma)) {
+                    pos++;
+                }
+                else if (_TokenHasValue(list.tokens[pos], SeparatorType::SquareBracketRight)) {
+                    pos++;
+                    break;
+                }
+                else
+                    return false;
             }
-            else if (_TokenHasValue(list.tokens[pos], SeparatorType::SquareBracketRight)) {
-                pos++;
-                break;
-            }
-            else
-                return false;
         }
     }
 

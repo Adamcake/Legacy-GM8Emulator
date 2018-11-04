@@ -267,9 +267,15 @@ void GameTerminate() {
 	RTerminate();
     InstanceList::Finalize();
     CodeManager::Finalize();
+    CodeActionManager::Finalize();
 }
 
 bool GameLoad(const char *pFilename) {
+    // Init DND manager
+    if (!CodeActionManager::Init()) {
+        return false;
+    }
+
 	// Init the runner
     if (!CodeManager::Init(&_globals)) {
 		return false;
@@ -1070,10 +1076,12 @@ bool GameLoad(const char *pFilename) {
 
 				dataPos += 4;
 				e.actionCount = ReadDword(data, &dataPos);
+
 				e.actions = new CodeAction[e.actionCount];
-				for (unsigned int i = 0; i < e.actionCount; i++) {
-                    if (!CodeActionManager::Read(data, &dataPos, e.actions + i)) {
+				for (unsigned int j = 0; j < e.actionCount; j++) {
+                    if (!CodeActionManager::Read(data, &dataPos, e.actions + j)) {
 						// Error reading action
+                        delete[] e.actions;
 						free(data);
 						delete [] buffer;
 						return false;

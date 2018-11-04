@@ -49,15 +49,15 @@ void CodeManager::Finalize() {
     Runtime::Finalize();
 }
 
-CodeObject CodeManager::Register(char* code, unsigned int len) {
-    unsigned int ix = ( unsigned int )_codeObjects.size();
+CodeObject CodeManager::Register(const char* code, unsigned int len) {
+    unsigned int ix = (unsigned int)_codeObjects.size();
     _codeObjects.push_back(CRCodeObject(code, len, false));
 
     return ix;
 }
 
-CodeObject CodeManager::RegisterQuestion(char* code, unsigned int len) {
-    unsigned int ix = ( unsigned int )_codeObjects.size();
+CodeObject CodeManager::RegisterQuestion(const char* code, unsigned int len) {
+    unsigned int ix = (unsigned int)_codeObjects.size();
     _codeObjects.push_back(CRCodeObject(code, len, true));
 
     return ix;
@@ -66,10 +66,12 @@ CodeObject CodeManager::RegisterQuestion(char* code, unsigned int len) {
 bool CodeManager::Compile(CodeObject object) {
     try {
         if (_codeObjects[object].question) {
-            if(!GM8Emulator::Compiler::InterpretExpression(_codeObjects[object]._tokenized, &_codeObjects[object]._expression)) return false;
+            if(!GM8Emulator::Compiler::InterpretExpression(_codeObjects[object]._tokenized, &_codeObjects[object]._expression))
+                return false;
         }
         else {
-            if (!GM8Emulator::Compiler::Interpret(_codeObjects[object]._tokenized, &_codeObjects[object]._actions)) return false;
+            if (!GM8Emulator::Compiler::Interpret(_codeObjects[object]._tokenized, &_codeObjects[object]._actions))
+                return false;
         }
         GM8Emulator::Compiler::FlushLocals();
         return true;
@@ -83,10 +85,17 @@ bool CodeManager::Run(CodeObject code, Instance* self, Instance* other, int ev, 
     return Runtime::Execute(_codeObjects[code]._actions, self, other, ev, sub, asObjId, argc, argv);
 }
 
-bool CodeManager::Query(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, bool* response) {
+bool CodeManager::Query(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, bool* response, unsigned int argc, GMLType* argv) {
+    GMLType t;
+    if (!Runtime::EvalExpression(_codeObjects[code]._expression, self, other, ev, sub, asObjId, &t, argc, argv))return false;
+    (*response) = Runtime::_isTrue(&t);
+    return true;
+}
+
+bool CodeManager::Query(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, GMLType* response) {
     GMLType t;
     if (!Runtime::EvalExpression(_codeObjects[code]._expression, self, other, ev, sub, asObjId, &t)) return false;
-    (*response) = Runtime::_isTrue(&t);
+    (*response) = t;
     return true;
 }
 

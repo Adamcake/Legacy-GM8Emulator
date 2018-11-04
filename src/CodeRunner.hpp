@@ -20,10 +20,10 @@ namespace CodeManager {
     void SetRoomOrder(unsigned int** order, unsigned int count);
 
     // Register a code block to be compiled. Returns a unique reference to that code action to be later Compile()d and Run().
-    CodeObject Register(char* code, unsigned int length);
+    CodeObject Register(const char* code, unsigned int length);
 
     // Register a code expression to be compiled. Returns a unique reference to that code action to be later Compile()d and Query()d.
-    CodeObject RegisterQuestion(char* code, unsigned int length);
+    CodeObject RegisterQuestion(const char* code, unsigned int length);
 
     // Compile a code object that has been returned by Register(). Returns true on success, false on error (ie. game should close.)
     // Be sure to call this only after the AssetManager is fully loaded.
@@ -36,7 +36,8 @@ namespace CodeManager {
 
     // Run a compiled GML question (boolean expression). Returns true on success, false on error (ie. the game should close.)
     // The output value is stored in the supplied pointer.
-    bool Query(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, bool* response);
+    bool Query(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, bool* response, unsigned int argc = 0, GMLType* argv = nullptr);
+    bool Query(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, GMLType* response);
 
     // Checks if there was a runtime error and, if so, gets the associated error message
     bool GetError(const char** err);

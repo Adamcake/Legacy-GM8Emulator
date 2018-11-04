@@ -9,6 +9,9 @@ struct Instance;
 class Object;
 
 namespace CodeActionManager {
+    bool Init();
+    void Finalize();
+
     // Read code action from EXE data stream, prepares and registers a GML block with the code runner.
     // Returns true on success, false on error (ie. game should close.) Outputs CodeAction reference in the "out" param.
     bool Read(const unsigned char* stream, unsigned int* pos, CodeAction* out);
