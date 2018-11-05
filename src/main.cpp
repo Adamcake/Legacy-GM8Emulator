@@ -4,8 +4,8 @@
 #include <thread>
 #include "Game.hpp"
 
-#define CHECK_MEMORY_LEAKS 1
-#define OUTPUT_FRAME_TIME 0
+#define CHECK_MEMORY_LEAKS 0
+#define OUTPUT_FRAME_TIME 1
 
 #if CHECK_MEMORY_LEAKS
 #define _CRTDBG_MAP_ALLOC

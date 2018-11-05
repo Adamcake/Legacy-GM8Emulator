@@ -224,7 +224,9 @@ bool GameFrame() {
         Object* o = AssetManager::GetObject(instance->object_index);
         if (std::find(o->evList[7].begin(), o->evList[7].end(), 0) != o->evList[7].end()) {
             RefreshInstanceBbox(instance);
-            if (instance->bbox_bottom < 0 || instance->bbox_right < 0 || instance->bbox_top >= (int)_globals.room_height || instance->bbox_left >= (int)_globals.room_width) {
+            if ((instance->sprite_index == -1)
+                    ? (instance->x < 0 || instance->y < 0 || instance->x >= (int)_globals.room_width || instance->y >= (int)_globals.room_height)
+                    : (instance->bbox_bottom < 0 || instance->bbox_right < 0 || instance->bbox_top >= ( int )_globals.room_height || instance->bbox_left >= ( int )_globals.room_width)) {
                 if (!CodeActionManager::RunInstanceEvent(7, 0, instance, NULL, instance->object_index)) return false;
                 if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 			}
@@ -264,7 +266,8 @@ bool GameFrame() {
                             instance->bboxIsStale = true;
                         }
                         if (!CodeActionManager::RunInstanceEvent(4, e, instance, target, instance->object_index)) return false;
-                        if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+                        if (_globals.changeRoom)
+                            return GameLoadRoom(_globals.roomTarget);
 
                         if (target->solid) {
                             instance->x += instance->hspeed;
