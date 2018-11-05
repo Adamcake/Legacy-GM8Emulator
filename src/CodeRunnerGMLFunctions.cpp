@@ -1,9 +1,11 @@
 #include <pch.h>
+
 #include "AssetManager.hpp"
 #include "CRGMLType.hpp"
 #include "CodeActionManager.hpp"
 #include "CodeRunner.hpp"
 #include "Collision.hpp"
+#include "Compiler/CRRuntime.hpp"
 #include "File.hpp"
 #include "GlobalValues.hpp"
 #include "InputHandler.hpp"
@@ -11,7 +13,6 @@
 #include "InstanceList.hpp"
 #include "RNG.hpp"
 #include "Renderer.hpp"
-#include "Compiler/CRRuntime.hpp"
 
 // Private vars
 namespace Runtime {
@@ -210,13 +211,14 @@ bool Runtime::draw_sprite(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 4, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
     Sprite* spr = AssetManager::GetSprite(_round(argv[0].dVal));
     Instance* self = GetContext().self;
-    RDrawImage(spr->frames[_round(argv[1].dVal) % spr->frameCount], argv[2].dVal, argv[3].dVal, self->image_xscale, self->image_yscale, self->image_angle, self->image_blend, self->image_alpha, self->depth);
+    RDrawImage(
+        spr->frames[_round(argv[1].dVal) % spr->frameCount], argv[2].dVal, argv[3].dVal, self->image_xscale, self->image_yscale, self->image_angle, self->image_blend, self->image_alpha, self->depth);
     return true;
 }
 
 bool Runtime::draw_sprite_ext(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!_assertArgs(argc, argv, 9, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double,
-            GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double))
+    if (!_assertArgs(argc, argv, 9, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double,
+            GMLTypeState::Double, GMLTypeState::Double))
         return false;
     Sprite* spr = AssetManager::GetSprite(_round(argv[0].dVal));
     Instance* self = GetContext().self;
@@ -225,7 +227,7 @@ bool Runtime::draw_sprite_ext(unsigned int argc, GMLType* argv, GMLType* out) {
 }
 
 bool Runtime::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
-    if(argc != 3) return false;
+    if (argc != 3) return false;
     const char* str = argv[2].sVal.c_str();
     std::string st;
     if (argv[2].state == GMLTypeState::Double) {
@@ -450,6 +452,38 @@ bool Runtime::file_exists(unsigned int argc, GMLType* argv, GMLType* out) {
 // --- FILE END ---
 
 
+bool Runtime::instance_change(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 2, false, GMLTypeState::Double, GMLTypeState::Double)) return false;
+    bool events = _isTrue(&argv[1]);
+    Instance* i = GetContext().self;
+    if(events) {
+        if (!CodeActionManager::RunInstanceEvent(1, 0, i, NULL, i->object_index)) return false;
+    }
+    int objId = _round(argv[0].dVal);
+    if(objId < 0 || objId >= AssetManager::GetObjectCount()) {
+        Runtime::SetReturnCause(ReturnCause::ExitError);
+        Runtime::PushErrorMessage("Invalid object index passed to instance_change");
+        return false;
+    }
+    Object* obj = AssetManager::GetObject(objId);
+    if(!obj->exists) {
+        Runtime::SetReturnCause(ReturnCause::ExitError);
+        Runtime::PushErrorMessage("Non-existent object passed to instance_change");
+        return false;
+    }
+    i->object_index = objId;
+    i->solid = obj->solid;
+    i->visible = obj->visible;
+    i->persistent = obj->persistent;
+    i->depth = obj->depth;
+    i->sprite_index = obj->spriteIndex;
+    i->mask_index = obj->maskIndex;
+    if(events) {
+        if (!CodeActionManager::RunInstanceEvent(0, 0, i, NULL, i->object_index)) return false;
+    }
+    return true;
+}
+
 bool Runtime::instance_create(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 3, false, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
     unsigned int objID = _round(argv[2].dVal);
@@ -463,6 +497,7 @@ bool Runtime::instance_create(unsigned int argc, GMLType* argv, GMLType* out) {
 }
 
 bool Runtime::instance_destroy(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!CodeActionManager::RunInstanceEvent(1, 0, GetContext().self, NULL, GetContext().self->object_index)) return false;
     GetContext().self->exists = false;
     return true;
 }
@@ -470,7 +505,7 @@ bool Runtime::instance_destroy(unsigned int argc, GMLType* argv, GMLType* out) {
 bool Runtime::instance_exists(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     int objId = _round(argv[0].dVal);
-    InstanceList::Iterator it((unsigned int)objId);
+    InstanceList::Iterator it(( unsigned int )objId);
     out->state = GMLTypeState::Double;
     out->dVal = (it.Next() ? GMLTrue : GMLFalse);
     return true;
@@ -479,7 +514,7 @@ bool Runtime::instance_exists(unsigned int argc, GMLType* argv, GMLType* out) {
 bool Runtime::instance_number(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     int objId = _round(argv[0].dVal);
-    InstanceList::Iterator it((unsigned int)objId);
+    InstanceList::Iterator it(( unsigned int )objId);
     out->state = GMLTypeState::Double;
     unsigned int count = 0;
     while (it.Next()) count++;
@@ -493,7 +528,7 @@ bool Runtime::instance_position(unsigned int argc, GMLType* argv, GMLType* out) 
         int objId = _round(argv[2].dVal);
         int x = _round(argv[0].dVal);
         int y = _round(argv[1].dVal);
-        InstanceList::Iterator it((unsigned int)objId);
+        InstanceList::Iterator it(( unsigned int )objId);
         if (objId == -3) it = InstanceList::Iterator();
         Instance* instance;
         double ret = -4.0;
@@ -774,16 +809,16 @@ bool Runtime::motion_set(unsigned int argc, GMLType* argv, GMLType* out) {
 bool Runtime::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (_isTrue(argv)) {
-		// advanced bouncing - TODO
+        // advanced bouncing - TODO
         return false;
-	}
+    }
     else {
-		// Basic bouncing
+        // Basic bouncing
         Instance* self = GetContext().self;
         double startx = self->x, starty = self->y;
         Instance* target;
 
-		// First collision check - x offset only
+        // First collision check - x offset only
         self->x += self->hspeed;
         self->bboxIsStale = true;
         bool didChange = false;
@@ -794,15 +829,15 @@ bool Runtime::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* out) 
                     self->hspeed = -self->hspeed;
                     didChange = true;
                     break;
-				}
-			}
-		}
+                }
+            }
+        }
 
-		// Second collision check - y offset only
+        // Second collision check - y offset only
         self->x = startx;
         self->y += self->vspeed;
         self->bboxIsStale = true;
-		iter = InstanceList::Iterator();
+        iter = InstanceList::Iterator();
         while (target = iter.Next()) {
             if (target->solid) {
                 if (CollisionCheck(self, target)) {
@@ -813,8 +848,8 @@ bool Runtime::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* out) 
             }
         }
 
-		if (!didChange) {
-			// Third collision check - x and y offset
+        if (!didChange) {
+            // Third collision check - x and y offset
             self->x += self->hspeed;
             self->bboxIsStale = true;
             iter = InstanceList::Iterator();
@@ -828,19 +863,19 @@ bool Runtime::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* out) 
                     }
                 }
             }
-		}
+        }
 
-		self->x = startx;
+        self->x = startx;
         self->y = starty;
         self->bboxIsStale = true;
 
-        if(didChange) {
+        if (didChange) {
             self->direction = ::atan2(-self->vspeed * GML_PI / 180.0, self->hspeed * GML_PI / 180.0) * 180.0 / GML_PI;
             self->speed = ::sqrt(pow(self->hspeed, 2) + pow(self->vspeed, 2));
         }
 
-		return true;
-	}
+        return true;
+    }
 }
 
 bool Runtime::move_contact_solid(unsigned int argc, GMLType* argv, GMLType* out) {
@@ -886,6 +921,16 @@ bool Runtime::move_contact_solid(unsigned int argc, GMLType* argv, GMLType* out)
             }
         }
     }
+    return true;
+}
+
+bool Runtime::move_towards_point(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 3, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
+    Instance* i = GetContext().self;
+    i->direction = (::atan2((i->y - argv[1].dVal), (argv[0].dVal - i->x))) * 180.0 / GML_PI;
+    i->speed = argv[2].dVal;
+    i->hspeed = ::cos(i->direction * GML_PI / 180.0) * i->speed;
+    i->vspeed = -::sin(i->direction * GML_PI / 180.0) * i->speed;
     return true;
 }
 
@@ -965,7 +1010,7 @@ bool Runtime::place_meeting(unsigned int argc, GMLType* argv, GMLType* out) {
         out->state = GMLTypeState::Double;
         out->dVal = GMLFalse;
         int obj = _round(argv[2].dVal);
-        InstanceList::Iterator iter((unsigned int)obj);
+        InstanceList::Iterator iter(( unsigned int )obj);
         if (obj == -3) iter = InstanceList::Iterator();
 
         Instance* self = GetContext().self;

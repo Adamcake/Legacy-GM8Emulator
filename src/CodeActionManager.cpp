@@ -144,7 +144,48 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
     // Now we have to generate some GML and register this with the code runner.
     std::string gml;
     switch (action.actionID) {
-        case 101:
+        case 101: {
+            double direction = 0.0;
+            unsigned int dirCount = 0;
+            if (args[0][0] == '1') {
+                direction += 135;
+                dirCount++;
+            }
+            if (args[0][1] == '1') {
+                direction += 90;
+                dirCount++;
+            }
+            if (args[0][2] == '1') {
+                direction += 45;
+                dirCount++;
+            }
+            if (args[0][3] == '1') {
+                direction += 180;
+                dirCount++;
+            }
+            if (args[0][5] == '1') {
+                dirCount++;
+            }
+            if (args[0][6] == '1') {
+                direction += 225;
+                dirCount++;
+            }
+            if (args[0][7] == '1') {
+                direction += 270;
+                dirCount++;
+            }
+            if (args[0][8] == '1') {
+                direction += 315;
+                dirCount++;
+            }
+            if (dirCount) direction /= dirCount;
+            if (relative)
+                gml = "speed+=argument[1];direction=";
+            else
+                gml = "speed=argument[1];direction=";
+            gml += std::to_string(direction);
+            break;
+        }
         case 102:
             // Start moving in a direction
             if (relative)
@@ -162,9 +203,9 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
         case 107: {
             // Set gravity
             if (relative)
-                gml = "gravity+=argument[0];gravity_direction=argument[1];";
+                gml = "gravity+=argument[1];gravity_direction=argument[0];";
             else
-                gml = "gravity=argument[0];gravity_direction=argument[1];";
+                gml = "gravity=argument[1];gravity_direction=argument[0];";
             break;
         }
         case 109: {

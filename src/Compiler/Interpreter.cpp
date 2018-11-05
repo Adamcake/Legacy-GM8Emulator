@@ -2337,7 +2337,7 @@ bool GM8Emulator::Compiler::Init(GlobalValues* globals) {
                 break;
             case INSTANCE_CHANGE:
                 _internalFuncNames.push_back("instance_change");
-                _gmlFuncs.push_back(&Runtime::unimplemented);
+                _gmlFuncs.push_back(&Runtime::instance_change);
                 break;
             case INSTANCE_COPY:
                 _internalFuncNames.push_back("instance_copy");
@@ -2701,7 +2701,7 @@ bool GM8Emulator::Compiler::Init(GlobalValues* globals) {
                 break;
             case MOVE_TOWARDS_POINT:
                 _internalFuncNames.push_back("move_towards_point");
-                _gmlFuncs.push_back(&Runtime::unimplemented);
+                _gmlFuncs.push_back(&Runtime::move_towards_point);
                 break;
             case MOVE_WRAP:
                 _internalFuncNames.push_back("move_wrap");

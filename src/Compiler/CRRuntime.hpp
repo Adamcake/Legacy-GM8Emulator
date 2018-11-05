@@ -90,6 +90,7 @@ namespace Runtime {
     bool floor(unsigned int argc, GMLType* argv, GMLType* out);
     bool game_end(unsigned int argc, GMLType* argv, GMLType* out);
     bool game_restart(unsigned int argc, GMLType* argv, GMLType* out);
+    bool instance_change(unsigned int argc, GMLType* argv, GMLType* out);
     bool instance_create(unsigned int argc, GMLType* argv, GMLType* out);
     bool instance_destroy(unsigned int argc, GMLType* argv, GMLType* out);
     bool instance_exists(unsigned int argc, GMLType* argv, GMLType* out);
@@ -113,6 +114,7 @@ namespace Runtime {
     bool motion_set(unsigned int argc, GMLType* argv, GMLType* out);
     bool move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* out);
     bool move_contact_solid(unsigned int argc, GMLType* argv, GMLType* out);
+    bool move_towards_point(unsigned int argc, GMLType* argv, GMLType* out);
     bool move_wrap(unsigned int argc, GMLType* argv, GMLType* out);
     bool ord(unsigned int argc, GMLType* argv, GMLType* out);
     bool place_free(unsigned int argc, GMLType* argv, GMLType* out);

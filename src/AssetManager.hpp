@@ -1,8 +1,8 @@
 #ifndef _A_ASSETMANAGER_HPP_
 #define _A_ASSETMANAGER_HPP_
-#undef GetObject // dunno
 #include <vector>
 #include "Assets.hpp"
+#undef GetObject  // dunno
 
 namespace AssetManager {
     void Clear();
