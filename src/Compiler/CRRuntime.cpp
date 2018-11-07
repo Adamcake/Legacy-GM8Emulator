@@ -314,7 +314,7 @@ bool _setInstanceVar(Instance* instance, CRInstanceVar index, unsigned int array
 
     switch (index) {
         case IV_ALARM: {
-            int alarmValue = ( int )(value.state == GMLTypeState::Double ? value.dVal : 0.0);
+            int alarmValue = (value.state == GMLTypeState::Double ? Runtime::_round(value.dVal) : 0);
             if (alarmValue)
                 AlarmSet(instance->id, ( unsigned int )arrayIndex, alarmValue);
             else

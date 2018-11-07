@@ -204,8 +204,11 @@ bool GameFrame() {
 
         if (instance->gravity) {
             // Apply gravity in gravity_direction to hspeed and vspeed
-            instance->hspeed += cos(instance->gravity_direction * GML_PI / 180.0) * instance->gravity;
-            instance->vspeed += -sin(instance->gravity_direction * GML_PI / 180.0) * instance->gravity;
+            double gdir = instance->gravity_direction;
+            while(gdir < 0.0) gdir += 360.0;
+            while(gdir >= 360.0) gdir -= 360.0;
+            instance->hspeed += cos(gdir * GML_PI / 180.0) * instance->gravity;
+            instance->vspeed += -sin(gdir * GML_PI / 180.0) * instance->gravity;
 
             // Recalculate speed and direction from hspeed/vspeed
             instance->direction = ::atan2(instance->vspeed, instance->hspeed) * 180.0 / GML_PI;

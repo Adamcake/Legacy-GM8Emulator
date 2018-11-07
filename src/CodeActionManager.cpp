@@ -136,7 +136,6 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
                 action.params[i] = new ParamLiteral(std::atoi(args[i]));
                 break;
             default:
-                const char* ar = args[i];
                 return false;
         }
     }
