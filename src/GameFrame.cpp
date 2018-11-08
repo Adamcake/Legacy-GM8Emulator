@@ -191,12 +191,20 @@ bool GameFrame() {
 
         if (instance->friction != 0) {
             // Subtract friction from speed towards 0
-            bool neg = instance->speed < 0;
-            instance->speed = abs(instance->speed) - instance->friction;
-            if (instance->speed < 0)
-                instance->speed = 0;
-            else if (neg)
-                instance->speed = -instance->speed;
+            if(instance->speed < 0) {
+                instance->speed += instance->friction;
+                if(instance->speed > 0) instance->speed = 0;
+            }
+            else {
+                instance->speed -= instance->friction;
+                if (instance->speed < 0) instance->speed = 0;
+            }
+            //bool neg = instance->speed < 0;
+            //instance->speed = abs(instance->speed) - instance->friction;
+            //if (instance->speed < 0)
+            //    instance->speed = 0;
+            //else if (neg)
+            //    instance->speed = -instance->speed;
 
             // Recalculate hspeed/vspeed
             instance->hspeed = cos(instance->direction * GML_PI / 180.0) * instance->speed;
@@ -205,14 +213,11 @@ bool GameFrame() {
 
         if (instance->gravity) {
             // Apply gravity in gravity_direction to hspeed and vspeed
-            double gdir = instance->gravity_direction;
-            while(gdir < 0.0) gdir += 360.0;
-            while(gdir >= 360.0) gdir -= 360.0;
-            instance->hspeed += cos(gdir * GML_PI / 180.0) * instance->gravity;
-            instance->vspeed += -sin(gdir * GML_PI / 180.0) * instance->gravity;
+            instance->hspeed += cos(instance->gravity_direction * GML_PI / 180.0) * instance->gravity;
+            instance->vspeed += -sin(instance->gravity_direction * GML_PI / 180.0) * instance->gravity;
 
             // Recalculate speed and direction from hspeed/vspeed
-            instance->direction = ::atan2(instance->vspeed, instance->hspeed) * 180.0 / GML_PI;
+            instance->direction = ::atan2(-instance->vspeed, instance->hspeed) * 180.0 / GML_PI;
             instance->speed = sqrt(pow(instance->hspeed, 2) + pow(instance->vspeed, 2));
         }
 
