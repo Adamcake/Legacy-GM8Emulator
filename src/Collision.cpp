@@ -105,11 +105,11 @@ bool CollisionCheck(Instance* i1, Instance* i2) {
     unsigned int spriteIndex = i1->mask_index;
     if (spriteIndex == -1) spriteIndex = i1->sprite_index;
     Sprite* spr1 = AssetManager::GetSprite(spriteIndex);
-    CollisionMap* map1 = (spr1->separateCollision ? (spr1->collisionMaps + (( int )(i1->image_index) % spr1->frameCount)) : spr1->collisionMaps);
+    CollisionMap* map1 = (spr1->separateCollision ? (spr1->collisionMaps + (static_cast<int>(i1->image_index) % spr1->frameCount)) : spr1->collisionMaps);
     spriteIndex = i2->mask_index;
     if (spriteIndex == -1) spriteIndex = i2->sprite_index;
     Sprite* spr2 = AssetManager::GetSprite(spriteIndex);
-    CollisionMap* map2 = (spr2->separateCollision ? (spr2->collisionMaps + (( int )(i2->image_index) % spr2->frameCount)) : spr2->collisionMaps);
+    CollisionMap* map2 = (spr2->separateCollision ? (spr2->collisionMaps + (static_cast<int>(i2->image_index) % spr2->frameCount)) : spr2->collisionMaps);
 
     double a1 = i1->image_angle * PI / 180.0;
     double a2 = i2->image_angle * PI / 180.0;
@@ -122,23 +122,23 @@ bool CollisionCheck(Instance* i1, Instance* i2) {
 
     for (int y = cTop; y <= cBottom; y++) {
         for (int x = cLeft; x <= cRight; x++) {
-            double curX = ( double )x;
-            double curY = ( double )y;
+            double curX = static_cast<double>(x);
+            double curY = static_cast<double>(y);
             rotateAround(&curX, &curY, i1->x, i1->y, s1, c1);
             curX = spr1->originX + ((curX - i1->x) / i1->image_xscale);
             curY = spr1->originY + ((curY - i1->y) / i1->image_yscale);
-            int nx = dRound(curX);
-            int ny = dRound(curY);
-            if (nx >= ( int )map1->left && nx <= ( int )map1->right && ny >= ( int )map1->top && ny <= ( int )map1->bottom) {
+            int nx = static_cast<int>(curX);
+            int ny = static_cast<int>(curY);
+            if (nx >= static_cast<int>(map1->left) && nx <= static_cast<int>(map1->right) && ny >= static_cast<int>(map1->top) && ny <= static_cast<int>(map1->bottom)) {
                 if (map1->collision[ny * w1 + nx]) {
-                    double curX = ( double )x;
-                    double curY = ( double )y;
+                    double curX = static_cast<double>(x);
+                    double curY = static_cast<double>(y);
                     rotateAround(&curX, &curY, i2->x, i2->y, s2, c2);
                     curX = spr2->originX + ((curX - i2->x) / i2->image_xscale);
                     curY = spr2->originY + ((curY - i2->y) / i2->image_yscale);
-                    nx = dRound(curX);
-                    ny = dRound(curY);
-                    if (nx >= ( int )map2->left && nx <= ( int )map2->right && ny >= ( int )map2->top && ny <= ( int )map2->bottom) {
+                    nx = static_cast<int>(curX);
+                    ny = static_cast<int>(curY);
+                    if (nx >= static_cast<int>(map2->left) && nx <= static_cast<int>(map2->right) && ny >= static_cast<int>(map2->top) && ny <= static_cast<int>(map2->bottom)) {
                         if (map2->collision[ny * w2 + nx]) {
                             return true;
                         }
@@ -160,21 +160,21 @@ bool CollisionPointCheck(Instance* i1, int x, int y) {
     unsigned int spriteIndex = i1->mask_index;
     if (spriteIndex == -1) spriteIndex = i1->sprite_index;
     Sprite* spr1 = AssetManager::GetSprite(spriteIndex);
-    CollisionMap* map1 = (spr1->separateCollision ? (spr1->collisionMaps + (( int )(i1->image_index) % spr1->frameCount)) : spr1->collisionMaps);
+    CollisionMap* map1 = (spr1->separateCollision ? (spr1->collisionMaps + (static_cast<int>(i1->image_index) % spr1->frameCount)) : spr1->collisionMaps);
     double a1 = i1->image_angle * PI / 180.0;
     double s1 = sin(a1);
     double c1 = cos(a1);
     int w1 = map1->width;
 
-    double curX = ( double )x;
-    double curY = ( double )y;
+    double curX = static_cast<double>(x);
+    double curY = static_cast<double>(y);
     rotateAround(&curX, &curY, i1->x, i1->y, s1, c1);
     curX = spr1->originX + ((curX - i1->x) / i1->image_xscale);
     curY = spr1->originY + ((curY - i1->y) / i1->image_yscale);
-    int nx = dRound(curX);
-    int ny = dRound(curY);
+    int nx = static_cast<int>(curX);
+    int ny = static_cast<int>(curY);
 
-    if (nx >= ( int )map1->left && nx <= ( int )map1->right && ny >= ( int )map1->top && ny <= ( int )map1->bottom) {
+    if (nx >= static_cast<int>(map1->left) && nx <= static_cast<int>(map1->right) && ny >= static_cast<int>(map1->top) && ny <= static_cast<int>(map1->bottom)) {
         if (map1->collision[ny * w1 + nx]) {
             return true;
         }

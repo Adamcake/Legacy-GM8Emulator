@@ -110,9 +110,10 @@ bool GameFrame() {
             if (timeline->exists) {
                 double oldTPos = instance->timeline_position;
                 instance->timeline_position += instance->timeline_speed;
+                double newTPos = instance->timeline_position;
 
                 for (const auto& m : timeline->moments) {
-                    if (m.first >= oldTPos && m.first < instance->timeline_position) {
+                    if (m.first >= oldTPos && m.first < newTPos) {
                         if (!CodeActionManager::Run(m.second.actions, m.second.actionCount, instance, NULL, 0, 0, instance->object_index)) return false;
                     }
                 }
