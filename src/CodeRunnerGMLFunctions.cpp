@@ -105,7 +105,7 @@ bool Runtime::choose(unsigned int argc, GMLType* argv, GMLType* out) {
         return true;
     }
 
-    int rand = RNGIrandom(argc);
+    int rand = RNG::Irandom(argc);
     (*out) = argv[rand];
     return true;
 }
@@ -460,7 +460,7 @@ bool Runtime::instance_change(unsigned int argc, GMLType* argv, GMLType* out) {
         if (!CodeActionManager::RunInstanceEvent(1, 0, i, NULL, i->object_index)) return false;
     }
     int objId = _round(argv[0].dVal);
-    if(objId < 0 || objId >= AssetManager::GetObjectCount()) {
+    if(objId < 0 || objId >= static_cast<int>(AssetManager::GetObjectCount())) {
         Runtime::SetReturnCause(ReturnCause::ExitError);
         Runtime::PushErrorMessage("Invalid object index passed to instance_change");
         return false;
@@ -546,7 +546,7 @@ bool Runtime::instance_position(unsigned int argc, GMLType* argv, GMLType* out) 
 
 bool Runtime::irandom(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, false, GMLTypeState::Double)) return false;
-    int rand = RNGIrandom(_round(argv[0].dVal));
+    int rand = RNG::Irandom(_round(argv[0].dVal));
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ( double )rand;
@@ -556,7 +556,7 @@ bool Runtime::irandom(unsigned int argc, GMLType* argv, GMLType* out) {
 
 bool Runtime::irandom_range(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
-    int rand = RNGIrandom(::abs(_round(argv[1].dVal) - _round(argv[0].dVal)) + 1);
+    int rand = RNG::Irandom(::abs(_round(argv[1].dVal) - _round(argv[0].dVal)) + 1);
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ( double )rand + std::fmin(argv[0].dVal, argv[1].dVal);
@@ -1075,7 +1075,7 @@ bool Runtime::radtodeg(unsigned int argc, GMLType* argv, GMLType* out) {
 
 bool Runtime::random(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, false, GMLTypeState::Double)) return false;
-    double rand = RNGRandom(argv[0].dVal);
+    double rand = RNG::Random(argv[0].dVal);
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = rand;
@@ -1085,7 +1085,7 @@ bool Runtime::random(unsigned int argc, GMLType* argv, GMLType* out) {
 
 bool Runtime::random_range(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 2, false, GMLTypeState::Double, GMLTypeState::Double)) return false;
-    double rand = RNGRandom(argv[1].dVal - argv[0].dVal);
+    double rand = RNG::Random(argv[1].dVal - argv[0].dVal);
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = rand + argv[0].dVal;
@@ -1096,14 +1096,14 @@ bool Runtime::random_range(unsigned int argc, GMLType* argv, GMLType* out) {
 bool Runtime::random_get_seed(unsigned int argc, GMLType* argv, GMLType* out) {
     if (out) {
         out->state = GMLTypeState::Double;
-        out->dVal = ( double )RNGGetSeed();
+        out->dVal = ( double )RNG::GetSeed();
     }
     return true;
 }
 
 bool Runtime::random_set_seed(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
-    RNGSetSeed(_round(argv[0].dVal));
+    RNG::SetSeed(_round(argv[0].dVal));
     return true;
 }
 

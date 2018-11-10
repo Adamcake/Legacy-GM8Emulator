@@ -3,30 +3,34 @@
 
 __int32 seed;
 
-void RNGRandomize() {
-	seed = (int)std::time(NULL);
+void _cycleSeed() {
+    seed *= 0x8088405;
+    seed++;
 }
 
-double RNGRandom(double bound) {
-	seed *= 0x8088405;
-	seed++;
-	return (((unsigned int)seed) * (1.0 / 0x100000000) * bound);
+void RNG::Randomize() {
+	seed = static_cast<int>(std::time(NULL));
+    _cycleSeed();
 }
 
-int RNGIrandom(int bound) {
-	seed *= 0x8088405;
-	seed++;
-	unsigned long long ls = ((unsigned long long)seed) & 0xFFFFFFFF;
-	long long lb = ((long long)bound);
-	unsigned long long v = ls * lb;
-	v >>= 32;
-	return (int)v;
+double RNG::Random(double bound) {
+    _cycleSeed();
+    return (static_cast<unsigned int>(seed) * 0.00000000023283064365386962890625 * bound);
 }
 
-void RNGSetSeed(int s) {
+int RNG::Irandom(int bound) {
+    _cycleSeed();
+    unsigned long long ls = static_cast<unsigned long long>(seed) & 0xFFFFFFFF;
+    long long lb = static_cast<long long>(bound) + 1;
+    unsigned long long v = ls * lb;
+    v >>= 32;
+    return static_cast<int>(v);
+}
+
+void RNG::SetSeed(int s) {
 	seed = s;
 }
 
-int RNGGetSeed() {
+int RNG::GetSeed() {
 	return seed;
 }

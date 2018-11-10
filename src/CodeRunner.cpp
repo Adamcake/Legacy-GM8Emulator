@@ -32,7 +32,7 @@ GlobalValues* _crGlobalValues;
 
 bool CodeManager::Init(GlobalValues* globals) {
     _crGlobalValues = globals;
-    RNGRandomize();
+    RNG::Randomize();
     return GM8Emulator::Compiler::Init(globals);
 }
 
