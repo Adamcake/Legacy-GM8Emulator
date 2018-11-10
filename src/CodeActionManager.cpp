@@ -132,6 +132,8 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
             case 6:
             case 9:
             case 10:
+            case 11:
+            case 13:
             case 14:
                 action.params[i] = new ParamLiteral(std::atoi(args[i]));
                 break;
@@ -192,6 +194,20 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
             else
                 gml = "direction=argument[0];speed=argument[1];";
             break;
+        case 103:
+            // Set the horizontal speed
+            if (relative)
+                gml = "hspeed+=argument[0]";
+            else
+                gml = "hspeed=argument[0]";
+            break;
+        case 104:
+            if (relative)
+                gml = "vspeed+=argument[0]";
+            else
+                gml = "vspeed=argument[0]";
+            // Set the vertical speed
+            break;
         case 105:
             // Move towards point
             if (relative)
@@ -213,6 +229,10 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
                 gml = "x+=argument[1];y+=argument[0];";
             else
                 gml = "x=argument[1];y=argument[0];";
+            break;
+        }
+        case 111: {
+            gml = "move_random(argument[0],argument[1])";
             break;
         }
         case 112: {
@@ -292,12 +312,22 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
             gml = "transition_kind=argument[0];room_goto_next()";
             break;
         }
+        case 224: {
+            // Go to room
+            gml = "transition_kind=argument[1];room_goto(argument[0])";
+            break;
+        }
         case 301: {
             // Set alarm
             if (relative)
                 gml = "alarm[argument[1]]+=argument[0]";
             else
                 gml = "alarm[argument[1]]=argument[0]";
+            break;
+        }
+        case 302: {
+            // Sleep
+            gml = "sleep(argument[0])";
             break;
         }
         case 304: {
@@ -346,6 +376,15 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
             gml += "argument[1]";
             break;
         }
+        case 405: {
+            // 1 in n chance to perform the next action
+            if(_not) 
+                gml = "random(argument[0]) > 1";
+            else
+                gml = "random(argument[0]) < 1";
+            break;
+        }
+
         case 421: {
             // Else
             break;
@@ -369,6 +408,11 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
             const char* arg3 = args[3];
             if(relative) gml = "draw_sprite(argument[0],argument[3],x+argument[1],y+argument[2])";
             else gml = "draw_sprite(argument[0],argument[3],argument[1],argument[2])";
+            break;
+        }
+        case 524: {
+            // Set the drawing colour
+            gml = "draw_set_color(argument[0])";
             break;
         }
         case 532: {
