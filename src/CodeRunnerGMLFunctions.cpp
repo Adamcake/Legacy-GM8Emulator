@@ -105,8 +105,8 @@ bool Runtime::choose(unsigned int argc, GMLType* argv, GMLType* out) {
         return true;
     }
 
-    int rand = RNG::Irandom(argc);
-    (*out) = argv[rand];
+    int rand = RNG::Irandom(argc - 1);
+    if(out) (*out) = argv[rand];
     return true;
 }
 
