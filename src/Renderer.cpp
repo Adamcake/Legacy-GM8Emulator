@@ -54,7 +54,9 @@ struct RPreImage {
 	unsigned int h;
 	unsigned char* data;
 	unsigned int imgIndex;
-	RPreImage* next;
+
+    unsigned int _x;
+    unsigned int _y;
 };
 
 // References to images that may or may not have yet been put into an atlas (usually happens in RMakeGameWindow)
@@ -90,14 +92,14 @@ struct RAtlas {
 	unsigned int h;
 };
 
-RPreImage* _preImages;
+std::vector<RPreImage> _preImages;
 std::vector<RAtlasImage> _atlasImages;
 RAtlas _atlases[32];
 int boundAtlas;
 
 
 // Builds all added images into atlases so that they can be drawn. Must be called before attempting to draw. Only intended to be called once.
-bool _Compile(unsigned int firstAtlas);
+bool _Compile(unsigned int firstAtlas = 0);
 
 unsigned int _tallest;
 unsigned int _widest;
@@ -126,17 +128,12 @@ void RInit() {
 	_tallest = 0;
 	_widest = 0;
 	_pixelCount = 0;
-	_preImages = NULL;
 	boundAtlas = -1;
 }
 
 void RTerminate() {
-	RPreImage* n = _preImages;
-	while (n != NULL) {
-		RPreImage* n2 = n->next;
-		free(n->data);
-		free(n);
-		n = n2;
+	for(const RPreImage& n : _preImages) {
+		free(n.data);
 	}
 	glfwDestroyWindow(_window); // This function is allowed be called on NULL
 	glfwTerminate();
@@ -210,7 +207,7 @@ bool RMakeGameWindow(GameSettings* settings, unsigned int w, unsigned int h) {
 	glUseProgram(_glProgram);
 
 	// Make texture atlases
-	if (!_Compile(0)) return false;
+	if (!_Compile()) return false;
 
 	// Make VAO
 	glGenVertexArrays(1, &_vao);
@@ -274,12 +271,11 @@ RImageIndex RMakeImage(unsigned int w, unsigned int h, unsigned int originX, uns
 	}
 
 	// Make pre-image object for later compiling into an atlas
-	RPreImage* pImg = new RPreImage;
-	pImg->w = w;
-	pImg->h = h;
-	pImg->data = (unsigned char*)malloc(w * h * 4);
-	pImg->next = NULL;
-	memcpy(pImg->data, bytes, (w * h * 4));
+	RPreImage pImg;
+	pImg.w = w;
+	pImg.h = h;
+	pImg.data = (unsigned char*)malloc(w * h * 4);
+	memcpy(pImg.data, bytes, (w * h * 4));
 
 	// Make reference object for this image
 	RAtlasImage aImg;
@@ -287,32 +283,18 @@ RImageIndex RMakeImage(unsigned int w, unsigned int h, unsigned int originX, uns
 	aImg.h = h;
 	aImg.originX = originX;
 	aImg.originY = originY;
-	pImg->imgIndex = static_cast<unsigned int>(_atlasImages.size());
+	pImg.imgIndex = static_cast<unsigned int>(_atlasImages.size());
 	_atlasImages.push_back(aImg);
 
-	// Sort pre-image into the linked list by descending pixel count (ie largest first)
-	unsigned int wh = w * h;
-	RPreImage** n = &_preImages;
-	while (true) {
-		RPreImage* i = *n;
-		if (i == NULL) {
-			(*n) = pImg;
-			break;
-		}
-		if (wh >= i->w * i->h) {
-			pImg->next = i;
-			(*n) = pImg;
-			break;
-		}
-		n = &(i->next);
-	}
+	// Put pre-image into list
+	_preImages.push_back(pImg);
 
 	// Keep track of the widest and tallest sprites and the total number of pixels added
 	_tallest = std::max(_tallest, w);
 	_widest = std::max(_widest, h);
 	_pixelCount += (w * h);
 
-	return pImg->imgIndex;
+	return pImg.imgIndex;
 }
 
 void RDrawImage(RImageIndex ix, double x, double y, double xscale, double yscale, double rot, unsigned int blend, double alpha, int depth) {
@@ -500,292 +482,81 @@ bool _Compile(unsigned int firstAtlas) {
 	if (_widest > _maxTextureSize) return false;
 	if (firstAtlas > _maxTextures) return false;
 	if (_pixelCount == 0) return true;
-
-	// Decide how large to make the atlas initially (may be expanded later if required)
-	/*
-	unsigned int size;
-	unsigned int c = 1;
-	unsigned int p = _pixelCount;
-	while (p != 1) {
-		p >>= 1;
-		c++;
-	}
-	if (c & 1) c++;
-	size = std::max((unsigned int)(1 << (c / 2)), std::max(_tallest, _widest));
-	*/
 	
-	// Create usage map
-	bool* used = new bool[_maxTextureSize * _maxTextureSize];
-	unsigned int usedWidth = 0;
-	unsigned int usedHeight = 0;
-	for (unsigned int i = 0; i < (_maxTextureSize * _maxTextureSize); i++) used[i] = false;
+	using spaces_type = rectpack2D::empty_spaces<false, rectpack2D::default_empty_spaces>; // don't allow flipping
+    using rect_type = rectpack2D::output_rect_t<spaces_type>;
 
-	// Keep linked lists of PreImages that we did and didn't pack
-	RPreImage* packed = NULL;
-	RPreImage** packedNext = &packed;
-	RPreImage* notPacked = NULL;
-	RPreImage** notPackedNext = &notPacked;
+    std::vector<rect_type> rectangles;
+    rectangles.reserve(_preImages.size());
 
-	// Try to pack each image
-	std::vector<unsigned int> firstFree;
-	firstFree.reserve(_maxTextureSize);
-	while (_preImages != NULL) {
+    std::vector<RPreImage> packed;
+    packed.reserve(_preImages.size());
+    auto report_successful = [&packed, &rectangles](rect_type& r) {
+        unsigned int index = static_cast<unsigned int>((&r) - rectangles.data());
+        _preImages[index]._x = r.x;
+        _preImages[index]._y = r.y;
+        packed.push_back(_preImages[index]);
+        return rectpack2D::callback_result::CONTINUE_PACKING;
+    };
 
-		// Special case for the first image
-		if (usedWidth == 0 || usedHeight == 0) {
-			usedWidth = _preImages->w;
-			usedHeight = _preImages->h;
-			for (unsigned int iY = 0; iY < _preImages->h; iY++) {
-				memset(used + (iY * _maxTextureSize), true, _preImages->w * sizeof(bool));
-			}
-			_atlasImages[_preImages->imgIndex].atlasId = firstAtlas;
-			_atlasImages[_preImages->imgIndex].x = 0;
-			_atlasImages[_preImages->imgIndex].y = 0;
+    std::vector<RPreImage> unpacked;
+    auto report_unsuccessful = [&unpacked, &rectangles](rect_type& r) {
+        unsigned int index = static_cast<unsigned int>((&r) - rectangles.data());
+        unpacked.push_back(_preImages[index]);
+        return rectpack2D::callback_result::CONTINUE_PACKING;
+    };
 
-			for (unsigned int i = 0; i < usedHeight; i++) {
-				firstFree.push_back(usedWidth);
-			}
+    const auto max_side = _maxTextureSize;
+    const auto discard_step = 256;
 
-			RPreImage* n = _preImages->next;
-			(*packedNext) = _preImages;
-			_preImages->next = NULL;
-			packedNext = &_preImages->next;
-			_preImages = n;
-			continue;
-		}
+    for(const RPreImage& p : _preImages) {
+        rectangles.emplace_back(rectpack2D::rect_xywh(0, 0, p.w, p.h));
+    }
 
-		// Try to fit this image into the existing used rectangle
-		bool placementFound = false;
-		if (_preImages->w < usedWidth && _preImages->h < usedHeight) {
-			for (unsigned int iY = 0; iY <= usedHeight - _preImages->h; iY++) {
-				for (unsigned int iX = firstFree[iY]; iX <= usedWidth - _preImages->w; iX++) {
+    // Do packing
+    const auto result_size = rectpack2D::find_best_packing<spaces_type>(rectangles, rectpack2D::make_finder_input(max_side, discard_step, report_successful, report_unsuccessful, rectpack2D::flipping_option::ENABLED));
 
-					// Check if this space is free
-					bool free = true;
-					for (unsigned int jY = iY; jY < iY + _preImages->h; jY++) {
-						for (unsigned int jX = iX; jX < iX + _preImages->w; jX++) {
-							if (used[(jY * _maxTextureSize) + jX]) {
-								free = false;
-								break;
-							}
-						}
-						if (!free) break;
-					}
+    // Round up size to power of 2
+    unsigned int usedSize = std::max(result_size.w, result_size.h);
+    int power = 64;
+    while(power < usedSize) power *= 2;
 
-					if (free) {
-						// This space is free, place the image here
-						placementFound = true;
+    // Copy everything into pixeldata
+    unsigned char* pixelData = (unsigned char*)malloc(power * power * 4);
+    if(!pixelData) return false;
+    for(RPreImage& img : packed) {
+        RAtlasImage& aImg = _atlasImages[img.imgIndex];
+        aImg.x = img._x;
+        aImg.y = img._y;
+        aImg.w = img.w;
+        aImg.h = img.h;
+        aImg.atlasId = firstAtlas;
+        for (unsigned int iY = aImg.y; iY < aImg.y + aImg.h; iY++) {
+            memcpy(pixelData + (iY * power * 4) + (aImg.x * 4), img.data + (aImg.w * (iY - aImg.y) * 4), aImg.w * 4);
+        }
+    }
 
-						for (unsigned int jY = iY; jY < iY + _preImages->h; jY++) {
-							memset(used + (jY * _maxTextureSize) + iX, true, _preImages->w * sizeof(bool));
-							if (firstFree[jY] == iX) firstFree[jY] += _preImages->w;
-						}
-						_atlasImages[_preImages->imgIndex].atlasId = firstAtlas;
-						_atlasImages[_preImages->imgIndex].x = iX;
-						_atlasImages[_preImages->imgIndex].y = iY;
+    // Upload atlas to GPU
+    glGenTextures(1, &_atlases[firstAtlas].glTex);
+    _atlases[firstAtlas].w = power;
+    _atlases[firstAtlas].h = power;
+    glActiveTexture(GL_TEXTURE0 + firstAtlas);
+    glBindTexture(GL_TEXTURE_2D, _atlases[firstAtlas].glTex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, power, power, 0, GL_RGBA, GL_UNSIGNED_BYTE, static_cast<void*>(pixelData));
+    glBindTexture(GL_TEXTURE_2D, 0);
 
-						RPreImage* n = _preImages->next;
-						(*packedNext) = _preImages;
-						_preImages->next = NULL;
-						packedNext = &_preImages->next;
-						_preImages = n;
-						break;
-					}
-				}
-				if (placementFound) break;
-			}
-		}
+    free(pixelData);
 
-		if (placementFound) continue;
-
-		// Place the image by expanding the rectangle
-		if ((usedWidth + _preImages->w) < (usedHeight + _preImages->h)) {
-			// Try to expand rightward
-
-			for (unsigned int iY = 0; iY <= _maxTextureSize - _preImages->h; iY++) {
-				for (unsigned int iX = usedWidth - _preImages->w; iX <= _maxTextureSize - _preImages->w; iX++) { // maybe change these back around?
-					if (iX < firstFree[iY]) continue;
-					
-					// Check if this space is free
-					bool free = true;
-					for (unsigned int jY = iY; jY < iY + _preImages->h; jY++) {
-						for (unsigned int jX = iX; jX < usedWidth; jX++) {
-							if (used[(jY * _maxTextureSize) + jX]) {
-								free = false;
-								break;
-							}
-						}
-						if (!free) break;
-					}
-
-					if (free) {
-						// This space is free, place the image here
-						placementFound = true;
-
-						for (unsigned int jY = iY; jY < iY + _preImages->h; jY++) {
-							memset(used + (jY * _maxTextureSize) + iX, true, _preImages->w * sizeof(bool));
-							if (firstFree[jY] == iX) firstFree[jY] += _preImages->w;
-						}
-						_atlasImages[_preImages->imgIndex].atlasId = firstAtlas;
-						_atlasImages[_preImages->imgIndex].x = iX;
-						_atlasImages[_preImages->imgIndex].y = iY;
-						
-						usedWidth = _preImages->w + iX;
-						if (_preImages->h > usedHeight) usedHeight = _preImages->h;
-						RPreImage* n = _preImages->next;
-						(*packedNext) = _preImages;
-						_preImages->next = NULL;
-						packedNext = &_preImages->next;
-						_preImages = n;
-						break;
-					}
-				}
-				if (placementFound) break;
-			}
-
-			if(placementFound) continue;
-		}
-		
-		// Try to expand downward
-
-		for (unsigned int iY = (_preImages->h > usedHeight ? 0 : (usedHeight - _preImages->h)); iY <= _maxTextureSize - _preImages->h; iY++) {
-			for (unsigned int iX = (iY < usedHeight ? firstFree[iY] : 0); iX <= (_preImages->w > usedWidth ? 0 : usedWidth - _preImages->w); iX++) {
-			
-				// Check if this space is free
-				bool free = true;
-				for (unsigned int jY = iY; jY < usedHeight; jY++) {
-					for (unsigned int jX = iX; jX < iX + _preImages->w; jX++) {
-						if (used[(jY * _maxTextureSize) + jX]) {
-							free = false;
-							break;
-						}
-					}
-					if (!free) break;
-				}
-
-				if (free) {
-					// This space is free, place the image here
-					placementFound = true;
-
-					for (unsigned int jY = iY; jY < iY + _preImages->h; jY++) {
-						memset(used + (jY * _maxTextureSize) + iX, true, _preImages->w * sizeof(bool));
-						if(jY < usedHeight) if (firstFree[jY] == iX) firstFree[jY] += _preImages->w;
-					}
-					_atlasImages[_preImages->imgIndex].atlasId = firstAtlas;
-					_atlasImages[_preImages->imgIndex].x = iX;
-					_atlasImages[_preImages->imgIndex].y = iY;
-					
-					unsigned int px = (iX == 0 ? _preImages->w : 0);
-					for (unsigned int iH = usedHeight; iH < _preImages->h + iY; iH++) {
-						firstFree.push_back(px);
-					}
-					usedHeight = _preImages->h + iY;
-					if (_preImages->w > usedWidth) usedWidth = _preImages->w;
-
-					RPreImage* n = _preImages->next;
-					(*packedNext) = _preImages;
-					_preImages->next = NULL;
-					packedNext = &_preImages->next;
-					_preImages = n;
-
-					break;
-				}
-			}
-			if (placementFound) break;
-		}
-
-		if (!placementFound) {
-			// We didn't manage to place this image in this atlas.
-			RPreImage* n = _preImages->next;
-			(*notPackedNext) = _preImages;
-			_preImages->next = NULL;
-			notPackedNext = &_preImages->next;
-			_preImages = n;
-		}
-	}
-	delete[] used;
-
-	// Create the pixel data for the atlas
-	bool success = true;
-	unsigned char* pixelData = (unsigned char*)malloc(usedWidth * usedHeight * 4);
-	if (pixelData) {
-		RPreImage* cTex = packed;
-		while (cTex) {
-			RAtlasImage* aImg = &_atlasImages[cTex->imgIndex];
-			for (unsigned int iY = aImg->y; iY < aImg->y + aImg->h; iY++) {
-				memcpy(pixelData + (iY * usedWidth * 4) + (aImg->x * 4), cTex->data + (aImg->w * (iY - aImg->y) * 4), aImg->w * 4);
-			}
-			cTex = cTex->next;
-		}
-
-		// Upload atlas to GPU
-		glGenTextures(1, &_atlases[firstAtlas].glTex);
-		_atlases[firstAtlas].w = usedWidth;
-		_atlases[firstAtlas].h = usedHeight;
-		glActiveTexture(GL_TEXTURE0 + firstAtlas);
-		glBindTexture(GL_TEXTURE_2D, _atlases[firstAtlas].glTex);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, usedWidth, usedHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, static_cast<void *>(pixelData));
-		glBindTexture(GL_TEXTURE_2D, 0);
-	}
-	else {
-		success = false;
-	}
-
-	// Test - print pixel data to file
-	/*
-	FILE* f;
-	unsigned int filesize = 54 + (usedWidth * usedHeight * 3);
-	unsigned char bmpfileheader[14] = { 'B','M', 0,0,0,0, 0,0, 0,0, 54,0,0,0 };
-	unsigned char bmpinfoheader[40] = { 40,0,0,0, 0,0,0,0, 0,0,0,0, 1,0, 24,0 };
-	unsigned char bmppad[3] = { 0,0,0 };
-	bmpfileheader[2] = (unsigned char)(filesize);
-	bmpfileheader[3] = (unsigned char)(filesize >> 8);
-	bmpfileheader[4] = (unsigned char)(filesize >> 16);
-	bmpfileheader[5] = (unsigned char)(filesize >> 24);
-	bmpinfoheader[4] = (unsigned char)(usedWidth);
-	bmpinfoheader[5] = (unsigned char)(usedWidth >> 8);
-	bmpinfoheader[6] = (unsigned char)(usedWidth >> 16);
-	bmpinfoheader[7] = (unsigned char)(usedWidth >> 24);
-	bmpinfoheader[8] = (unsigned char)(usedHeight);
-	bmpinfoheader[9] = (unsigned char)(usedHeight >> 8);
-	bmpinfoheader[10] = (unsigned char)(usedHeight >> 16);
-	bmpinfoheader[11] = (unsigned char)(usedHeight >> 24);
-	f = fopen((std::string("atlas") + std::to_string(firstAtlas) + std::string(".bmp")).c_str(), "wb");
-	fwrite(bmpfileheader, 1, 14, f);
-	fwrite(bmpinfoheader, 1, 40, f);
-	for (int i = usedHeight - 1; i >= 0; i--) {
-		for (int j = 0; j < usedWidth; j++) {
-			fwrite(pixelData + (usedWidth * i * 4) + (j * 4) + 2, 1, 1, f);
-			fwrite(pixelData + (usedWidth * i * 4) + (j * 4) + 1, 1, 1, f);
-			fwrite(pixelData + (usedWidth * i * 4) + (j * 4) + 0, 1, 1, f);
-		}
-		fwrite(bmppad, 1, (4 - ((usedWidth * 3) % 4)) % 4, f);
-	}
-	fclose(f);
-	*/
-
-	// Clean up
-	delete[] pixelData;
-	while (packed != NULL) {
-		free(packed->data);
-		RPreImage* n = packed->next;
-		delete packed;
-		packed = n;
-	}
-
-	if (success) {
-		// If we failed to compile anything into this atlas, get another atlas going.
-		// But only bother to do this if everything else was successful, because otherwise the app is exiting anyway.
-		if (notPacked != NULL) {
-			_preImages = notPacked;
-			success = _Compile(firstAtlas + 1);
-		}
-	}
-
-	_preImages = NULL;
-	return success;
+    if(unpacked.size()) {
+        // We didn't manage to pack every texture so let's move onto the next atlas
+        _preImages = unpacked;
+        return _Compile(firstAtlas + 1);
+    }
+    else {
+        return true;
+    }
 }
