@@ -231,7 +231,13 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
                 gml = "x=argument[1];y=argument[0];";
             break;
         }
+        case 110: {
+            // Jump to start
+            gml = "x=xstart;y=ystart;";
+            break;
+        }
         case 111: {
+            // Jump to random
             gml = "move_random(argument[0],argument[1])";
             break;
         }
