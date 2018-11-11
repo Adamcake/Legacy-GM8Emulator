@@ -1,4 +1,5 @@
 #include <pch.h>
+
 #include "Alarm.hpp"
 #include "CodeActionManager.hpp"
 #include "CodeRunner.hpp"
@@ -127,7 +128,7 @@ bool GameFrame() {
     while (instance = iter.Next()) {
         for (const auto j : AlarmGetMap(instance->id)) {
             if (j.second == 0) {
-                if (!CodeActionManager::RunInstanceEvent(2, j.first, instance, NULL, instance->object_index)) return false;
+                if (!CodeActionManager::RunInstanceEvent(2, j.first, instance, instance, instance->object_index)) return false;
                 if (AlarmGet(instance->id, j.first) == 0) AlarmDelete(instance->id, j.first);  // Only remove entry if it's still 0
                 if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
             }
