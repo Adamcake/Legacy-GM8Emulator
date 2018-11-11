@@ -414,7 +414,7 @@ bool _setInstanceVar(Instance* instance, CRInstanceVar index, unsigned int array
             t.dVal = instance->vspeed;
             if (!_applySetMethod(&t, method, &value)) return false;
             instance->vspeed = t.dVal;
-            instance->direction = ::atan2(instance->vspeed, instance->hspeed) * 180.0 / GML_PI;
+            instance->direction = ::atan2(-instance->vspeed, instance->hspeed) * 180.0 / GML_PI;
             instance->speed = ::sqrt(pow(instance->hspeed, 2) + pow(instance->vspeed, 2));
             break;
         case IV_HSPEED:

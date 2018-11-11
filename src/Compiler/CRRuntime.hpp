@@ -104,11 +104,14 @@ namespace Runtime {
     bool keyboard_check_direct(unsigned int argc, GMLType* argv, GMLType* out);
     bool keyboard_check_pressed(unsigned int argc, GMLType* argv, GMLType* out);
     bool keyboard_check_released(unsigned int argc, GMLType* argv, GMLType* out);
+    bool lengthdir_x(unsigned int argc, GMLType* argv, GMLType* out);
+    bool lengthdir_y(unsigned int argc, GMLType* argv, GMLType* out);
     bool ln(unsigned int argc, GMLType* argv, GMLType* out);
     bool log2(unsigned int argc, GMLType* argv, GMLType* out);
     bool log10(unsigned int argc, GMLType* argv, GMLType* out);
     bool logn(unsigned int argc, GMLType* argv, GMLType* out);
     bool make_color_hsv(unsigned int argc, GMLType* argv, GMLType* out);
+    bool make_color_rgb(unsigned int argc, GMLType* argv, GMLType* out);
     bool max(unsigned int argc, GMLType* argv, GMLType* out);
     bool min(unsigned int argc, GMLType* argv, GMLType* out);
     bool motion_set(unsigned int argc, GMLType* argv, GMLType* out);

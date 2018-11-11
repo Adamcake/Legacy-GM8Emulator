@@ -211,8 +211,9 @@ bool Runtime::draw_sprite(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 4, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
     Sprite* spr = AssetManager::GetSprite(_round(argv[0].dVal));
     Instance* self = GetContext().self;
-    RDrawImage(
-        spr->frames[_round(argv[1].dVal) % spr->frameCount], argv[2].dVal, argv[3].dVal, self->image_xscale, self->image_yscale, self->image_angle, self->image_blend, self->image_alpha, self->depth);
+    int frame = _round(argv[1].dVal);
+    if (frame < 0) frame = self->image_index;
+    RDrawImage(spr->frames[frame % spr->frameCount], argv[2].dVal, argv[3].dVal, self->image_xscale, self->image_yscale, self->image_angle, self->image_blend, self->image_alpha, self->depth);
     return true;
 }
 
@@ -222,7 +223,9 @@ bool Runtime::draw_sprite_ext(unsigned int argc, GMLType* argv, GMLType* out) {
         return false;
     Sprite* spr = AssetManager::GetSprite(_round(argv[0].dVal));
     Instance* self = GetContext().self;
-    RDrawImage(spr->frames[_round(argv[1].dVal) % spr->frameCount], argv[2].dVal, argv[3].dVal, argv[4].dVal, argv[5].dVal, argv[6].dVal, _round(argv[7].dVal), argv[8].dVal, self->depth);
+    int frame = _round(argv[1].dVal);
+    if(frame < 0) frame = self->image_index;
+    RDrawImage(spr->frames[frame % spr->frameCount], argv[2].dVal, argv[3].dVal, argv[4].dVal, argv[5].dVal, argv[6].dVal, _round(argv[7].dVal), argv[8].dVal, self->depth);
     return true;
 }
 
@@ -637,6 +640,24 @@ bool Runtime::keyboard_check_released(unsigned int argc, GMLType* argv, GMLType*
     return true;
 }
 
+bool Runtime::lengthdir_x(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
+    if(out) {
+        out->state = GMLTypeState::Double;
+        out->dVal = ::cos(argv[1].dVal * GML_PI / 180.0) * argv[0].dVal;
+    }
+    return true;
+}
+
+bool Runtime::lengthdir_y(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
+    if (out) {
+        out->state = GMLTypeState::Double;
+        out->dVal = (-::sin(argv[1].dVal * GML_PI / 180.0)) * argv[0].dVal;
+    }
+    return true;
+}
+
 bool Runtime::log2(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
@@ -727,6 +748,15 @@ bool Runtime::make_color_hsv(unsigned int argc, GMLType* argv, GMLType* out) {
 
         out->state = GMLTypeState::Double;
         out->dVal = (( unsigned int )(fR * 255)) | ((( unsigned int )(fG * 255)) << 8) | ((( unsigned int )(fB * 255)) << 16);
+    }
+    return true;
+}
+
+bool Runtime::make_color_rgb(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 3, false, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
+    if(out) {
+        out->state = GMLTypeState::Double;
+        out->dVal = _round(argv[0].dVal) + (_round(argv[1].dVal) << 8) + (_round(argv[2].dVal) << 16);
     }
     return true;
 }

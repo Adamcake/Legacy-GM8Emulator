@@ -2525,11 +2525,11 @@ bool GM8Emulator::Compiler::Init(GlobalValues* globals) {
                 break;
             case LENGTHDIR_X:
                 _internalFuncNames.push_back("lengthdir_x");
-                _gmlFuncs.push_back(&Runtime::unimplemented);
+                _gmlFuncs.push_back(&Runtime::lengthdir_x);
                 break;
             case LENGTHDIR_Y:
                 _internalFuncNames.push_back("lengthdir_y");
-                _gmlFuncs.push_back(&Runtime::unimplemented);
+                _gmlFuncs.push_back(&Runtime::lengthdir_y);
                 break;
             case LN:
                 _internalFuncNames.push_back("ln");
@@ -2557,7 +2557,7 @@ bool GM8Emulator::Compiler::Init(GlobalValues* globals) {
                 break;
             case MAKE_COLOR_RGB:
                 _internalFuncNames.push_back("make_color_rgb");
-                _gmlFuncs.push_back(&Runtime::unimplemented);
+                _gmlFuncs.push_back(&Runtime::make_color_rgb);
                 break;
             case MAX:
                 _internalFuncNames.push_back("max");
