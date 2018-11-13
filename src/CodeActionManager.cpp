@@ -130,14 +130,18 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
             case 4:
             case 5:
             case 6:
+            case 7:
+            case 8:
             case 9:
             case 10:
             case 11:
+            case 12:
             case 13:
             case 14:
                 action.params[i] = new ParamLiteral(std::atoi(args[i]));
                 break;
             default:
+                char* c = args[i];
                 return false;
         }
     }
@@ -221,6 +225,14 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
                 gml = "gravity+=argument[1];gravity_direction=argument[0];";
             else
                 gml = "gravity=argument[1];gravity_direction=argument[0];";
+            break;
+        }
+        case 108: {
+            // Set friction
+            if (relative)
+                gml = "friction+=argument[0]";
+            else
+                gml = "friction=argument[0]";
             break;
         }
         case 109: {
@@ -409,16 +421,26 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
             break;
         }
         case 501: {
-            const char* arg1 = args[1];
-            const char* arg2 = args[2];
-            const char* arg3 = args[3];
             if(relative) gml = "draw_sprite(argument[0],argument[3],x+argument[1],y+argument[2])";
             else gml = "draw_sprite(argument[0],argument[3],argument[1],argument[2])";
+            break;
+        }
+        case 514: {
+            const char* arg0 = args[0];
+            const char* arg1 = args[1];
+            const char* arg2 = args[2];
+            if(relative) gml = "draw_text(x+argument[1],y+argument[2],argument[0])";
+            else gml = "draw_text(argument[1],argument[2],argument[0])";
             break;
         }
         case 524: {
             // Set the drawing colour
             gml = "draw_set_color(argument[0])";
+            break;
+        }
+        case 526: {
+            // Set the font
+            gml = "draw_set_color(argument[0]);draw_set_halign(argument[1]);";
             break;
         }
         case 532: {

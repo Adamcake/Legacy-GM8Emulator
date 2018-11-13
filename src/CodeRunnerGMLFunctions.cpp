@@ -610,25 +610,31 @@ bool Runtime::game_restart(unsigned int argc, GMLType* argv, GMLType* out) {
 
 bool Runtime::keyboard_check(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
-    out->state = GMLTypeState::Double;
-    int gmlKeycode = _round(argv[0].dVal);
-    out->dVal = (InputCheckKey(gmlKeycode) ? GMLTrue : GMLFalse);
+    if(out) {
+        out->state = GMLTypeState::Double;
+        int gmlKeycode = _round(argv[0].dVal);
+        out->dVal = (InputCheckKey(gmlKeycode) ? GMLTrue : GMLFalse);
+    }
     return true;
 }
 
 bool Runtime::keyboard_check_direct(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
-    out->state = GMLTypeState::Double;
-    int gmlKeycode = _round(argv[0].dVal);
-    out->dVal = (InputCheckKeyDirect(gmlKeycode) ? GMLTrue : GMLFalse);
+    if(out) {
+        out->state = GMLTypeState::Double;
+        int gmlKeycode = _round(argv[0].dVal);
+        out->dVal = (InputCheckKeyDirect(gmlKeycode) ? GMLTrue : GMLFalse);
+    }
     return true;
 }
 
 bool Runtime::keyboard_check_pressed(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
-    out->state = GMLTypeState::Double;
-    int gmlKeycode = _round(argv[0].dVal);
-    out->dVal = (InputCheckKeyPressed(gmlKeycode) ? GMLTrue : GMLFalse);
+    if(out) {
+        out->state = GMLTypeState::Double;
+        int gmlKeycode = _round(argv[0].dVal);
+        out->dVal = (InputCheckKeyPressed(gmlKeycode) ? GMLTrue : GMLFalse);
+    }
     return true;
 }
 
