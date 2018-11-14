@@ -53,12 +53,11 @@ namespace InstanceList {
       private:
         bool _byId;
         unsigned int _pos;
-        unsigned int _limit;
         unsigned int _id;
 
       public:
-        Iterator() : _pos(0), _byId(false) { _limit = InstanceList::Count(); }
-        Iterator(unsigned int id) : _pos(0), _id(id), _byId(true) { _limit = InstanceList::Count(); }
+        Iterator() : _pos(0), _byId(false) {}
+        Iterator(unsigned int id) : _pos(0), _id(id), _byId(true) {}
         Instance* Next();
     };
 };
