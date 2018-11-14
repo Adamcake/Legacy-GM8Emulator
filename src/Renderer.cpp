@@ -379,7 +379,6 @@ void RDrawPartialImage(RImageIndex ix, double x, double y, double xscale, double
 void RStartFrame() {
 	int actualWinW, actualWinH;
 	glfwGetWindowSize(_window, &actualWinW, &actualWinH);
-	glUseProgram(_glProgram);
 	glClearColor((GLclampf)(_colourOutsideRoom & 0xFF) / 0xFF, (GLclampf)((_colourOutsideRoom >> 8) & 0xFF) / 0xFF, (GLclampf)((_colourOutsideRoom >> 16) & 0xFF) / 0xFF, (GLclampf)1.0);
 	glViewport(0, 0, actualWinW, actualWinH);
 	glScissor(0, 0, actualWinW, actualWinH);
@@ -461,6 +460,7 @@ void RRenderFrame() {
 		glVertexAttribDivisor(shaderProject + 3, 1);
 
 		// Do instanced draw
+        glUseProgram(_glProgram);
 		glBindBuffer(GL_ARRAY_BUFFER, _vbo);
 		glEnableVertexAttribArray(glGetAttribLocation(_glProgram, "vertTexCoord"));
 		glVertexAttribPointer(glGetAttribLocation(_glProgram, "vertTexCoord"), 2, GL_FLOAT, GL_TRUE, 3 * sizeof(GLfloat), 0);
@@ -516,13 +516,8 @@ bool _Compile(unsigned int firstAtlas) {
     // Do packing
     const auto result_size = rectpack2D::find_best_packing<spaces_type>(rectangles, rectpack2D::make_finder_input(max_side, discard_step, report_successful, report_unsuccessful, rectpack2D::flipping_option::ENABLED));
 
-    // Round up size to power of 2
-    unsigned int usedSize = std::max(result_size.w, result_size.h);
-    int power = 64;
-    while(power < usedSize) power *= 2;
-
     // Copy everything into pixeldata
-    unsigned char* pixelData = (unsigned char*)malloc(power * power * 4);
+    unsigned char* pixelData = (unsigned char*)malloc(result_size.w * result_size.h * 4);
     if(!pixelData) return false;
     for(RPreImage& img : packed) {
         RAtlasImage& aImg = _atlasImages[img.imgIndex];
@@ -532,21 +527,21 @@ bool _Compile(unsigned int firstAtlas) {
         aImg.h = img.h;
         aImg.atlasId = firstAtlas;
         for (unsigned int iY = aImg.y; iY < aImg.y + aImg.h; iY++) {
-            memcpy(pixelData + (iY * power * 4) + (aImg.x * 4), img.data + (aImg.w * (iY - aImg.y) * 4), aImg.w * 4);
+            memcpy(pixelData + (iY * result_size.w * 4) + (aImg.x * 4), img.data + (aImg.w * (iY - aImg.y) * 4), aImg.w * 4);
         }
     }
 
     // Upload atlas to GPU
     glGenTextures(1, &_atlases[firstAtlas].glTex);
-    _atlases[firstAtlas].w = power;
-    _atlases[firstAtlas].h = power;
+    _atlases[firstAtlas].w = result_size.w;
+    _atlases[firstAtlas].h = result_size.h;
     glActiveTexture(GL_TEXTURE0 + firstAtlas);
     glBindTexture(GL_TEXTURE_2D, _atlases[firstAtlas].glTex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, power, power, 0, GL_RGBA, GL_UNSIGNED_BYTE, static_cast<void*>(pixelData));
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, result_size.w, result_size.h, 0, GL_RGBA, GL_UNSIGNED_BYTE, static_cast<void*>(pixelData));
     glBindTexture(GL_TEXTURE_2D, 0);
 
     free(pixelData);
