@@ -349,37 +349,57 @@ bool Runtime::file_bin_open(unsigned int argc, GMLType* argv, GMLType* out) {
 
     ::std::string filePath = argv[0].sVal;
     int fileType = _round(argv[1].dVal);
+    bool exists = fsExists(filePath);
 
-    if (fsExists(filePath) || (fileType != 0)) {
-        // Stream mode
-        int fileMode;
-        switch (fileType) {
-            case 0:  // Read-only
-                fileMode = std::fstream::in | std::fstream::binary;
-                break;
-            case 1:  // Write-only
-                fileMode = std::fstream::out | std::fstream::binary;
-                break;
-            case 2:
-            default:  // Read & write
-                fileMode = std::fstream::in | std::fstream::out | std::fstream::binary;
-                break;
-        }
-
-        int i = 0;
-        for (; i < maxFilesOpen; i++) {
-            if (!_userFiles[i].is_open()) {
-                _userFiles[i].open(filePath, static_cast<std::ios_base::openmode>(fileMode));
+    if (exists || (fileType != 0)) {
+        int file;
+        for (file = 0; file < maxFilesOpen; file++) {
+            if (!_userFiles[file].is_open()) {
+                //_userFiles[i].open(filePath, static_cast<std::ios_base::openmode>(fileMode));
                 break;
             }
         }
-
-        if (i == maxFilesOpen) {
+        if (file == maxFilesOpen) {
             return false;
         }
-        else if (out) {
+
+        // Stream mode
+        if (fileType == 0) {
+            // Read-only
+            _userFiles[file].open(filePath, static_cast<std::ios_base::openmode>(std::fstream::in | std::fstream::binary));
+        }
+        else {
+            std::ios_base::openmode openMode = std::fstream::out | std::fstream::binary;
+            if(fileType != 1) {
+                //Read-write mode
+                openMode |= std::fstream::in;
+            }
+            if (exists) {
+                // Load the entire file into memory, write it to the output and then return to overwrite from 0.
+                // This is how gamemaker does it, so we have to do it that way too. Yeah, I don't know either.
+                std::ifstream ifs;
+                int len;
+                ifs.open(filePath, static_cast<std::ios_base::openmode>(std::fstream::in | std::fstream::binary));
+                ifs.seekg(0, std::ios::end);
+                len = ifs.tellg();
+                ifs.seekg(0, std::ios::beg);
+                char* buffer = new char[len];
+                ifs.read(buffer, len);
+                ifs.close();
+                _userFiles[file].open(filePath, static_cast<std::ios_base::openmode>(openMode));
+                _userFiles[file].write(buffer, len);
+                delete[] buffer;
+                _userFiles[file].seekp(0, std::ios::beg);
+            }
+            else {
+                _userFiles[file].open(filePath, static_cast<std::ios_base::openmode>(openMode));
+            }
+        }
+
+        
+        if (out) {
             out->state = GMLTypeState::Double;
-            out->dVal = static_cast<double>(i + 1);
+            out->dVal = static_cast<double>(file + 1);
         }
 
         return true;
