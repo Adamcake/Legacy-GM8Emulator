@@ -189,6 +189,8 @@ bool _InitInstance(Instance* instance, unsigned int id, double x, double y, unsi
 }
 
 
+InstanceList::Iterator::Iterator(unsigned int id, Instance* start) : _pos(static_cast<unsigned int>(start - _list)), _id(id), _byId(true) {}
+
 Instance* InstanceList::Iterator::Next() {
     if (_byId) {
         unsigned int endpos;

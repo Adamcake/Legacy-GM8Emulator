@@ -58,6 +58,7 @@ namespace InstanceList {
       public:
         Iterator() : _pos(0), _byId(false) {}
         Iterator(unsigned int id) : _pos(0), _id(id), _byId(true) {}
+        Iterator(unsigned int id, Instance* start);
         Instance* Next();
     };
 };

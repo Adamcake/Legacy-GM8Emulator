@@ -1295,6 +1295,18 @@ bool GameLoad(const char *pFilename) {
 	}
     CodeManager::SetRoomOrder(&_roomOrder, _roomOrderCount);
 
+    // Swap over collision events
+    for (unsigned int i = 0; i < objectCount; i++) {
+        Object* obj = AssetManager::GetObject(i);
+        if (!obj->exists) continue;
+        for (const auto& e : obj->events[4]) {
+            Object* other = AssetManager::GetObject(e.first);
+            if (std::find(other->evList[4].begin(), other->evList[4].end(), e.first) == other->evList[4].end()) {
+                other->evList[4].push_back(i);
+            }
+        }
+    }
+
 	// Compile object parented event lists and identities
 	for (unsigned int i = 0; i < objectCount; i++) {
 		Object* obj = AssetManager::GetObject(i);

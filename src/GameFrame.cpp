@@ -259,6 +259,7 @@ bool GameFrame() {
     // TODO: in this order, if views are enabled: "outside view x" events for all instances, "intersect boundary view x" events for all instances
 
     // Collision events
+    /*
     iter = InstanceList::Iterator();
     while (instance = iter.Next()) {
         Object* o = AssetManager::GetObject(instance->object_index);
@@ -287,6 +288,57 @@ bool GameFrame() {
                     }
                 }
                 target = iter2.Next();
+            }
+        }
+    }*/
+    for(unsigned int i = 0; i < AssetManager::GetObjectCount(); i++) {
+        Object* o = AssetManager::GetObject(i);
+        if(o->exists) {
+            for(const auto& id : o->evList[4]) {
+                InstanceList::Iterator iter(i);
+                Instance* instance;
+                while(instance = iter.Next()) {
+                    InstanceList::Iterator iter2(id, instance);
+                    Instance* instance2;
+                    while (instance2 = iter2.Next()) {
+                        if(instance != instance2) {
+                            if (CollisionCheck(instance, instance2)) {
+
+                                // self->other
+                                if (instance2->solid) {
+                                    // If the target is solid, we move outside of it
+                                    instance->x = instance->xprevious;
+                                    instance->y = instance->yprevious;
+                                    instance->bboxIsStale = true;
+                                }
+                                if (!CodeActionManager::RunInstanceEvent(4, id, instance, instance2, instance->object_index)) return false;
+                                if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+
+                                if (instance2->solid) {
+                                    instance->x += instance->hspeed;
+                                    instance->y += instance->vspeed;
+                                    instance->bboxIsStale = true;
+                                }
+
+                                // other->self
+                                if (instance->solid) {
+                                    // If the target is solid, we move outside of it
+                                    instance2->x = instance2->xprevious;
+                                    instance2->y = instance2->yprevious;
+                                    instance2->bboxIsStale = true;
+                                }
+                                if (!CodeActionManager::RunInstanceEvent(4, i, instance2, instance, instance2->object_index)) return false;
+                                if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+
+                                if (instance->solid) {
+                                    instance2->x += instance2->hspeed;
+                                    instance2->y += instance2->vspeed;
+                                    instance2->bboxIsStale = true;
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
