@@ -189,13 +189,14 @@ bool _InitInstance(Instance* instance, unsigned int id, double x, double y, unsi
 }
 
 
-InstanceList::Iterator::Iterator(unsigned int id, Instance* start) : _pos(static_cast<unsigned int>(start - _list)), _id(id), _byId(true) {}
+InstanceList::Iterator::Iterator(unsigned int id, Instance* start) :
+    _pos(static_cast<unsigned int>(start - _list)), _id(id), _byId(true), _limit(InstanceList::Count()) {}
 
 Instance* InstanceList::Iterator::Next() {
     if (_byId) {
         unsigned int endpos;
         Instance* ret = InstanceList::GetInstanceByNumber(_id, _pos, &endpos);
-        if (_pos >= _size) return NULL;
+        if (_pos >= _limit) return NULL;
         endpos++;
         _pos = endpos;
         return ret;
@@ -203,7 +204,7 @@ Instance* InstanceList::Iterator::Next() {
     else {
         Instance* ret;
         while (true) {
-            if (_pos >= _size) return NULL;
+            if (_pos >= _limit) return NULL;
             ret = &_list[_pos];
             _pos++;
             if (ret->exists) break;
