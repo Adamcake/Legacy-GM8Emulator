@@ -30,8 +30,9 @@ void AlarmDeleteAll() {
 	_alarms.clear();
 }
 
-const std::map<unsigned int, int> AlarmGetMap(InstanceID instance) {
-	return _alarms.count(instance) ? _alarms[instance] : std::map<unsigned int, int>();
+std::map<unsigned int, int> dummy; // empty map
+std::map<unsigned int, int>& AlarmGetMap(InstanceID instance) {
+	return _alarms.count(instance) ? _alarms[instance] : dummy;
 }
 
 void AlarmRemoveInstance(InstanceID instance) {

@@ -10,7 +10,7 @@ int AlarmGet(InstanceID instance, int alarm);
 void AlarmUpdateAll();
 void AlarmDelete(InstanceID instance, unsigned int alarm);
 void AlarmDeleteAll();
-const std::map<unsigned int, int> AlarmGetMap(InstanceID instance);
+std::map<unsigned int, int>& AlarmGetMap(InstanceID instance);
 void AlarmRemoveInstance(InstanceID instance);
 
 #endif

@@ -241,7 +241,8 @@ unsigned int* _roomOrder;
 unsigned int _roomOrderCount;
 GameSettings settings;
 unsigned int _lastUsedRoomSpeed;
-#pragma endregion
+std::map<unsigned int, std::vector<unsigned int>> _eventHolderList[12];
+#pragma endregion  
 
 void GameInit() {
 	_info.caption = NULL;
@@ -1325,6 +1326,7 @@ bool GameLoad(const char *pFilename) {
 				o = AssetManager::GetObject(o->parentIndex);
 			}
 			std::sort(obj->evList[j].begin(), obj->evList[j].end());
+            obj->evList[j].shrink_to_fit();
 		}
 
 		// identities
@@ -1335,6 +1337,19 @@ bool GameLoad(const char *pFilename) {
 			o = AssetManager::GetObject(o->parentIndex);
 		}
 	}
+
+    // Populate event holder lists
+    for (unsigned int i = 0; i < objectCount; i++) {
+        Object* obj = AssetManager::GetObject(i);
+        if (!obj->exists) continue;
+
+        // event lists
+        for (unsigned int j = 0; j < 12; j++) {
+            for(const unsigned int& e : obj->evList[j]) {
+                _eventHolderList[j][e].push_back(i);
+            }
+        }
+    }
 
 	// Compile scripts
 	for (unsigned int i = 0; i < scriptCount; i++) {
@@ -1445,5 +1460,12 @@ unsigned int GameGetRoomSpeed() {
 }
 
 bool GameGetError(const char** err) {
-    return CodeManager::GetError(err);
+    return CodeManager::GetError(err); }
+
+std::map<unsigned int, std::vector<unsigned int>>& GetEventHolderList(unsigned int ev) {
+    return _eventHolderList[ev];
+}
+
+std::vector<unsigned int>& GetEventHolderList(unsigned int ev, unsigned int sub) {
+    return _eventHolderList[ev][sub];
 }
