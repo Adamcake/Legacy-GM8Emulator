@@ -56,7 +56,7 @@ struct RoomView {
 	unsigned int Vbor;
 	unsigned int Hsp;
 	unsigned int Vsp;
-	unsigned int follow;
+	int follow;
 };
 
 struct RoomInstance {

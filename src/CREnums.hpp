@@ -5,38 +5,6 @@
 
 // I put these in their own header because they're gonna be like, really big
 
-/*
-enum CRInstruction {
-	OP_NOP = 0x0,
-	OP_EXIT = 0x1,
-	OP_SET_GAME_VALUE = 0x2,
-	OP_SET_INSTANCE_VAR = 0x3,
-	OP_SET_FIELD = 0x4,
-	OP_SET_ARRAY = 0x5,
-	OP_BIND_VARS = 0x6,
-	OP_DEREF = 0x7,
-	OP_RESET_DEREF = 0x8,
-	OP_RUN_INTERNAL_FUNC = 0x9,
-	OP_RUN_SCRIPT = 0xA,
-	OP_TEST_VAL = 0xB,
-	OP_TEST_VAL_NOT = 0xC,
-	OP_TEST_VALS_EQUAL = 0xD,
-	OP_CHANGE_CONTEXT = 0xE,
-	OP_REVERT_CONTEXT = 0xF,
-	OP_JUMP = 0x10,
-	OP_JUMP_LONG = 0x11,
-	OP_JUMP_BACK = 0x12,
-	OP_JUMP_BACK_LONG = 0x13,
-	OP_SET_INTSTACK = 0x14,
-	OP_SET_VARSTACK = 0x15,
-	OP_INTSTACK_PUSH = 0x16,
-	OP_INTSTACK_POP = 0x17,
-	OP_VARSTACK_PUSH = 0x18,
-	OP_VARSTACK_POP = 0x19,
-	OP_RETURN = 0x1A
-};
-*/
-
 enum CRSetMethod {
 	SM_ASSIGN = 0,
 	SM_ADD = 1,
@@ -47,14 +15,6 @@ enum CRSetMethod {
 	SM_BITWISE_AND = 6,
 	SM_BITWISE_XOR = 7
 };
-
-/*
-enum CRVarType {
-	VARTYPE_INSTANCE,
-	VARTYPE_FIELD,
-	VARTYPE_GAME
-};
-*/
 
 enum CROperator {
 	OPERATOR_ADD,
@@ -86,20 +46,6 @@ enum CRUnaryOperator {
     OPERATOR_NEGATIVE = 0x2,
     OPERATOR_POSITIVE = 0x3
 };
-
-/*
-enum CRExpVType {
-	EVTYPE_NONE = 0x0,
-	EVTYPE_VAL = 0x1,
-	EVTYPE_GAME_VALUE = 0x2,
-	EVTYPE_FIELD = 0x3,
-	EVTYPE_ARRAY = 0x4,
-	EVTYPE_INSTANCEVAR = 0x5,
-	EVTYPE_INTERNAL_FUNC = 0x6,
-	EVTYPE_SCRIPT = 0x7,
-	EVTYPE_STACK = 0x8,
-};
-*/
 
 enum CRInternalFunction {
 	ABS,
@@ -1208,6 +1154,22 @@ enum CRGameVar {
 	ROOM_HEIGHT,
 	ROOM_WIDTH,
 	ROOM_CAPTION,
+    VIEW_ENABLED,
+    VIEW_VISIBLE,
+    VIEW_XVIEW,
+    VIEW_YVIEW,
+    VIEW_WVIEW,
+    VIEW_HVIEW,
+    VIEW_XPORT,
+    VIEW_YPORT,
+    VIEW_WPORT,
+    VIEW_HPORT,
+    VIEW_ANGLE,
+    VIEW_HBORDER,
+    VIEW_VBORDER,
+    VIEW_HSPEED,
+    VIEW_VSPEED,
+    VIEW_OBJECT,
 	_GAME_VALUE_COUNT // As long as this one is last, it'll tell us how many things are in this enum. So don't move it.
 };
 
@@ -1262,15 +1224,5 @@ enum CRInstanceVar {
 	IV_BBOX_TOP,
 	_INSTANCE_VAR_COUNT // As long as this one is last, it'll tell us how many things are in this enum. So don't move it.
 };
-
-/*
-enum CRSpecialNames {
-	SP_SELF,
-	SP_OTHER,
-	SP_ALL,
-	SP_NOONE,
-	SP_GLOBAL
-};
-*/
 
 #endif

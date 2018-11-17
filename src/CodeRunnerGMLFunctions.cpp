@@ -222,7 +222,7 @@ bool Runtime::draw_sprite(unsigned int argc, GMLType* argv, GMLType* out) {
     Sprite* spr = AssetManager::GetSprite(_round(argv[0].dVal));
     Instance* self = GetContext().self;
     int frame = _round(argv[1].dVal);
-    if (frame < 0) frame = self->image_index;
+    if (frame < 0) frame = static_cast<int>(::floor(self->image_index));
     RDrawImage(spr->frames[frame % spr->frameCount], argv[2].dVal, argv[3].dVal, 1.0, 1.0, 0.0, 0xFFFFFFFF, 1.0, self->depth);
     return true;
 }
@@ -234,7 +234,7 @@ bool Runtime::draw_sprite_ext(unsigned int argc, GMLType* argv, GMLType* out) {
     Sprite* spr = AssetManager::GetSprite(_round(argv[0].dVal));
     Instance* self = GetContext().self;
     int frame = _round(argv[1].dVal);
-    if(frame < 0) frame = self->image_index;
+    if (frame < 0) frame = static_cast<int>(::floor(self->image_index));
     RDrawImage(spr->frames[frame % spr->frameCount], argv[2].dVal, argv[3].dVal, argv[4].dVal, argv[5].dVal, argv[6].dVal, _round(argv[7].dVal), argv[8].dVal, self->depth);
     return true;
 }
@@ -391,7 +391,7 @@ bool Runtime::file_bin_open(unsigned int argc, GMLType* argv, GMLType* out) {
                 int len;
                 ifs.open(filePath, static_cast<std::ios_base::openmode>(std::fstream::in | std::fstream::binary));
                 ifs.seekg(0, std::ios::end);
-                len = ifs.tellg();
+                len = static_cast<int>(ifs.tellg());
                 ifs.seekg(0, std::ios::beg);
                 char* buffer = new char[len];
                 ifs.read(buffer, len);

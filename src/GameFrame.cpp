@@ -42,6 +42,27 @@ bool GameLoadRoom(int id) {
     RSetGameWindowTitle(room->caption);
     RSetBGColour(room->backgroundColour);
 
+    // Update views
+    _globals.view_enabled = room->enableViews;
+    _globals.views.clear();
+    for (unsigned int i = 0; i < room->viewCount; i++) {
+        _globals.views[i].xview = room->views[i].viewX;
+        _globals.views[i].yview = room->views[i].viewY;
+        _globals.views[i].wview = room->views[i].viewW;
+        _globals.views[i].hview = room->views[i].viewH;
+        _globals.views[i].xport = room->views[i].portX;
+        _globals.views[i].yport = room->views[i].portY;
+        _globals.views[i].wport = room->views[i].portW;
+        _globals.views[i].hport = room->views[i].portH;
+        _globals.views[i].angle = 0.0;
+        _globals.views[i].hborder = static_cast<int>(room->views[i].Hbor);
+        _globals.views[i].vborder = static_cast<int>(room->views[i].Vbor);
+        _globals.views[i].hspeed = static_cast<int>(room->views[i].Hsp);
+        _globals.views[i].vspeed = static_cast<int>(room->views[i].Vsp);
+        _globals.views[i].object = room->views[i].follow;
+        _globals.views[i].visible = room->views[i].visible;
+    }
+
     // Update room
     _globals.room = id;
     _globals.changeRoom = false;

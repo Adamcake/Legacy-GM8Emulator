@@ -532,10 +532,10 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
 
     // Register the code we just generated
     if (action.question) {
-        action.codeObj = CodeManager::RegisterQuestion(gml.c_str(), strlen(gml.c_str()));
+        action.codeObj = CodeManager::RegisterQuestion(gml.c_str(), static_cast<unsigned int>(strlen(gml.c_str())));
     }
     else {
-        action.codeObj = CodeManager::Register(gml.c_str(), strlen(gml.c_str()));
+        action.codeObj = CodeManager::Register(gml.c_str(), static_cast<unsigned int>(strlen(gml.c_str())));
     }
 
     // Clean up

@@ -244,33 +244,81 @@ bool _getGameValue(CRGameVar index, unsigned int arrayIndex, GMLType* out) {
             }
             break;
         case INSTANCE_COUNT:
-            out->dVal = ( double )InstanceList::Count();
+            out->dVal = static_cast<double>(InstanceList::Count());
             break;
         case MOUSE_X:
             int mx;
             RGetCursorPos(&mx, NULL);
-            out->dVal = ( double )mx;
+            out->dVal = static_cast<double>(mx);
             break;
         case MOUSE_Y:
             int my;
             RGetCursorPos(NULL, &my);
-            out->dVal = ( double )my;
+            out->dVal = static_cast<double>(my);
             break;
         case ROOM:
-            out->dVal = ( double )_globalValues->room;
+            out->dVal = static_cast<double>(_globalValues->room);
             break;
         case ROOM_SPEED:
-            out->dVal = ( double )_globalValues->room_speed;
+            out->dVal = static_cast<double>(_globalValues->room_speed);
             break;
         case ROOM_WIDTH:
-            out->dVal = ( double )_globalValues->room_width;
+            out->dVal = static_cast<double>(_globalValues->room_width);
             break;
         case ROOM_HEIGHT:
-            out->dVal = ( double )_globalValues->room_height;
+            out->dVal = static_cast<double>(_globalValues->room_height);
             break;
         case ROOM_CAPTION:
             out->state = GMLTypeState::String;
             out->sVal = _globalValues->room_caption;
+            break;
+        case VIEW_ENABLED:
+            out->dVal = _globalValues->view_enabled ? GMLTrue : GMLFalse;
+            break;
+        case VIEW_VISIBLE:
+            out->dVal = _globalValues->views[arrayIndex].visible ? GMLTrue : GMLFalse;
+            break;
+        case VIEW_XVIEW:
+            out->dVal = static_cast<double>(_globalValues->views[arrayIndex].xview);
+            break;
+        case VIEW_YVIEW:
+            out->dVal = static_cast<double>(_globalValues->views[arrayIndex].yview);
+            break;
+        case VIEW_WVIEW:
+            out->dVal = static_cast<double>(_globalValues->views[arrayIndex].wview);
+            break;
+        case VIEW_HVIEW:
+            out->dVal = static_cast<double>(_globalValues->views[arrayIndex].hview);
+            break;
+        case VIEW_XPORT:
+            out->dVal = static_cast<double>(_globalValues->views[arrayIndex].xport);
+            break;
+        case VIEW_YPORT:
+            out->dVal = static_cast<double>(_globalValues->views[arrayIndex].yport);
+            break;
+        case VIEW_WPORT:
+            out->dVal = static_cast<double>(_globalValues->views[arrayIndex].wport);
+            break;
+        case VIEW_HPORT:
+            out->dVal = static_cast<double>(_globalValues->views[arrayIndex].hport);
+            break;
+        case VIEW_ANGLE:
+            out->dVal = _globalValues->views[arrayIndex].angle;
+            break;
+        case VIEW_HBORDER:
+            out->dVal = _globalValues->views[arrayIndex].hborder;
+            break;
+        case VIEW_VBORDER:
+            out->dVal = _globalValues->views[arrayIndex].vborder;
+            break;
+        case VIEW_HSPEED:
+            out->dVal = _globalValues->views[arrayIndex].hspeed;
+            break;
+        case VIEW_VSPEED:
+            out->dVal = _globalValues->views[arrayIndex].vspeed;
+            break;
+        case VIEW_OBJECT:
+            out->dVal = static_cast<double>(_globalValues->views[arrayIndex].object);
             break;
         default:
             _cause = Runtime::ReturnCause::ExitError;
@@ -294,6 +342,54 @@ bool _setGameValue(CRGameVar index, unsigned int arrayIndex, CRSetMethod method,
             _globalValues->room_caption = tCaption.sVal;
             break;
         }
+        case VIEW_ENABLED:
+            _globalValues->view_enabled = Runtime::_isTrue(&value);
+            break;
+        case VIEW_VISIBLE:
+            _globalValues->views[arrayIndex].visible = Runtime::_isTrue(&value);
+            break;
+        case VIEW_XVIEW:
+            _globalValues->views[arrayIndex].xview = static_cast<int>(value.dVal);
+            break;
+        case VIEW_YVIEW:
+            _globalValues->views[arrayIndex].yview = static_cast<int>(value.dVal);
+            break;
+        case VIEW_WVIEW:
+            _globalValues->views[arrayIndex].wview = static_cast<int>(value.dVal);
+            break;
+        case VIEW_HVIEW:
+            _globalValues->views[arrayIndex].hview = static_cast<int>(value.dVal);
+            break;
+        case VIEW_XPORT:
+            _globalValues->views[arrayIndex].xport = static_cast<int>(value.dVal);
+            break;
+        case VIEW_YPORT:
+            _globalValues->views[arrayIndex].yport = static_cast<int>(value.dVal);
+            break;
+        case VIEW_WPORT:
+            _globalValues->views[arrayIndex].wport = static_cast<int>(value.dVal);
+            break;
+        case VIEW_HPORT:
+            _globalValues->views[arrayIndex].hport = static_cast<int>(value.dVal);
+            break;
+        case VIEW_ANGLE:
+            _globalValues->views[arrayIndex].angle = value.dVal;
+            break;
+        case VIEW_HBORDER:
+            _globalValues->views[arrayIndex].hborder = static_cast<int>(value.dVal);
+            break;
+        case VIEW_VBORDER:
+            _globalValues->views[arrayIndex].vborder = static_cast<int>(value.dVal);
+            break;
+        case VIEW_HSPEED:
+            _globalValues->views[arrayIndex].hspeed = static_cast<int>(value.dVal);
+            break;
+        case VIEW_VSPEED:
+            _globalValues->views[arrayIndex].vspeed = static_cast<int>(value.dVal);
+            break;
+        case VIEW_OBJECT:
+            _globalValues->views[arrayIndex].object = static_cast<int>(value.dVal);
+            break;
         default:
             _cause = Runtime::ReturnCause::ExitError;
             _error = "Tried to write unrecognized or read-only Game Var " + std::to_string(index);
@@ -939,7 +1035,7 @@ bool _evalArrayAccessor(std::vector<CRExpression>& dimensions, int* out) {
             return false;
         }
         (*out) = Runtime::_round(dim1.dVal);
-        if ((*out) < 0) {
+        if ((*out) < 0 || (*out) >= 32000) {
             _cause = Runtime::ReturnCause::ExitError;
             _error = "Invalid array accessor: \"" + std::to_string(dim1.dVal) + "\"";
             return false;
@@ -954,7 +1050,7 @@ bool _evalArrayAccessor(std::vector<CRExpression>& dimensions, int* out) {
                 return false;
             }
             int id2 = Runtime::_round(dim2.dVal);
-            if (id2 < 0) {
+            if (id2 < 0 || id2 >= 32000) {
                 _cause = Runtime::ReturnCause::ExitError;
                 _error = "Invalid array accessor: \"" + std::to_string(dim1.dVal) + "\"";
                 return false;

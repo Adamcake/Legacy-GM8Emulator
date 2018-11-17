@@ -212,6 +212,54 @@ bool GM8Emulator::Compiler::Init(GlobalValues* globals) {
             case ROOM_CAPTION:
                 _gameValueNames.push_back("room_caption");
                 break;
+            case VIEW_ENABLED:
+                _gameValueNames.push_back("view_enabled");
+                break;
+            case VIEW_VISIBLE:
+                _gameValueNames.push_back("view_visible");
+                break;
+            case VIEW_XVIEW:
+                _gameValueNames.push_back("view_xview");
+                break;
+            case VIEW_YVIEW:
+                _gameValueNames.push_back("view_yview");
+                break;
+            case VIEW_WVIEW:
+                _gameValueNames.push_back("view_wview");
+                break;
+            case VIEW_HVIEW:
+                _gameValueNames.push_back("view_hview");
+                break;
+            case VIEW_XPORT:
+                _gameValueNames.push_back("view_xport");
+                break;
+            case VIEW_YPORT:
+                _gameValueNames.push_back("view_yport");
+                break;
+            case VIEW_WPORT:
+                _gameValueNames.push_back("view_wport");
+                break;
+            case VIEW_HPORT:
+                _gameValueNames.push_back("view_hport");
+                break;
+            case VIEW_ANGLE:
+                _gameValueNames.push_back("view_angle");
+                break;
+            case VIEW_HBORDER:
+                _gameValueNames.push_back("view_hborder");
+                break;
+            case VIEW_VBORDER:
+                _gameValueNames.push_back("view_vborder");
+                break;
+            case VIEW_HSPEED:
+                _gameValueNames.push_back("view_hspeed");
+                break;
+            case VIEW_VSPEED:
+                _gameValueNames.push_back("view_vspeed");
+                break;
+            case VIEW_OBJECT:
+                _gameValueNames.push_back("view_object");
+                break;
             default:
                 // There's something in the enum that isn't listed here. Abort
                 return false;
