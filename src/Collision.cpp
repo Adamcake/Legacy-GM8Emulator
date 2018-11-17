@@ -39,10 +39,10 @@ void RefreshInstanceBbox(Instance* i) {
             Sprite* s = AssetManager::GetSprite(spriteIndex);
             CollisionMap* map = (s->separateCollision ? (s->collisionMaps + (( int )(i->image_index) % s->frameCount)) : s->collisionMaps);
 
-            double tlX = (i->x - (s->originX * i->image_xscale)) + (map->left * i->image_xscale);
-            double tlY = (i->y - (s->originY * i->image_yscale)) + (map->top * i->image_yscale);
-            double brX = tlX + ((map->right + 1 - map->left) * i->image_xscale) - 1;
-            double brY = tlY + ((map->bottom + 1 - map->top) * i->image_yscale) - 1;
+            double tlX = (i->x - (s->originX * i->image_xscale)) + (static_cast<int>(map->left) * i->image_xscale);
+            double tlY = (i->y - (s->originY * i->image_yscale)) + (static_cast<int>(map->top) * i->image_yscale);
+            double brX = tlX + ((static_cast<int>(map->right) + 1 - static_cast<int>(map->left)) * i->image_xscale) - 1;
+            double brY = tlY + ((static_cast<int>(map->bottom) + 1 - static_cast<int>(map->top)) * i->image_yscale) - 1;
 
             double tmp;
             if (i->image_xscale <= 0) {

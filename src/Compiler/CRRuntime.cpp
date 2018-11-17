@@ -344,11 +344,13 @@ bool _setInstanceVar(Instance* instance, CRInstanceVar index, unsigned int array
             t.dVal = instance->sprite_index;
             if (!_applySetMethod(&t, method, &value)) return false;
             instance->sprite_index = Runtime::_round(t.dVal);
+            instance->bboxIsStale = true;
             break;
         case IV_MASK_INDEX:
             t.dVal = instance->mask_index;
             if (!_applySetMethod(&t, method, &value)) return false;
             instance->mask_index = Runtime::_round(t.dVal);
+            instance->bboxIsStale = true;
             break;
         case IV_IMAGE_BLEND:
             t.dVal = instance->image_blend;
@@ -364,6 +366,7 @@ bool _setInstanceVar(Instance* instance, CRInstanceVar index, unsigned int array
             t.dVal = instance->image_index;
             if (!_applySetMethod(&t, method, &value)) return false;
             instance->image_index = t.dVal;
+            instance->bboxIsStale = true;
             break;
         case IV_IMAGE_ANGLE:
             t.dVal = instance->image_angle;
@@ -421,7 +424,7 @@ bool _setInstanceVar(Instance* instance, CRInstanceVar index, unsigned int array
             t.dVal = instance->hspeed;
             if (!_applySetMethod(&t, method, &value)) return false;
             instance->hspeed = t.dVal;
-            instance->direction = ::atan2(instance->vspeed, instance->hspeed) * 180.0 / GML_PI;
+            instance->direction = ::atan2(-instance->vspeed, instance->hspeed) * 180.0 / GML_PI;
             instance->speed = ::sqrt(pow(instance->hspeed, 2) + pow(instance->vspeed, 2));
             break;
         case IV_GRAVITY:
