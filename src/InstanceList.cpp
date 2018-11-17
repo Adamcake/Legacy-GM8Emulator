@@ -136,6 +136,8 @@ Instance* InstanceList::GetInstanceByNumber(unsigned int num, unsigned int start
 
 Instance _dummy;
 Instance* InstanceList::GetDummyInstance() {
+    AlarmRemoveInstance(0);
+    _arrays.erase(0);
     _dummy.id = 0;
     _dummy.object_index = 0;
     _dummy.solid = false;
