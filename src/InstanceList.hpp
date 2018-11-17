@@ -33,6 +33,10 @@ namespace InstanceList {
     // Gets instance by a number. Similar to GML, if the number is > 100000 it'll be treated as an instance ID, otherwise an object ID.
     Instance* GetInstanceByNumber(unsigned int id, unsigned int startPos = 0, unsigned int* endPos = nullptr);
 
+    // Gets a dummy instance for use in room creation code.
+    // Doesn't need to be destroyed, won't ever be iterated, and doesn't count towards instance_count.
+    Instance* GetDummyInstance();
+    
     // Get the number of active instances
     unsigned int Count();
 

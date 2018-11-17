@@ -134,6 +134,56 @@ Instance* InstanceList::GetInstanceByNumber(unsigned int num, unsigned int start
     return NULL;
 }
 
+Instance _dummy;
+Instance* InstanceList::GetDummyInstance() {
+    _dummy.id = 0;
+    _dummy.object_index = 0;
+    _dummy.solid = false;
+    _dummy.visible = true;
+    _dummy.persistent = false;
+    _dummy.depth = 0;
+    _dummy.sprite_index = -1;
+    _dummy.image_alpha = 1;
+    _dummy.image_blend = 0xFFFFFF;
+    _dummy.image_index = 0;
+    _dummy.image_speed = 1;
+    _dummy.image_xscale = 1;
+    _dummy.image_yscale = 1;
+    _dummy.image_angle = 0;
+    _dummy.mask_index = -1;
+    _dummy.direction = 0;
+    _dummy.gravity = 0;
+    _dummy.gravity_direction = 270;
+    _dummy.hspeed = 0;
+    _dummy.vspeed = 0;
+    _dummy.speed = 0;
+    _dummy.friction = 0;
+    _dummy.x = 0.0;
+    _dummy.y = 0.0;
+    _dummy.xprevious = 0.0;
+    _dummy.yprevious = 0.0;
+    _dummy.xstart = 0.0;
+    _dummy.ystart = 0.0;
+    _dummy.path_index = -1;
+    _dummy.path_position = 0;
+    _dummy.path_positionprevious = 0;
+    _dummy.path_speed = 0;
+    _dummy.path_scale = 1;
+    _dummy.path_orientation = 0;
+    _dummy.path_endaction = 0;
+    _dummy.timeline_index = -1;
+    _dummy.timeline_running = false;
+    _dummy.timeline_speed = 1;
+    _dummy.timeline_position = 0;
+    _dummy.timeline_loop = false;
+    _dummy.bbox_bottom = -100000;
+    _dummy.bbox_right = -100000;
+    _dummy.bbox_left = -100000;
+    _dummy.bbox_top = -100000;
+    _dummy.bboxIsStale = false;
+    return &_dummy;
+}
+
 unsigned int InstanceList::Count() { return _size; }
 
 
