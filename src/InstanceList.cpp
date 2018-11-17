@@ -196,7 +196,7 @@ Instance* InstanceList::Iterator::Next() {
     if (_byId) {
         unsigned int endpos;
         Instance* ret = InstanceList::GetInstanceByNumber(_id, _pos, &endpos);
-        if (_pos >= _limit) return NULL;
+        if (endpos >= _limit) return NULL;
         endpos++;
         _pos = endpos;
         return ret;
