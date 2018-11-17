@@ -177,6 +177,16 @@ bool Runtime::draw_rectangle(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
+bool Runtime::draw_self(unsigned int argc, GMLType* argv, GMLType* out) {
+    Instance* self = GetContext().self;
+    if (self->sprite_index < 0) return true;
+    Sprite* spr = AssetManager::GetSprite(self->sprite_index);
+    if(spr->exists) {
+        RDrawImage(spr->frames[static_cast<int>(self->image_index) % spr->frameCount], self->x, self->y, self->image_xscale, self->image_yscale, self->image_angle, self->image_blend, self->image_alpha, self->depth);
+    }
+    return true;
+}
+
 bool Runtime::draw_set_alpha(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     _drawAlpha = argv[0].dVal;
@@ -213,7 +223,7 @@ bool Runtime::draw_sprite(unsigned int argc, GMLType* argv, GMLType* out) {
     Instance* self = GetContext().self;
     int frame = _round(argv[1].dVal);
     if (frame < 0) frame = self->image_index;
-    RDrawImage(spr->frames[frame % spr->frameCount], argv[2].dVal, argv[3].dVal, self->image_xscale, self->image_yscale, self->image_angle, self->image_blend, self->image_alpha, self->depth);
+    RDrawImage(spr->frames[frame % spr->frameCount], argv[2].dVal, argv[3].dVal, 1.0, 1.0, 0.0, 0xFFFFFFFF, 1.0, self->depth);
     return true;
 }
 

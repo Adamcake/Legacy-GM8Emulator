@@ -1333,7 +1333,7 @@ bool GM8Emulator::Compiler::Init(GlobalValues* globals) {
                 break;
             case DRAW_SELF:
                 _internalFuncNames.push_back("draw_self");
-                _gmlFuncs.push_back(&Runtime::unimplemented);
+                _gmlFuncs.push_back(&Runtime::draw_self);
                 break;
             case DRAW_SET_ALPHA:
                 _internalFuncNames.push_back("draw_set_alpha");
