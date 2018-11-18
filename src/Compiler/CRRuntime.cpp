@@ -329,66 +329,104 @@ bool _getGameValue(CRGameVar index, unsigned int arrayIndex, GMLType* out) {
 }
 
 bool _setGameValue(CRGameVar index, unsigned int arrayIndex, CRSetMethod method, GMLType& value) {
+    GMLType lhs;
+    lhs.state = GMLTypeState::Double;
     switch (index) {
         case ROOM:
-            _globalValues->roomTarget = ( unsigned int )Runtime::_round(value.dVal);
+            lhs.dVal = static_cast<double>(_globalValues->roomTarget);
+            if(!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->roomTarget = ( unsigned int )Runtime::_round(lhs.dVal);
             break;
         case ROOM_SPEED:
-            _globalValues->room_speed = ( unsigned int )Runtime::_round(value.dVal);
+            lhs.dVal = static_cast<double>(_globalValues->room_speed);
+            if (!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->room_speed = ( unsigned int )Runtime::_round(lhs.dVal);
             break;
-        case ROOM_CAPTION: {
-            GMLType tCaption{GMLTypeState::String, 0.0, _globalValues->room_caption};
-            _applySetMethod(&tCaption, method, &value);
-            _globalValues->room_caption = tCaption.sVal;
+        case ROOM_CAPTION:
+            lhs.state = GMLTypeState::String;
+            lhs.sVal = _globalValues->room_caption;
+            if(!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->room_caption = lhs.sVal;
             break;
-        }
         case VIEW_ENABLED:
-            _globalValues->view_enabled = Runtime::_isTrue(&value);
+            lhs.dVal = _globalValues->view_enabled ? GMLTrue : GMLFalse;
+            if (!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->view_enabled = Runtime::_isTrue(&lhs);
             break;
         case VIEW_VISIBLE:
-            _globalValues->views[arrayIndex].visible = Runtime::_isTrue(&value);
+            lhs.dVal = _globalValues->views[arrayIndex].visible ? GMLTrue : GMLFalse;
+            if (!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->views[arrayIndex].visible = Runtime::_isTrue(&lhs);
             break;
         case VIEW_XVIEW:
-            _globalValues->views[arrayIndex].xview = static_cast<int>(value.dVal);
+            lhs.dVal = static_cast<double>(_globalValues->views[arrayIndex].xview);
+            if (!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->views[arrayIndex].xview = static_cast<int>(lhs.dVal);
             break;
         case VIEW_YVIEW:
-            _globalValues->views[arrayIndex].yview = static_cast<int>(value.dVal);
+            lhs.dVal = static_cast<double>(_globalValues->views[arrayIndex].yview);
+            if (!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->views[arrayIndex].yview = static_cast<int>(lhs.dVal);
             break;
         case VIEW_WVIEW:
-            _globalValues->views[arrayIndex].wview = static_cast<int>(value.dVal);
+            lhs.dVal = static_cast<double>(_globalValues->views[arrayIndex].wview);
+            if (!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->views[arrayIndex].wview = static_cast<int>(lhs.dVal);
             break;
         case VIEW_HVIEW:
-            _globalValues->views[arrayIndex].hview = static_cast<int>(value.dVal);
+            lhs.dVal = static_cast<double>(_globalValues->views[arrayIndex].hview);
+            if (!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->views[arrayIndex].hview = static_cast<int>(lhs.dVal);
             break;
         case VIEW_XPORT:
-            _globalValues->views[arrayIndex].xport = static_cast<int>(value.dVal);
+            lhs.dVal = static_cast<double>(_globalValues->views[arrayIndex].xport);
+            if (!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->views[arrayIndex].xport = static_cast<int>(lhs.dVal);
             break;
         case VIEW_YPORT:
-            _globalValues->views[arrayIndex].yport = static_cast<int>(value.dVal);
+            lhs.dVal = static_cast<double>(_globalValues->views[arrayIndex].yport);
+            if (!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->views[arrayIndex].yport = static_cast<int>(lhs.dVal);
             break;
         case VIEW_WPORT:
-            _globalValues->views[arrayIndex].wport = static_cast<int>(value.dVal);
+            lhs.dVal = static_cast<double>(_globalValues->views[arrayIndex].wport);
+            if (!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->views[arrayIndex].wport = static_cast<int>(lhs.dVal);
             break;
         case VIEW_HPORT:
-            _globalValues->views[arrayIndex].hport = static_cast<int>(value.dVal);
+            lhs.dVal = static_cast<double>(_globalValues->views[arrayIndex].hport);
+            if (!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->views[arrayIndex].hport = static_cast<int>(lhs.dVal);
             break;
         case VIEW_ANGLE:
-            _globalValues->views[arrayIndex].angle = value.dVal;
+            lhs.dVal = _globalValues->views[arrayIndex].angle;
+            if (!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->views[arrayIndex].angle = lhs.dVal;
             break;
         case VIEW_HBORDER:
-            _globalValues->views[arrayIndex].hborder = static_cast<int>(value.dVal);
+            lhs.dVal = static_cast<double>(_globalValues->views[arrayIndex].hborder);
+            if (!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->views[arrayIndex].hborder = static_cast<int>(lhs.dVal);
             break;
         case VIEW_VBORDER:
-            _globalValues->views[arrayIndex].vborder = static_cast<int>(value.dVal);
+            lhs.dVal = static_cast<double>(_globalValues->views[arrayIndex].vborder);
+            if (!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->views[arrayIndex].vborder = static_cast<int>(lhs.dVal);
             break;
         case VIEW_HSPEED:
-            _globalValues->views[arrayIndex].hspeed = static_cast<int>(value.dVal);
+            lhs.dVal = static_cast<double>(_globalValues->views[arrayIndex].hspeed);
+            if (!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->views[arrayIndex].hspeed = static_cast<int>(lhs.dVal);
             break;
         case VIEW_VSPEED:
-            _globalValues->views[arrayIndex].vspeed = static_cast<int>(value.dVal);
+            lhs.dVal = static_cast<double>(_globalValues->views[arrayIndex].vspeed);
+            if (!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->views[arrayIndex].vspeed = static_cast<int>(lhs.dVal);
             break;
         case VIEW_OBJECT:
-            _globalValues->views[arrayIndex].object = static_cast<int>(value.dVal);
+            lhs.dVal = static_cast<double>(_globalValues->views[arrayIndex].object);
+            if (!_applySetMethod(&lhs, method, &value)) return false;
+            _globalValues->views[arrayIndex].object = static_cast<int>(lhs.dVal);
             break;
         default:
             _cause = Runtime::ReturnCause::ExitError;
