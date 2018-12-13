@@ -171,8 +171,10 @@ void GM8Emulator::Compiler::TokenList::ParseGML(const char* gml, const size_t& l
         /* String Literal */
         else if (isquotemark(*i)) {
             char* str_start = i++;
-            while (i < end) {
-                if (*++i == *str_start) break;
+            if (*i != *str_start) {
+                while (i < end) {
+                    if (*++i == *str_start) break;
+                }
             }
 
             tokens.push_back(Token(const_cast<const char*>(str_start + 1), static_cast<size_t>(i - (str_start + 1)), true));

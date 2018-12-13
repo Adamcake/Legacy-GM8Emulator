@@ -4740,6 +4740,11 @@ bool GM8Emulator::Compiler::Interpret(const TokenList& list, CRActionList* outpu
     unsigned int pos = 0;
     CRAction* action;
     while (pos < list.tokens.size()) {
+        if(_TokenHasValue(list.tokens[pos], SeparatorType::Semicolon)) {
+            pos++;
+            continue;
+        }
+
         if (!_InterpretLine(list, &action, pos)) {
             return false;
         }
@@ -5305,6 +5310,9 @@ bool GM8Emulator::Compiler::_InterpretSwitch(const GM8Emulator::Compiler::TokenL
             pos++;
             defaultOffset = ( unsigned int )actions.Count();
         }
+        else if (_TokenHasValue(list.tokens[pos], SeparatorType::Semicolon)) {
+            pos++;
+        }
         else {
             CRAction* act;
             if (!_InterpretLine(list, &act, pos)) return false;
@@ -5623,10 +5631,10 @@ bool GM8Emulator::Compiler::_TokenHasValue(const GM8Emulator::Compiler::Token& t
 }
 
 void GM8Emulator::Compiler::_SkipSemicolon(const GM8Emulator::Compiler::TokenList& list, unsigned int& pos) {
-    if (pos >= list.tokens.size()) return;
-    if (_TokenHasValue(list.tokens[pos], SeparatorType::Semicolon)) {
-        pos++;
-    }
+    //if (pos >= list.tokens.size()) return;
+    //if (_TokenHasValue(list.tokens[pos], SeparatorType::Semicolon)) {
+    //    pos++;
+    //}
 }
 
 bool GM8Emulator::Compiler::_IsAsset(std::string_view& name, unsigned int* index) {

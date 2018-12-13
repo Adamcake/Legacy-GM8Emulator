@@ -287,6 +287,10 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
             gml = "path_start(argument[0],argument[1],argument[2],argument[3])";
             break;
         }
+        case 124: {
+            gml = "path_end()";
+            break;
+        }
         case 201: {
             // Create an instance
             if (relative)
@@ -324,6 +328,9 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
         case 211: {
             gml = "sound_play(argument[0])";
             break;
+        }
+        case 212: {
+            gml = "sound_stop(argument[0])";
         }
         case 222: {
             // Go to next room
