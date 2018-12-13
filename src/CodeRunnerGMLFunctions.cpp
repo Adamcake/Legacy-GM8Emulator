@@ -561,6 +561,38 @@ bool Runtime::instance_number(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
+bool Runtime::instance_place(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 3, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
+    if (out) {
+        Instance* self = GetContext().self;
+        double oldX = self->x;
+        double oldY = self->y;
+        self->x = argv[0].dVal;
+        self->y = argv[1].dVal;
+        self->bboxIsStale = true;
+
+        int objId = _round(argv[2].dVal);
+        InstanceList::Iterator it(( unsigned int )objId);
+        if (objId == -3) it = InstanceList::Iterator();
+        double ret = -4.0;
+
+        Instance* instance;
+        while (instance = it.Next()) {
+            if (CollisionCheck(self, instance)) {
+                ret = instance->id;
+                break;
+            }
+        }
+        out->state = GMLTypeState::Double;
+        out->dVal = ret;
+
+        self->x = oldX;
+        self->y = oldY;
+        self->bboxIsStale = true;
+    }
+    return true;
+}
+
 bool Runtime::instance_position(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 3, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
     if (out) {

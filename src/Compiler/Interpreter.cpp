@@ -2436,7 +2436,7 @@ bool GM8Emulator::Compiler::Init(GlobalValues* globals) {
                 break;
             case INSTANCE_PLACE:
                 _internalFuncNames.push_back("instance_place");
-                _gmlFuncs.push_back(&Runtime::unimplemented);
+                _gmlFuncs.push_back(&Runtime::instance_place);
                 break;
             case INSTANCE_POSITION:
                 _internalFuncNames.push_back("instance_position");
