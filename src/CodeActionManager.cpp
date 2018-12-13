@@ -409,7 +409,14 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
                 gml = "random(argument[0]) < 1";
             break;
         }
-
+        case 408: {
+            // If expression is true
+            if (_not)
+                gml = "argument[0]";
+            else
+                gml = "!argument[0]";
+            break;
+        }
         case 421: {
             // Else
             break;
@@ -450,6 +457,11 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
             gml = "draw_set_color(argument[0]);draw_set_halign(argument[1]);";
             break;
         }
+        case 531: {
+            // Set fullscreen mode
+            gml = "if(argument[0])window_set_fullscreen(argument[0]==2)else window_set_fullscreen(!window_get_fullscreen())";
+            break;
+        }
         case 532: {
             // Create an effect
             if (args[5][0] == '0')
@@ -485,6 +497,11 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
         }
         case 603: {
             // Execute a block of code
+            break;
+        }
+        case 604: {
+            // Call the inherited event
+            gml = "event_inherited()";
             break;
         }
         case 605: {
