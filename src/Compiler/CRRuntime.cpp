@@ -343,6 +343,7 @@ bool _setGameValue(CRGameVar index, unsigned int arrayIndex, CRSetMethod method,
             lhs.dVal = static_cast<double>(_globalValues->roomTarget);
             if(!_applySetMethod(&lhs, method, &value)) return false;
             _globalValues->roomTarget = ( unsigned int )Runtime::_round(lhs.dVal);
+            _globalValues->changeRoom = true;
             break;
         case ROOM_SPEED:
             lhs.dVal = static_cast<double>(_globalValues->room_speed);
