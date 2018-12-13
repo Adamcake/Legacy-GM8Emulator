@@ -589,7 +589,7 @@ bool Runtime::irandom(unsigned int argc, GMLType* argv, GMLType* out) {
 
 bool Runtime::irandom_range(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
-    int rand = RNG::Irandom(::abs(_round(argv[1].dVal) - _round(argv[0].dVal)) + 1);
+    int rand = RNG::Irandom(::abs(_round(argv[1].dVal) - _round(argv[0].dVal)));
     if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ( double )rand + std::fmin(argv[0].dVal, argv[1].dVal);

@@ -350,6 +350,10 @@ bool GameFrame() {
         }
     } 
 
+    // Clear deleted instances from InstanceList
+    // NB: this must be done here and nowhere else so that instance_count is reported correctly
+    InstanceList::ClearDeleted();
+
     // Prepare screen for drawing
     RStartFrame();
 
@@ -464,8 +468,6 @@ bool GameFrame() {
             if (instance->image_speed && s->separateCollision) instance->bboxIsStale = true;
         }
     }
-
-    InstanceList::ClearDeleted();
 
     return true;
 }
