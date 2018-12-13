@@ -1,5 +1,6 @@
 #include <pch.h>
 
+#include <chrono>
 #include "Alarm.hpp"
 #include "AssetManager.hpp"
 #include "CRRuntime.hpp"
@@ -243,6 +244,12 @@ bool _getGameValue(CRGameVar index, unsigned int arrayIndex, GMLType* out) {
                 (*out) = _context.argv[15];
             }
             break;
+        case CURRENT_TIME: {
+            std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+            unsigned long time = (unsigned long)(t1.time_since_epoch() / std::chrono::milliseconds(1));
+            out->dVal = static_cast<double>(time);
+            break;
+        }
         case INSTANCE_COUNT:
             out->dVal = static_cast<double>(InstanceList::Count());
             break;

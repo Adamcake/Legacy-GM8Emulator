@@ -182,6 +182,9 @@ bool GM8Emulator::Compiler::Init(GlobalValues* globals) {
             case ARGUMENT15:
                 _gameValueNames.push_back("argument15");
                 break;
+            case CURRENT_TIME:
+                _gameValueNames.push_back("current_time");
+                break;
             case HEALTH:
                 _gameValueNames.push_back("health");
                 break;

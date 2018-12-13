@@ -1260,7 +1260,7 @@ bool Runtime::string(unsigned int argc, GMLType* argv, GMLType* out) {
         }
         else {
             std::stringstream ss;
-            ss.precision(_round(argv[0].dVal) == argv[0].dVal ? 0 : 2);
+            ss.precision(_equal(::floor(argv[0].dVal), argv[0].dVal) ? 0 : 2);
             ss << std::fixed << argv[0].dVal;
             out->sVal = ss.str();
         }
