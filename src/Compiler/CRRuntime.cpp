@@ -1617,7 +1617,12 @@ bool CRExpField::_evaluate(GMLType* output) {
                     return false;
                 }
                 Instance* i = InstanceList::Iterator(( unsigned int )id).Next();
-                (*output) = *InstanceList::GetField(i->id, _fieldNumber);
+                if(i) {
+                    (*output) = *InstanceList::GetField(i->id, _fieldNumber);
+                }
+                else {
+                    (*output) = GMLType();
+                }
                 return true;
             }
         }

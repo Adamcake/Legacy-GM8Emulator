@@ -106,7 +106,7 @@ bool Runtime::choose(unsigned int argc, GMLType* argv, GMLType* out) {
     }
 
     int rand = RNG::Irandom(argc - 1);
-    if(out) (*out) = argv[rand];
+    if (out) (*out) = argv[rand];
     return true;
 }
 
@@ -181,8 +181,9 @@ bool Runtime::draw_self(unsigned int argc, GMLType* argv, GMLType* out) {
     Instance* self = GetContext().self;
     if (self->sprite_index < 0) return true;
     Sprite* spr = AssetManager::GetSprite(self->sprite_index);
-    if(spr->exists) {
-        RDrawImage(spr->frames[static_cast<int>(self->image_index) % spr->frameCount], self->x, self->y, self->image_xscale, self->image_yscale, self->image_angle, self->image_blend, self->image_alpha, self->depth);
+    if (spr->exists) {
+        RDrawImage(spr->frames[static_cast<int>(self->image_index) % spr->frameCount], self->x, self->y, self->image_xscale, self->image_yscale, self->image_angle, self->image_blend,
+            self->image_alpha, self->depth);
     }
     return true;
 }
@@ -380,8 +381,8 @@ bool Runtime::file_bin_open(unsigned int argc, GMLType* argv, GMLType* out) {
         }
         else {
             std::ios_base::openmode openMode = std::fstream::out | std::fstream::binary;
-            if(fileType != 1) {
-                //Read-write mode
+            if (fileType != 1) {
+                // Read-write mode
                 openMode |= std::fstream::in;
             }
             if (exists) {
@@ -406,7 +407,7 @@ bool Runtime::file_bin_open(unsigned int argc, GMLType* argv, GMLType* out) {
             }
         }
 
-        
+
         if (out) {
             out->state = GMLTypeState::Double;
             out->dVal = static_cast<double>(file + 1);
@@ -472,11 +473,16 @@ bool Runtime::file_delete(unsigned int argc, GMLType* argv, GMLType* out) {
 }
 
 bool Runtime::file_exists(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!_assertArgs(argc, argv, 1, true, GMLTypeState::String)) return false;
+    // if (!_assertArgs(argc, argv, 1, true, GMLTypeState::String)) return false;
+    if (argc != 1) return false;
     if (out) {
         out->state = GMLTypeState::Double;
-        // (fs::exists(fs::path(argv[0].sVal))
-        out->dVal = (fsExists(argv[0].sVal) ? GMLTrue : GMLFalse);
+        if (argv[0].state == GMLTypeState::Double) {
+            out->dVal = 0.0;
+        }
+        else {
+            out->dVal = (fsExists(argv[0].sVal) ? GMLTrue : GMLFalse);
+        }
     }
     return true;
 }
@@ -489,17 +495,17 @@ bool Runtime::instance_change(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 2, false, GMLTypeState::Double, GMLTypeState::Double)) return false;
     bool events = _isTrue(&argv[1]);
     Instance* i = GetContext().self;
-    if(events) {
+    if (events) {
         if (!CodeActionManager::RunInstanceEvent(1, 0, i, NULL, i->object_index)) return false;
     }
     int objId = _round(argv[0].dVal);
-    if(objId < 0 || objId >= static_cast<int>(AssetManager::GetObjectCount())) {
+    if (objId < 0 || objId >= static_cast<int>(AssetManager::GetObjectCount())) {
         Runtime::SetReturnCause(ReturnCause::ExitError);
         Runtime::PushErrorMessage("Invalid object index passed to instance_change");
         return false;
     }
     Object* obj = AssetManager::GetObject(objId);
-    if(!obj->exists) {
+    if (!obj->exists) {
         Runtime::SetReturnCause(ReturnCause::ExitError);
         Runtime::PushErrorMessage("Non-existent object passed to instance_change");
         return false;
@@ -511,7 +517,7 @@ bool Runtime::instance_change(unsigned int argc, GMLType* argv, GMLType* out) {
     i->depth = obj->depth;
     i->sprite_index = obj->spriteIndex;
     i->mask_index = obj->maskIndex;
-    if(events) {
+    if (events) {
         if (!CodeActionManager::RunInstanceEvent(0, 0, i, NULL, i->object_index)) return false;
     }
     return true;
@@ -640,7 +646,7 @@ bool Runtime::game_restart(unsigned int argc, GMLType* argv, GMLType* out) {
 
 bool Runtime::keyboard_check(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
-    if(out) {
+    if (out) {
         out->state = GMLTypeState::Double;
         int gmlKeycode = _round(argv[0].dVal);
         out->dVal = (InputCheckKey(gmlKeycode) ? GMLTrue : GMLFalse);
@@ -650,7 +656,7 @@ bool Runtime::keyboard_check(unsigned int argc, GMLType* argv, GMLType* out) {
 
 bool Runtime::keyboard_check_direct(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
-    if(out) {
+    if (out) {
         out->state = GMLTypeState::Double;
         int gmlKeycode = _round(argv[0].dVal);
         out->dVal = (InputCheckKeyDirect(gmlKeycode) ? GMLTrue : GMLFalse);
@@ -660,7 +666,7 @@ bool Runtime::keyboard_check_direct(unsigned int argc, GMLType* argv, GMLType* o
 
 bool Runtime::keyboard_check_pressed(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
-    if(out) {
+    if (out) {
         out->state = GMLTypeState::Double;
         int gmlKeycode = _round(argv[0].dVal);
         out->dVal = (InputCheckKeyPressed(gmlKeycode) ? GMLTrue : GMLFalse);
@@ -678,7 +684,7 @@ bool Runtime::keyboard_check_released(unsigned int argc, GMLType* argv, GMLType*
 
 bool Runtime::lengthdir_x(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
-    if(out) {
+    if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = ::cos(argv[1].dVal * GML_PI / 180.0) * argv[0].dVal;
     }
@@ -790,7 +796,7 @@ bool Runtime::make_color_hsv(unsigned int argc, GMLType* argv, GMLType* out) {
 
 bool Runtime::make_color_rgb(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 3, false, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
-    if(out) {
+    if (out) {
         out->state = GMLTypeState::Double;
         out->dVal = _round(argv[0].dVal) + (_round(argv[1].dVal) << 8) + (_round(argv[2].dVal) << 16);
     }
