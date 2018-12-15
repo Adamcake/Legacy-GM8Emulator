@@ -5631,10 +5631,10 @@ bool GM8Emulator::Compiler::_TokenHasValue(const GM8Emulator::Compiler::Token& t
 }
 
 void GM8Emulator::Compiler::_SkipSemicolon(const GM8Emulator::Compiler::TokenList& list, unsigned int& pos) {
-    //if (pos >= list.tokens.size()) return;
-    //if (_TokenHasValue(list.tokens[pos], SeparatorType::Semicolon)) {
-    //    pos++;
-    //}
+    if (pos >= list.tokens.size()) return;
+    if (_TokenHasValue(list.tokens[pos], SeparatorType::Semicolon)) {
+        pos++;
+    }
 }
 
 bool GM8Emulator::Compiler::_IsAsset(std::string_view& name, unsigned int* index) {
