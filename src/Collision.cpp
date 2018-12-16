@@ -27,7 +27,7 @@ void rotateAround(double* pX, double* pY, double cX, double cY, double s, double
 
 void RefreshInstanceBbox(Instance* i) {
     if (i->bboxIsStale) {
-        unsigned int spriteIndex = i->mask_index;
+        int spriteIndex = i->mask_index;
         if (spriteIndex == -1) spriteIndex = i->sprite_index;
         if (spriteIndex == -1) {
             i->bbox_bottom = -100000;
@@ -102,13 +102,17 @@ bool CollisionCheck(Instance* i1, Instance* i2) {
     int cLeft = (i1->bbox_left > i2->bbox_left ? i1->bbox_left : i2->bbox_left);
     int cRight = (i1->bbox_right > i2->bbox_right ? i2->bbox_right : i1->bbox_right);
 
-    unsigned int spriteIndex = i1->mask_index;
+    int spriteIndex = i1->mask_index;
     if (spriteIndex == -1) spriteIndex = i1->sprite_index;
+    if(spriteIndex < 0) return false;
     Sprite* spr1 = AssetManager::GetSprite(spriteIndex);
+    if(!spr1->exists) return false;
     CollisionMap* map1 = (spr1->separateCollision ? (spr1->collisionMaps + (static_cast<int>(i1->image_index) % spr1->frameCount)) : spr1->collisionMaps);
     spriteIndex = i2->mask_index;
     if (spriteIndex == -1) spriteIndex = i2->sprite_index;
+    if (spriteIndex < 0) return false;
     Sprite* spr2 = AssetManager::GetSprite(spriteIndex);
+    if(!spr2->exists) return false;
     CollisionMap* map2 = (spr2->separateCollision ? (spr2->collisionMaps + (static_cast<int>(i2->image_index) % spr2->frameCount)) : spr2->collisionMaps);
 
     int x1 = dRound(i1->x);
@@ -162,9 +166,11 @@ bool CollisionPointCheck(Instance* i1, int x, int y) {
     if (i1->bbox_bottom < y) return false;
     if (y < i1->bbox_top) return false;
 
-    unsigned int spriteIndex = i1->mask_index;
+    int spriteIndex = i1->mask_index;
     if (spriteIndex == -1) spriteIndex = i1->sprite_index;
+    if (spriteIndex < 0) return false;
     Sprite* spr1 = AssetManager::GetSprite(spriteIndex);
+    if (!spr1->exists) return false;
     CollisionMap* map1 = (spr1->separateCollision ? (spr1->collisionMaps + (static_cast<int>(i1->image_index) % spr1->frameCount)) : spr1->collisionMaps);
     double a1 = i1->image_angle * PI / 180.0;
     double s1 = sin(a1);
@@ -184,5 +190,50 @@ bool CollisionPointCheck(Instance* i1, int x, int y) {
             return true;
         }
     }
+    return false;
+}
+
+bool CollisionRectangleCheck(Instance* i1, int x1, int y1, int x2, int y2, bool pixelPerfect) {
+    RefreshInstanceBbox(i1);
+    if (i1->bbox_right < x1) return false;
+    if (x2 < i1->bbox_left) return false;
+    if (i1->bbox_bottom < y1) return false;
+    if (y2 < i1->bbox_top) return false;
+
+    if(!pixelPerfect) return true;
+
+    int spriteIndex = i1->mask_index;
+    if (spriteIndex == -1) spriteIndex = i1->sprite_index;
+    if (spriteIndex < 0) return false;
+    Sprite* spr1 = AssetManager::GetSprite(spriteIndex);
+    if (!spr1->exists) return false;
+    CollisionMap* map1 = (spr1->separateCollision ? (spr1->collisionMaps + (static_cast<int>(i1->image_index) % spr1->frameCount)) : spr1->collisionMaps);
+    double a1 = i1->image_angle * PI / 180.0;
+    double s1 = sin(a1);
+    double c1 = cos(a1);
+    int w1 = map1->width;
+
+    int cTop = (i1->bbox_top > y1 ? i1->bbox_top : y1);
+    int cBottom = (i1->bbox_bottom > y2 ? y2 : i1->bbox_bottom);
+    int cLeft = (i1->bbox_left > x1 ? i1->bbox_left : x1);
+    int cRight = (i1->bbox_right > x1 ? x1 : i1->bbox_right);
+
+    for (int y = cTop; y <= cBottom; y++) {
+        for (int x = cLeft; x <= cRight; x++) {
+            double curX = static_cast<double>(x);
+            double curY = static_cast<double>(y);
+            rotateAround(&curX, &curY, x1, y1, s1, c1);
+            curX = spr1->originX + ((curX - x1) / i1->image_xscale);
+            curY = spr1->originY + ((curY - y1) / i1->image_yscale);
+            int nx = static_cast<int>(curX);
+            int ny = static_cast<int>(curY);
+            if (nx >= static_cast<int>(map1->left) && nx <= static_cast<int>(map1->right) && ny >= static_cast<int>(map1->top) && ny <= static_cast<int>(map1->bottom)) {
+                if (map1->collision[ny * w1 + nx]) {
+                    return true;
+                }
+            }
+        }
+    }
+
     return false;
 }

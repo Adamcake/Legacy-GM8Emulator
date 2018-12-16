@@ -632,7 +632,7 @@ bool GM8Emulator::Compiler::Init(GlobalValues* globals) {
                 break;
             case COLLISION_RECTANGLE:
                 _internalFuncNames.push_back("collision_rectangle");
-                _gmlFuncs.push_back(&Runtime::unimplemented);
+                _gmlFuncs.push_back(&Runtime::collision_rectangle);
                 break;
             case COLOR_GET_BLUE:
                 _internalFuncNames.push_back("color_get_blue");

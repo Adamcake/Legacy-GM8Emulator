@@ -110,6 +110,37 @@ bool Runtime::choose(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
+bool Runtime::collision_rectangle(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 7, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
+    if(out) {
+        int x1 = _round(argv[0].dVal);
+        int y1 = _round(argv[1].dVal);
+        int x2 = _round(argv[2].dVal);
+        int y2 = _round(argv[3].dVal);
+        int obj = _round(argv[4].dVal);
+        bool prec = _isTrue(&argv[5]);
+        bool notme = _isTrue(&argv[6]);
+
+        InstanceList::Iterator iter(obj);
+        if(obj == -3) iter = InstanceList::Iterator();
+        Instance* i;
+        while(i = iter.Next()) {
+            if(notme && (i == GetContext().self)) continue;
+
+            if(CollisionRectangleCheck(i, x1, y1, x2, y2, prec)) {
+                out->state = GMLTypeState::Double;
+                out->dVal = static_cast<double>(i->id);
+                return true;
+            }
+        }
+
+        out->state = GMLTypeState::Double;
+        out->dVal = -3.0;
+    }
+
+    return true;
+}
+
 bool Runtime::cos(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {

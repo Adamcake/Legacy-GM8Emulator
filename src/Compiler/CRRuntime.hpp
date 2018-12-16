@@ -67,6 +67,7 @@ namespace Runtime {
     bool arctan(unsigned int argc, GMLType* argv, GMLType* out);
     bool ceil(unsigned int argc, GMLType* argv, GMLType* out);
     bool choose(unsigned int argc, GMLType* argv, GMLType* out);
+    bool collision_rectangle(unsigned int argc, GMLType* argv, GMLType* out);
     bool cos(unsigned int argc, GMLType* argv, GMLType* out);
     bool degtorad(unsigned int argc, GMLType* argv, GMLType* out);
     bool distance_to_object(unsigned int argc, GMLType* argv, GMLType* out);

@@ -11,4 +11,7 @@ bool CollisionCheck(Instance* i1, Instance* i2);
 // Checks for an instance collision at a certain point
 bool CollisionPointCheck(Instance* i, int x, int y);
 
+// Checks for an instance collision with a given rectangle
+bool CollisionRectangleCheck(Instance* i, int x1, int y1, int x2, int y2, bool pixelPerfect);
+
 #endif
