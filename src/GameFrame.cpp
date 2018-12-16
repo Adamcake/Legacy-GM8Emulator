@@ -263,8 +263,8 @@ bool GameFrame() {
             if (instance->object_index == i) {
                 RefreshInstanceBbox(instance);
                 if ((instance->sprite_index < 0)
-                        ? (instance->x < 0 || instance->y < 0 || instance->x >= ( int )_globals.room_width || instance->y >= ( int )_globals.room_height)
-                        : (instance->bbox_bottom < 0 || instance->bbox_right < 0 || instance->bbox_top >= ( int )_globals.room_height || instance->bbox_left >= ( int )_globals.room_width)) {
+                        ? (instance->x < 0 || instance->y < 0 || instance->x > ( int )_globals.room_width || instance->y > ( int )_globals.room_height)
+                        : (instance->bbox_bottom < 0 || instance->bbox_right < 0 || instance->bbox_top > ( int )_globals.room_height || instance->bbox_left > ( int )_globals.room_width)) {
                     if (!CodeActionManager::RunInstanceEvent(7, 0, instance, nullptr, instance->object_index)) return false;
                     if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
                 }
@@ -278,7 +278,7 @@ bool GameFrame() {
         while (instance = iter.Next()) {
             if (instance->object_index == i) {
                 RefreshInstanceBbox(instance);
-                if (instance->bbox_bottom >= ( int )_globals.room_height || instance->bbox_right >= ( int )_globals.room_width || instance->bbox_top < 0 || instance->bbox_left < 0) {
+                if (instance->bbox_bottom > ( int )_globals.room_height || instance->bbox_right > ( int )_globals.room_width || instance->bbox_top < 0 || instance->bbox_left < 0) {
                     if (!CodeActionManager::RunInstanceEvent(7, 1, instance, nullptr, instance->object_index)) return false;
                     if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
                 }
