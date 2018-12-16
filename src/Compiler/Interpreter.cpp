@@ -4740,7 +4740,7 @@ bool GM8Emulator::Compiler::Interpret(const TokenList& list, CRActionList* outpu
     unsigned int pos = 0;
     CRAction* action;
     while (pos < list.tokens.size()) {
-        if(_TokenHasValue(list.tokens[pos], SeparatorType::Semicolon)) {
+        if (_TokenHasValue(list.tokens[pos], SeparatorType::Semicolon)) {
             pos++;
             continue;
         }
@@ -4753,7 +4753,76 @@ bool GM8Emulator::Compiler::Interpret(const TokenList& list, CRActionList* outpu
     return true;
 }
 
-bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpression* output, unsigned int* pos, char precedence) {
+bool GetOperatorType(const GM8Emulator::Compiler::OperatorType& opType, CROperator* out) {
+    switch (opType) {
+        case GM8Emulator::Compiler::OperatorType::Add:
+            (*out) = CROperator::OPERATOR_ADD;
+            break;
+        case GM8Emulator::Compiler::OperatorType::And:
+            (*out) = CROperator::OPERATOR_BOOLEAN_AND;
+            break;
+        case GM8Emulator::Compiler::OperatorType::Assign:
+        case GM8Emulator::Compiler::OperatorType::Equal:
+            (*out) = CROperator::OPERATOR_EQUALS;
+            break;
+        case GM8Emulator::Compiler::OperatorType::BinaryAnd:
+            (*out) = CROperator::OPERATOR_BITWISE_AND;
+            break;
+        case GM8Emulator::Compiler::OperatorType::BinaryOr:
+            (*out) = CROperator::OPERATOR_BITWISE_OR;
+            break;
+        case GM8Emulator::Compiler::OperatorType::BinaryShiftLeft:
+            (*out) = CROperator::OPERATOR_LSHIFT;
+            break;
+        case GM8Emulator::Compiler::OperatorType::BinaryShiftRight:
+            (*out) = CROperator::OPERATOR_RSHIFT;
+            break;
+        case GM8Emulator::Compiler::OperatorType::BinaryXor:
+            (*out) = CROperator::OPERATOR_BITWISE_XOR;
+            break;
+        case GM8Emulator::Compiler::OperatorType::Divide:
+            (*out) = CROperator::OPERATOR_DIVIDE;
+            break;
+        case GM8Emulator::Compiler::OperatorType::DivideAndFloor:
+            (*out) = CROperator::OPERATOR_DIV;
+            break;
+        case GM8Emulator::Compiler::OperatorType::GreaterThan:
+            (*out) = CROperator::OPERATOR_GT;
+            break;
+        case GM8Emulator::Compiler::OperatorType::GreaterThanOrEquals:
+            (*out) = CROperator::OPERATOR_GTE;
+            break;
+        case GM8Emulator::Compiler::OperatorType::LessThan:
+            (*out) = CROperator::OPERATOR_LT;
+            break;
+        case GM8Emulator::Compiler::OperatorType::LessThanOrEquals:
+            (*out) = CROperator::OPERATOR_LTE;
+            break;
+        case GM8Emulator::Compiler::OperatorType::Modulo:
+            (*out) = CROperator::OPERATOR_MOD;
+            break;
+        case GM8Emulator::Compiler::OperatorType::Multiply:
+            (*out) = CROperator::OPERATOR_MULTIPLY;
+            break;
+        case GM8Emulator::Compiler::OperatorType::NotEqual:
+            (*out) = CROperator::OPERATOR_NOT_EQUAL;
+            break;
+        case GM8Emulator::Compiler::OperatorType::Or:
+            (*out) = CROperator::OPERATOR_BOOLEAN_OR;
+            break;
+        case GM8Emulator::Compiler::OperatorType::Subtract:
+            (*out) = CROperator::OPERATOR_SUBTRACT;
+            break;
+        case GM8Emulator::Compiler::OperatorType::Xor:
+            (*out) = CROperator::OPERATOR_BOOLEAN_XOR;
+            break;
+        default:
+            return false;
+    }
+    return true;
+}
+
+bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpression* output, unsigned int* pos, char precedence, char lowestAllowedPrec) {
     // pos can be nullptr
     unsigned int p = 0;
     if (!pos) pos = &p;
@@ -5040,79 +5109,42 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
             return true;
         }
         if (list.tokens[*pos].type == Token::token_type::Operator) {
-            switch (list.tokens[*pos].value.op) {
-                case OperatorType::Add:
-                    value->SetOperator(CROperator::OPERATOR_ADD);
-                    break;
-                case OperatorType::And:
-                    value->SetOperator(CROperator::OPERATOR_BOOLEAN_AND);
-                    break;
-                case OperatorType::Assign:
-                case OperatorType::Equal:
-                    value->SetOperator(CROperator::OPERATOR_EQUALS);
-                    break;
-                case OperatorType::BinaryAnd:
-                    value->SetOperator(CROperator::OPERATOR_BITWISE_AND);
-                    break;
-                case OperatorType::BinaryOr:
-                    value->SetOperator(CROperator::OPERATOR_BITWISE_OR);
-                    break;
-                case OperatorType::BinaryShiftLeft:
-                    value->SetOperator(CROperator::OPERATOR_LSHIFT);
-                    break;
-                case OperatorType::BinaryShiftRight:
-                    value->SetOperator(CROperator::OPERATOR_RSHIFT);
-                    break;
-                case OperatorType::BinaryXor:
-                    value->SetOperator(CROperator::OPERATOR_BITWISE_XOR);
-                    break;
-                case OperatorType::Divide:
-                    value->SetOperator(CROperator::OPERATOR_DIVIDE);
-                    break;
-                case OperatorType::DivideAndFloor:
-                    value->SetOperator(CROperator::OPERATOR_DIV);
-                    break;
-                case OperatorType::GreaterThan:
-                    value->SetOperator(CROperator::OPERATOR_GT);
-                    break;
-                case OperatorType::GreaterThanOrEquals:
-                    value->SetOperator(CROperator::OPERATOR_GTE);
-                    break;
-                case OperatorType::LessThan:
-                    value->SetOperator(CROperator::OPERATOR_LT);
-                    break;
-                case OperatorType::LessThanOrEquals:
-                    value->SetOperator(CROperator::OPERATOR_LTE);
-                    break;
-                case OperatorType::Modulo:
-                    value->SetOperator(CROperator::OPERATOR_MOD);
-                    break;
-                case OperatorType::Multiply:
-                    value->SetOperator(CROperator::OPERATOR_MULTIPLY);
-                    break;
-                case OperatorType::NotEqual:
-                    value->SetOperator(CROperator::OPERATOR_NOT_EQUAL);
-                    break;
-                case OperatorType::Or:
-                    value->SetOperator(CROperator::OPERATOR_BOOLEAN_OR);
-                    break;
-                case OperatorType::Subtract:
-                    value->SetOperator(CROperator::OPERATOR_SUBTRACT);
-                    break;
-                case OperatorType::Xor:
-                    value->SetOperator(CROperator::OPERATOR_BOOLEAN_XOR);
-                    break;
-                default:
-                    return false;
-            }
+            CROperator tOp;
+            if (!GetOperatorType(list.tokens[*pos].value.op, &tOp)) return false;
+            value->SetOperator(tOp);
             (*pos)++;
 
             char newPrec = _operatorPrecedence[value->GetOperator()];
             if (newPrec > precedence) {
                 CRExpression newNested;
                 newNested.Append(value);
-                if (!InterpretExpression(list, &newNested, pos, newPrec)) return false;
-                output->Append(new CRExpNestedExpression(newNested));
+                if (!InterpretExpression(list, &newNested, pos, newPrec, precedence + 1)) return false;
+                CRExpNestedExpression* nestedExp = new CRExpNestedExpression(newNested);
+                nestedExp->SetOperator(CROperator::OPERATOR_NONE);
+
+                if (list.tokens[*pos].type == Token::token_type::Operator) {
+                    if (!GetOperatorType(list.tokens[*pos].value.op, &tOp)) return false;
+                    newPrec = _operatorPrecedence[tOp];
+
+                    if (newPrec < lowestAllowedPrec) {
+                        output->Append(nestedExp);
+                        return true;
+                    }
+                    else {
+                        nestedExp->SetOperator(tOp);
+                        output->Append(nestedExp);
+                        (*pos)++;
+                    }
+                }
+                else {
+                    output->Append(nestedExp);
+                    return true;
+                }
+            }
+            else if (newPrec < lowestAllowedPrec) {
+                (*pos)--;
+                value->SetOperator(CROperator::OPERATOR_NONE);
+                output->Append(value);
                 return true;
             }
             else {
@@ -5386,7 +5418,7 @@ bool GM8Emulator::Compiler::_InterpretAssignment(const GM8Emulator::Compiler::To
         // This token will indicate a var. Now, we need to work out if there's a period after this variable indication. If so, it's part of the deref.
         unsigned int startPos = pos;
         pos++;
-        if(pos == list.tokens.size()) {
+        if (pos == list.tokens.size()) {
             pos--;
             break;
         }
@@ -5436,7 +5468,7 @@ bool GM8Emulator::Compiler::_InterpretAssignment(const GM8Emulator::Compiler::To
 
     // Parse array accessor
     std::vector<CRExpression> dimensions;
-    if(pos < list.tokens.size()) {
+    if (pos < list.tokens.size()) {
         if (_TokenHasValue(list.tokens[pos], SeparatorType::SquareBracketLeft)) {
             pos++;
             while (true) {
