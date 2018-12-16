@@ -5121,23 +5121,26 @@ bool GM8Emulator::Compiler::InterpretExpression(const TokenList& list, CRExpress
                 if (!InterpretExpression(list, &newNested, pos, newPrec, precedence + 1)) return false;
                 CRExpNestedExpression* nestedExp = new CRExpNestedExpression(newNested);
                 nestedExp->SetOperator(CROperator::OPERATOR_NONE);
+                output->Append(nestedExp);
 
-                if (list.tokens[*pos].type == Token::token_type::Operator) {
-                    if (!GetOperatorType(list.tokens[*pos].value.op, &tOp)) return false;
-                    newPrec = _operatorPrecedence[tOp];
+                if ((*pos) < list.tokens.size()) {
+                    if (list.tokens[*pos].type == Token::token_type::Operator) {
+                        if (!GetOperatorType(list.tokens[*pos].value.op, &tOp)) return false;
+                        newPrec = _operatorPrecedence[tOp];
 
-                    if (newPrec < lowestAllowedPrec) {
-                        output->Append(nestedExp);
-                        return true;
+                        if (newPrec < lowestAllowedPrec) {
+                            return true;
+                        }
+                        else {
+                            nestedExp->SetOperator(tOp);
+                            (*pos)++;
+                        }
                     }
                     else {
-                        nestedExp->SetOperator(tOp);
-                        output->Append(nestedExp);
-                        (*pos)++;
+                        return true;
                     }
                 }
                 else {
-                    output->Append(nestedExp);
                     return true;
                 }
             }

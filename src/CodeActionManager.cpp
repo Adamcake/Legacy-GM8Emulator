@@ -574,7 +574,9 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
 
 bool CodeActionManager::Compile(CodeAction action) {
     for (unsigned int i = 0; i < _actions[action].paramCount; i++) {
-        _actions[action].params[i]->Compile();
+        if(!_actions[action].params[i]->Compile()) {
+            return false;
+        }
     }
     return CodeManager::Compile(_actions[action].codeObj);
 }
