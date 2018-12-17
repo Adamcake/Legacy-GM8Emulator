@@ -36,7 +36,7 @@ namespace CodeActionManager {
         ParamGML(CodeObject code) : _code(code) {}
         ~ParamGML() {}
         virtual bool Evaluate(Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, GMLType* out) { return CodeManager::Run(_code, self, other, ev, sub, asObjId); }
-        virtual bool Compile() override { return CodeManager::Compile(_code); }
+        virtual bool Compile() override { return true; /*return CodeManager::Compile(_code);*/ }
     };
 
     class ParamLiteral : public Parameter {
@@ -497,6 +497,7 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
         }
         case 603: {
             // Execute a block of code
+            gml = args[0];
             break;
         }
         case 604: {
@@ -512,13 +513,7 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
             // Set variable
             gml = args[0];
             gml += relative ? "+=" : "=";
-            gml += args[1];
-
-            free(args[0]);
-            free(args[1]);
-            action.paramCount = 0;
-            delete action.params[0];
-            delete action.params[1];
+            gml += "argument[0]";
             break;
         }
         case 612: {
