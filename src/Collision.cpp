@@ -216,15 +216,15 @@ bool CollisionRectangleCheck(Instance* i1, int x1, int y1, int x2, int y2, bool 
     int cTop = (i1->bbox_top > y1 ? i1->bbox_top : y1);
     int cBottom = (i1->bbox_bottom > y2 ? y2 : i1->bbox_bottom);
     int cLeft = (i1->bbox_left > x1 ? i1->bbox_left : x1);
-    int cRight = (i1->bbox_right > x1 ? x1 : i1->bbox_right);
+    int cRight = (i1->bbox_right > x2 ? x2 : i1->bbox_right);
 
     for (int y = cTop; y <= cBottom; y++) {
         for (int x = cLeft; x <= cRight; x++) {
             double curX = static_cast<double>(x);
             double curY = static_cast<double>(y);
-            rotateAround(&curX, &curY, x1, y1, s1, c1);
-            curX = spr1->originX + ((curX - x1) / i1->image_xscale);
-            curY = spr1->originY + ((curY - y1) / i1->image_yscale);
+            rotateAround(&curX, &curY, dRound(i1->x), dRound(i1->y), s1, c1);
+            curX = spr1->originX + ((curX - dRound(i1->x)) / i1->image_xscale);
+            curY = spr1->originY + ((curY - dRound(i1->y)) / i1->image_yscale);
             int nx = static_cast<int>(curX);
             int ny = static_cast<int>(curY);
             if (nx >= static_cast<int>(map1->left) && nx <= static_cast<int>(map1->right) && ny >= static_cast<int>(map1->top) && ny <= static_cast<int>(map1->bottom)) {
