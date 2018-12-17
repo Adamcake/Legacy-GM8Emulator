@@ -440,7 +440,7 @@ bool GameFrame() {
 
             for (int startY = (bg.tileVert ? (bg.y - stretchedH) : 0); startY < ( int )room->height; startY += stretchedH) {
                 for (int startX = (bg.tileHor ? (bg.x - stretchedW) : 0); startX < ( int )room->width; startX += stretchedW) {
-                    RDrawImage(b->image, startX, startY, scaleX, scaleY, 0, 0xFFFFFFFF, 1, instance->depth);
+                    RDrawImage(b->image, startX, startY, scaleX, scaleY, 0, 0xFFFFFFFF, 1, INT_MIN);
                 }
             }
         }
