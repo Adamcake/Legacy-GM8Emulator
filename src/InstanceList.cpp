@@ -1,4 +1,6 @@
 #include <pch.h>
+
+#include <algorithm>
 #include "InstanceList.hpp"
 #include "Alarm.hpp"
 #include "AssetManager.hpp"
@@ -7,11 +9,9 @@
 #define INSTANCE_CAPACITY 65536
 
 // Field/array map (if you're maintaining this: god help you)
-std::map<InstanceID, std::map<unsigned int, std::map<int, GMLType>>> _arrays;
+//std::map<InstanceID, std::map<unsigned int, std::map<int, GMLType>>> _arrays;
 
-Instance* _list;
-unsigned int _size;
-unsigned int _highestIdAdded;
+std::vector<Instance> _list;
 
 // Last dynamic instance ID to be assigned
 unsigned int _lastInstanceID;
@@ -21,128 +21,89 @@ bool _InitInstance(Instance* instance, unsigned int id, double x, double y, unsi
 
 void _handleDeletedInstance(InstanceID instance) {
     AlarmRemoveInstance(instance);
-    _arrays.erase(instance);
 }
 
 
 void InstanceList::Init() {
-    _list = new Instance[INSTANCE_CAPACITY];
-    _size = 0;
-    _highestIdAdded = 0;
+    _list.reserve(INSTANCE_CAPACITY);
 }
 
-void InstanceList::Finalize() { delete[] _list; }
+void InstanceList::Finalize() { _list.clear(); }
 
-Instance* InstanceList::AddInstance(unsigned int id, double x, double y, unsigned int objectId) {
-    if (_highestIdAdded > id) {
-        for (unsigned int i = 0; i < _size; i++) {
-            if (_list[i].id > id) {
-                memmove(_list + i + 1, _list + i, sizeof(Instance) * (_size - i));
-                _size++;
-                Instance* ret = _list + i;
-                if (_InitInstance(ret, id, x, y, objectId)) {
-                    return ret;
-                }
-                else
-                    return NULL;
-            }
-        }
-    }
-    Instance* ret = _list + _size;
-    _highestIdAdded = id;
-    _size++;
-    if (_InitInstance(ret, id, x, y, objectId)) {
+InstanceHandle InstanceList::AddInstance(unsigned int id, double x, double y, unsigned int objectId) {
+    InstanceHandle ret = static_cast<InstanceHandle>(_list.size());
+    _list.push_back(Instance());
+    if (_InitInstance(&_list[ret], id, x, y, objectId)) {
         return ret;
     }
-    else
-        return NULL;
+    else {
+        return NoInstance;
+    }
 }
 
-Instance* InstanceList::AddInstance(double x, double y, unsigned int objectId) {
+InstanceHandle InstanceList::AddInstance(double x, double y, unsigned int objectId) {
     _lastInstanceID++;
     return AddInstance(_lastInstanceID, x, y, objectId);
 }
 
-void InstanceList::DeleteInstance(unsigned int id) {
-    AlarmRemoveInstance(id);
-    for (unsigned int i = 0; i < _size; i++) {
-        if (_list[i].id > id) {
-            memmove(_list + i, _list + i + 1, sizeof(Instance) * (_size - (i + 1)));
-            _size--;
-            return;
-        }
-    }
-}
-
 void InstanceList::ClearAll() {
     AlarmDeleteAll();
-    _arrays.clear();
-    _size = 0;
+    _list.clear();
 }
 
 void InstanceList::ClearNonPersistent() {
-    unsigned int placed = 0;
-    for (unsigned int i = 0; i < _size; i++) {
-        if (_list[i].persistent && _list[i].exists) {
-            if (placed != i) _list[placed] = _list[i];
-            placed++;
-        }
-        else {
-            _handleDeletedInstance(_list[i].id);
-        }
-    }
-    _size = placed;
+    auto it = std::remove_if(_list.begin(), _list.end(), [](Instance& inst) {
+        return (!inst.persistent) || (!inst.exists);
+    });
+    _list.erase(it, _list.end());
 }
 
 void InstanceList::ClearDeleted() {
-    unsigned int placed = 0;
-    for (unsigned int i = 0; i < _size; i++) {
-        if (_list[i].exists) {
-            if (placed != i) _list[placed] = _list[i];
-            placed++;
-        }
-        else {
-            _handleDeletedInstance(_list[i].id);
-        }
-    }
-    _size = placed;
+    auto it = std::remove_if(_list.begin(), _list.end(), [](Instance& inst) {
+        return !inst.exists;
+    });
+    _list.erase(it, _list.end());
 }
 
 Instance* InstanceList::GetInstanceByNumber(unsigned int num, unsigned int startPos, unsigned int* endPos) {
     if (num > 100000) {
         // Instance ID
-        for (unsigned int i = startPos; i < _size; i++) {
-            if (_list[i].id == num) {
-                if (endPos) (*endPos) = i;
-                return (_list[i].exists) ? (_list + i) : NULL;
+        for (auto i = _list.begin() + startPos; i != _list.end(); i++) {
+            if ((*i).id == num) {
+                if (endPos) (*endPos) = startPos;
+                return ((*i).exists) ? &(*i) : nullptr;
             }
-            if (_list[i].id > num) {
-                return NULL;
-            }
+            startPos++;
         }
     }
     else {
         // Object ID
-        for (unsigned int i = startPos; i < _size; i++) {
-            Object* o = AssetManager::GetObject(_list[i].object_index);
-            if (o->identities.count(num) && _list[i].exists) {
-                if (endPos) (*endPos) = i;
-                return _list + i;
+        for (auto i = _list.begin() + startPos; i != _list.end(); i++) {
+            Object* o = AssetManager::GetObject(i->object_index);
+            if (o->identities.count(num) && (*i).exists) {
+                if (endPos) (*endPos) = startPos;
+                return &(*i);
             }
+            startPos++;
         }
     }
-    return NULL;
+    if (endPos) (*endPos) = startPos;
+    return nullptr;
+}
+
+Instance& InstanceList::GetInstance(InstanceHandle handle) {
+    return _list[handle];
 }
 
 Instance _dummy;
-Instance* InstanceList::GetDummyInstance() {
+InstanceHandle InstanceList::GetDummyInstance() {
     AlarmRemoveInstance(0);
-    _arrays.erase(0);
     _dummy.id = 0;
     _dummy.object_index = 0;
     _dummy.solid = false;
     _dummy.visible = true;
     _dummy.persistent = false;
+    _dummy.exists = false;
     _dummy.depth = 0;
     _dummy.sprite_index = -1;
     _dummy.image_alpha = 1;
@@ -183,10 +144,14 @@ Instance* InstanceList::GetDummyInstance() {
     _dummy.bbox_left = -100000;
     _dummy.bbox_top = -100000;
     _dummy.bboxIsStale = false;
-    return &_dummy;
+    _dummy._fields.clear();
+
+    InstanceHandle ret = static_cast<InstanceHandle>(_list.size());
+    _list.push_back(_dummy);
+    return ret;
 }
 
-unsigned int InstanceList::Count() { return _size; }
+size_t InstanceList::Count() { return _list.size(); }
 
 
 // Private
@@ -237,29 +202,32 @@ bool _InitInstance(Instance* instance, unsigned int id, double x, double y, unsi
     instance->timeline_position = 0;
     instance->timeline_loop = false;
     instance->bboxIsStale = true;
+
+    instance->_fields.clear();
     return true;
 }
 
 
-InstanceList::Iterator::Iterator(unsigned int id, Instance* start) :
-    _pos(static_cast<unsigned int>(start - _list)), _id(id), _byId(true), _limit(InstanceList::Count()) {}
+unsigned int InstanceList::NoInstance = (unsigned int)-1;
 
-Instance* InstanceList::Iterator::Next() {
+InstanceList::Iterator::Iterator(unsigned int id, InstanceHandle startPos) :
+    _pos(startPos), _id(id), _byId(true), _limit(InstanceList::Count()) {}
+
+InstanceHandle InstanceList::Iterator::Next() {
     if (_byId) {
         unsigned int endpos;
         Instance* ret = InstanceList::GetInstanceByNumber(_id, _pos, &endpos);
-        if (endpos >= _limit) return NULL;
-        endpos++;
-        _pos = endpos;
-        return ret;
+        if (endpos >= _limit) return NoInstance;
+        _pos = endpos + 1;
+        return endpos;
     }
     else {
-        Instance* ret;
+        InstanceHandle ret;
         while (true) {
-            if (_pos >= _limit) return NULL;
-            ret = &_list[_pos];
+            if (_pos >= _limit) return NoInstance;
+            ret = _pos;
             _pos++;
-            if (ret->exists) break;
+            if (_list[ret].exists) break;
         }
         return ret;
     }
@@ -269,25 +237,36 @@ void InstanceList::SetLastInstanceID(unsigned int i) {
     _lastInstanceID = i;
 }
 
-GMLType* InstanceList::GetField(InstanceID instance, unsigned int field) {
-    return &_arrays[instance][field][0];
+GMLType* InstanceList::GetField(InstanceHandle instance, unsigned int field) {
+    return &_list[instance]._fields[field][0];
 }
-void InstanceList::SetField(InstanceID instance, unsigned int field, const GMLType* value) {
-    _arrays[instance][field][0] = *value;
-}
-
-GMLType* InstanceList::GetField(InstanceID instance, unsigned int field, unsigned int array) {
-    return &_arrays[instance][field][array];
+void InstanceList::SetField(InstanceHandle instance, unsigned int field, const GMLType* value) {
+    _list[instance]._fields[field][0] = *value;
 }
 
-void InstanceList::SetField(InstanceID instance, unsigned int field, unsigned int array, const GMLType* value) {
-    _arrays[instance][field][array] = *value;
+GMLType* InstanceList::GetField(InstanceHandle instance, unsigned int field, unsigned int array) {
+    return &_list[instance]._fields[field][array];
 }
 
-GMLType* InstanceList::GetField(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2) {
-    return &_arrays[instance][field][(array1 * 32000) + array2];
+void InstanceList::SetField(InstanceHandle instance, unsigned int field, unsigned int array, const GMLType* value) {
+    _list[instance]._fields[field][array] = *value;
 }
 
-void InstanceList::SetField(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2, const GMLType* value) {
-    _arrays[instance][field][(array1 * 32000) + array2] = *value;
+GMLType* InstanceList::GetField(InstanceHandle instance, unsigned int field, unsigned int array1, unsigned int array2) {
+    return &_list[instance]._fields[field][(array1 * 32000) + array2];
+}
+
+void InstanceList::SetField(InstanceHandle instance, unsigned int field, unsigned int array1, unsigned int array2, const GMLType* value) {
+    _list[instance]._fields[field][(array1 * 32000) + array2] = *value;
+}
+
+InstanceHandle InstanceList::LambdaIterator::Next() {
+    while(_pos < _limit) {
+        if(func(_list[_pos])) {
+            _pos++;
+            return static_cast<InstanceHandle>(_pos);
+        }
+        _pos++;
+    }
+    return NoInstance;
 }

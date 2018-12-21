@@ -256,9 +256,9 @@ void GameInit() {
 void GameTerminate() {
 	// Run "Game End" events
 	InstanceList::Iterator iter;
-	Instance* instance;
-	while (instance = iter.Next()) {
-		if (!CodeActionManager::RunInstanceEvent(7, 3, instance, NULL, instance->object_index)) break;
+	InstanceHandle instance;
+	while ((instance = iter.Next()) != InstanceList::NoInstance) {
+		if (!CodeActionManager::RunInstanceEvent(7, 3, instance, InstanceList::NoInstance, InstanceList::GetInstance(instance).object_index)) break;
 	}
 
 	// Clean up

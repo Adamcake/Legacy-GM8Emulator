@@ -1,9 +1,12 @@
 #ifndef _A_INSTANCELIST_HPP_
 #define _A_INSTANCELIST_HPP_
 #include <pch.h>
+
+#include <functional>
 struct GMLType;
 struct Instance;
 typedef unsigned int InstanceID;
+typedef unsigned int InstanceHandle;
 
 // This is like an std::vector of Instance objects. The list will ALWAYS be in order of instance id.
 namespace InstanceList {
@@ -13,13 +16,10 @@ namespace InstanceList {
     // Adds a new instance and returns the pointer. This should always be used instead of Instance's constructor. This is like instance_create() in GML.
     // The instance's ID, x and y will be set appropriately. All other values will be default for that object type or global default where applicable.
     // If this returns a null pointer, there was an error and the game should close.
-    Instance* AddInstance(unsigned int id, double x, double y, unsigned int objectId);
+    InstanceHandle AddInstance(unsigned int id, double x, double y, unsigned int objectId);
 
     // As above, but using a dynamic instance ID
-    Instance* AddInstance(double x, double y, unsigned int objectId);
-
-    // Delete instance with the given id
-    void DeleteInstance(unsigned int id);
+    InstanceHandle AddInstance(double x, double y, unsigned int objectId);
 
     // Remove all instances
     void ClearAll();
@@ -35,21 +35,25 @@ namespace InstanceList {
 
     // Gets a dummy instance for use in room creation code.
     // Doesn't need to be destroyed, won't ever be iterated, and doesn't count towards instance_count.
-    Instance* GetDummyInstance();
+    InstanceHandle GetDummyInstance();
     
     // Get the number of active instances
-    unsigned int Count();
+    size_t Count();
 
     // Set the next instance ID to assign after all the static instances are loaded
-    void SetLastInstanceID(unsigned int i);// { _nextInstanceID = i; }
+    void SetLastInstanceID(unsigned int i);
+
+    // Get instance reference from InstanceHandle
+    // Note: Instance references should NEVER be stored, as the underlying buffer may be reallocated at any time
+    Instance& GetInstance(InstanceHandle);
 
     // Getters and setters for instance fields
-    GMLType* GetField(InstanceID instance, unsigned int field);
-    void SetField(InstanceID instance, unsigned int field, const GMLType* value);
-    GMLType* GetField(InstanceID instance, unsigned int field, unsigned int array);
-    void SetField(InstanceID instance, unsigned int field, unsigned int array, const GMLType* value);
-    GMLType* GetField(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2);
-    void SetField(InstanceID instance, unsigned int field, unsigned int array1, unsigned int array2, const GMLType* value);
+    GMLType* GetField(InstanceHandle instance, unsigned int field);
+    void SetField(InstanceHandle instance, unsigned int field, const GMLType* value);
+    GMLType* GetField(InstanceHandle instance, unsigned int field, unsigned int array);
+    void SetField(InstanceHandle instance, unsigned int field, unsigned int array, const GMLType* value);
+    GMLType* GetField(InstanceHandle instance, unsigned int field, unsigned int array1, unsigned int array2);
+    void SetField(InstanceHandle instance, unsigned int field, unsigned int array1, unsigned int array2, const GMLType* value);
 
     // Iterator class for looping over instances. Has two modes of operation: all instances, or all matching a certain object/instance number.
     // Mode of operation is determined by which constructor is used. In other words, pass an ID if you want to iterate by that ID. Otherwise it will iterate all.
@@ -63,9 +67,22 @@ namespace InstanceList {
       public:
         Iterator() : _pos(0), _byId(false), _limit(InstanceList::Count()) {}
         Iterator(unsigned int id) : _pos(0), _id(id), _byId(true), _limit(InstanceList::Count()) {}
-        Iterator(unsigned int id, Instance* start);
-        Instance* Next();
+        Iterator(unsigned int id, InstanceHandle startPos);
+        InstanceHandle Next();
     };
+
+    class LambdaIterator {
+      private:
+        std::function<bool(Instance& inst)> func;
+        unsigned int _limit;
+        unsigned int _pos;
+
+      public:
+        LambdaIterator(std::function<bool(Instance& inst)> p) : func(p), _pos(0), _limit(InstanceList::Count()) {}
+        InstanceHandle Next();
+    };
+
+    extern unsigned int NoInstance;
 };
 
 #endif

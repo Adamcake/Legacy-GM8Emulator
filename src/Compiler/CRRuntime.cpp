@@ -445,7 +445,7 @@ bool _setGameValue(CRGameVar index, unsigned int arrayIndex, CRSetMethod method,
 }
 
 
-bool _setInstanceVar(Instance* instance, CRInstanceVar index, unsigned int arrayIndex, CRSetMethod method, GMLType value) {
+bool _setInstanceVar(Instance& instance, CRInstanceVar index, unsigned int arrayIndex, CRSetMethod method, GMLType value) {
     // No instance vars are strings. In GML if you set an instance var to a string, it gets set to 0.
     GMLType t;
     t.state = GMLTypeState::Double;
@@ -458,193 +458,193 @@ bool _setInstanceVar(Instance* instance, CRInstanceVar index, unsigned int array
         case IV_ALARM: {
             int alarmValue = (value.state == GMLTypeState::Double ? Runtime::_round(value.dVal) : 0);
             if (alarmValue)
-                AlarmSet(instance->id, ( unsigned int )arrayIndex, alarmValue);
+                AlarmSet(instance.id, ( unsigned int )arrayIndex, alarmValue);
             else
-                AlarmDelete(instance->id, ( unsigned int )arrayIndex);
+                AlarmDelete(instance.id, ( unsigned int )arrayIndex);
             break;
         }
         case IV_DIRECTION:
-            t.dVal = instance->direction;
+            t.dVal = instance.direction;
             if (!_applySetMethod(&t, method, &value)) return false;
             while (t.dVal >= 360.0) t.dVal -= 360.0;
             while (t.dVal < 0.0) t.dVal += 360.0;
-            instance->direction = (t.dVal);
-            instance->hspeed = ::cos(instance->direction * GML_PI / 180.0) * instance->speed;
-            instance->vspeed = -::sin(instance->direction * GML_PI / 180.0) * instance->speed;
+            instance.direction = (t.dVal);
+            instance.hspeed = ::cos(instance.direction * GML_PI / 180.0) * instance.speed;
+            instance.vspeed = -::sin(instance.direction * GML_PI / 180.0) * instance.speed;
             break;
         case IV_IMAGE_SPEED:
-            t.dVal = instance->image_speed;
+            t.dVal = instance.image_speed;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->image_speed = t.dVal;
+            instance.image_speed = t.dVal;
             break;
         case IV_FRICTION:
-            t.dVal = instance->friction;
+            t.dVal = instance.friction;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->friction = t.dVal;
+            instance.friction = t.dVal;
             break;
         case IV_SPRITE_INDEX:
-            t.dVal = instance->sprite_index;
+            t.dVal = instance.sprite_index;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->sprite_index = Runtime::_round(t.dVal);
-            instance->bboxIsStale = true;
+            instance.sprite_index = Runtime::_round(t.dVal);
+            instance.bboxIsStale = true;
             break;
         case IV_MASK_INDEX:
-            t.dVal = instance->mask_index;
+            t.dVal = instance.mask_index;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->mask_index = Runtime::_round(t.dVal);
-            instance->bboxIsStale = true;
+            instance.mask_index = Runtime::_round(t.dVal);
+            instance.bboxIsStale = true;
             break;
         case IV_IMAGE_BLEND:
-            t.dVal = instance->image_blend;
+            t.dVal = instance.image_blend;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->image_blend = Runtime::_round(t.dVal);
+            instance.image_blend = Runtime::_round(t.dVal);
             break;
         case IV_IMAGE_ALPHA:
-            t.dVal = instance->image_alpha;
+            t.dVal = instance.image_alpha;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->image_alpha = t.dVal;
+            instance.image_alpha = t.dVal;
             break;
         case IV_IMAGE_INDEX:
-            t.dVal = instance->image_index;
+            t.dVal = instance.image_index;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->image_index = t.dVal;
-            instance->bboxIsStale = true;
+            instance.image_index = t.dVal;
+            instance.bboxIsStale = true;
             break;
         case IV_IMAGE_ANGLE:
-            t.dVal = instance->image_angle;
+            t.dVal = instance.image_angle;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->image_angle = t.dVal;
-            instance->bboxIsStale = true;
+            instance.image_angle = t.dVal;
+            instance.bboxIsStale = true;
             break;
         case IV_IMAGE_XSCALE:
-            t.dVal = instance->image_xscale;
+            t.dVal = instance.image_xscale;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->image_xscale = t.dVal;
-            instance->bboxIsStale = true;
+            instance.image_xscale = t.dVal;
+            instance.bboxIsStale = true;
             break;
         case IV_IMAGE_YSCALE:
-            t.dVal = instance->image_yscale;
+            t.dVal = instance.image_yscale;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->image_yscale = t.dVal;
-            instance->bboxIsStale = true;
+            instance.image_yscale = t.dVal;
+            instance.bboxIsStale = true;
             break;
         case IV_SOLID:
-            t.dVal = (instance->solid ? GMLTrue : GMLFalse);
+            t.dVal = (instance.solid ? GMLTrue : GMLFalse);
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->solid = Runtime::_isTrue(&t);
+            instance.solid = Runtime::_isTrue(&t);
             break;
         case IV_VISIBLE:
-            t.dVal = (instance->visible ? GMLTrue : GMLFalse);
+            t.dVal = (instance.visible ? GMLTrue : GMLFalse);
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->visible = Runtime::_isTrue(&t);
+            instance.visible = Runtime::_isTrue(&t);
             break;
         case IV_PERSISTENT:
-            t.dVal = (instance->persistent ? GMLTrue : GMLFalse);
+            t.dVal = (instance.persistent ? GMLTrue : GMLFalse);
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->persistent = Runtime::_isTrue(&t);
+            instance.persistent = Runtime::_isTrue(&t);
             break;
         case IV_DEPTH:
-            t.dVal = instance->depth;
+            t.dVal = instance.depth;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->depth = Runtime::_round(t.dVal);
+            instance.depth = Runtime::_round(t.dVal);
             break;
         case IV_SPEED:
-            t.dVal = instance->speed;
+            t.dVal = instance.speed;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->speed = t.dVal;
-            instance->hspeed = ::cos(instance->direction * GML_PI / 180.0) * instance->speed;
-            instance->vspeed = -::sin(instance->direction * GML_PI / 180.0) * instance->speed;
+            instance.speed = t.dVal;
+            instance.hspeed = ::cos(instance.direction * GML_PI / 180.0) * instance.speed;
+            instance.vspeed = -::sin(instance.direction * GML_PI / 180.0) * instance.speed;
             break;
         case IV_VSPEED:
-            t.dVal = instance->vspeed;
+            t.dVal = instance.vspeed;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->vspeed = t.dVal;
-            instance->direction = ::atan2(-instance->vspeed, instance->hspeed) * 180.0 / GML_PI;
-            instance->speed = ::sqrt(pow(instance->hspeed, 2) + pow(instance->vspeed, 2));
+            instance.vspeed = t.dVal;
+            instance.direction = ::atan2(-instance.vspeed, instance.hspeed) * 180.0 / GML_PI;
+            instance.speed = ::sqrt(pow(instance.hspeed, 2) + pow(instance.vspeed, 2));
             break;
         case IV_HSPEED:
-            t.dVal = instance->hspeed;
+            t.dVal = instance.hspeed;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->hspeed = t.dVal;
-            instance->direction = ::atan2(-instance->vspeed, instance->hspeed) * 180.0 / GML_PI;
-            instance->speed = ::sqrt(pow(instance->hspeed, 2) + pow(instance->vspeed, 2));
+            instance.hspeed = t.dVal;
+            instance.direction = ::atan2(-instance.vspeed, instance.hspeed) * 180.0 / GML_PI;
+            instance.speed = ::sqrt(pow(instance.hspeed, 2) + pow(instance.vspeed, 2));
             break;
         case IV_GRAVITY:
-            t.dVal = instance->gravity;
+            t.dVal = instance.gravity;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->gravity = t.dVal;
+            instance.gravity = t.dVal;
             break;
         case IV_GRAVITY_DIRECTION:
-            t.dVal = instance->gravity_direction;
+            t.dVal = instance.gravity_direction;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->gravity_direction = t.dVal;
+            instance.gravity_direction = t.dVal;
             break;
         case IV_X:
-            t.dVal = instance->x;
+            t.dVal = instance.x;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->x = t.dVal;
-            instance->bboxIsStale = true;
+            instance.x = t.dVal;
+            instance.bboxIsStale = true;
             break;
         case IV_Y:
-            t.dVal = instance->y;
+            t.dVal = instance.y;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->y = t.dVal;
-            instance->bboxIsStale = true;
+            instance.y = t.dVal;
+            instance.bboxIsStale = true;
             break;
         case IV_PATH_INDEX:
-            t.dVal = instance->path_index;
+            t.dVal = instance.path_index;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->path_index = Runtime::_round(t.dVal);
+            instance.path_index = Runtime::_round(t.dVal);
             break;
         case IV_PATH_POSITION:
-            t.dVal = instance->path_position;
+            t.dVal = instance.path_position;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->path_position = t.dVal;
+            instance.path_position = t.dVal;
             break;
         case IV_PATH_SPEED:
-            t.dVal = instance->path_speed;
+            t.dVal = instance.path_speed;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->path_speed = t.dVal;
+            instance.path_speed = t.dVal;
             break;
         case IV_PATH_SCALE:
-            t.dVal = instance->path_scale;
+            t.dVal = instance.path_scale;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->path_scale = t.dVal;
+            instance.path_scale = t.dVal;
             break;
         case IV_PATH_ORIENTATION:
-            t.dVal = instance->path_orientation;
+            t.dVal = instance.path_orientation;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->path_orientation = t.dVal;
+            instance.path_orientation = t.dVal;
             break;
         case IV_PATH_ENDACTION:
-            t.dVal = instance->path_endaction;
+            t.dVal = instance.path_endaction;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->path_endaction = Runtime::_round(t.dVal);
+            instance.path_endaction = Runtime::_round(t.dVal);
             break;
         case IV_TIMELINE_INDEX:
-            t.dVal = instance->timeline_index;
+            t.dVal = instance.timeline_index;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->timeline_index = Runtime::_round(t.dVal);
+            instance.timeline_index = Runtime::_round(t.dVal);
             break;
         case IV_TIMELINE_RUNNING:
-            t.dVal = (instance->timeline_running ? GMLTrue : GMLFalse);
+            t.dVal = (instance.timeline_running ? GMLTrue : GMLFalse);
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->timeline_running = Runtime::_isTrue(&t);
+            instance.timeline_running = Runtime::_isTrue(&t);
             break;
         case IV_TIMELINE_LOOP:
-            t.dVal = (instance->timeline_loop ? GMLTrue : GMLFalse);
+            t.dVal = (instance.timeline_loop ? GMLTrue : GMLFalse);
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->timeline_loop = Runtime::_isTrue(&t);
+            instance.timeline_loop = Runtime::_isTrue(&t);
             break;
         case IV_TIMELINE_SPEED:
-            t.dVal = instance->timeline_speed;
+            t.dVal = instance.timeline_speed;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->timeline_speed = t.dVal;
+            instance.timeline_speed = t.dVal;
             break;
         case IV_TIMELINE_POSITION:
-            t.dVal = instance->timeline_position;
+            t.dVal = instance.timeline_position;
             if (!_applySetMethod(&t, method, &value)) return false;
-            instance->timeline_position = t.dVal;
+            instance.timeline_position = t.dVal;
             break;
         default:
             _cause = Runtime::ReturnCause::ExitError;
@@ -654,165 +654,165 @@ bool _setInstanceVar(Instance* instance, CRInstanceVar index, unsigned int array
     return true;
 }
 
-bool _getInstanceVar(Instance* instance, CRInstanceVar index, unsigned int arrayIndex, GMLType* out) {
+bool _getInstanceVar(Instance& instance, CRInstanceVar index, unsigned int arrayIndex, GMLType* out) {
     out->state = GMLTypeState::Double;
     switch (index) {
         case IV_ALARM:
-            out->dVal = ( double )AlarmGet(instance->id, arrayIndex);
+            out->dVal = ( double )AlarmGet(instance.id, arrayIndex);
             break;
         case IV_INSTANCE_ID:
-            out->dVal = instance->id;
+            out->dVal = instance.id;
             break;
         case IV_OBJECT_INDEX:
-            out->dVal = instance->object_index;
+            out->dVal = instance.object_index;
             break;
         case IV_X:
-            out->dVal = instance->x;
+            out->dVal = instance.x;
             break;
         case IV_Y:
-            out->dVal = instance->y;
+            out->dVal = instance.y;
             break;
         case IV_XPREVIOUS:
-            out->dVal = instance->xprevious;
+            out->dVal = instance.xprevious;
             break;
         case IV_YPREVIOUS:
-            out->dVal = instance->yprevious;
+            out->dVal = instance.yprevious;
             break;
         case IV_XSTART:
-            out->dVal = instance->xstart;
+            out->dVal = instance.xstart;
             break;
         case IV_YSTART:
-            out->dVal = instance->ystart;
+            out->dVal = instance.ystart;
             break;
         case IV_SOLID:
-            out->dVal = (instance->solid ? GMLTrue : GMLFalse);
+            out->dVal = (instance.solid ? GMLTrue : GMLFalse);
             break;
         case IV_DEPTH:
-            out->dVal = ( double )instance->depth;
+            out->dVal = ( double )instance.depth;
             break;
         case IV_VISIBLE:
-            out->dVal = (instance->visible ? GMLTrue : GMLFalse);
+            out->dVal = (instance.visible ? GMLTrue : GMLFalse);
             break;
         case IV_PERSISTENT:
-            out->dVal = (instance->persistent ? GMLTrue : GMLFalse);
+            out->dVal = (instance.persistent ? GMLTrue : GMLFalse);
             break;
         case IV_DIRECTION:
-            out->dVal = instance->direction;
+            out->dVal = instance.direction;
             break;
         case IV_SPEED:
-            out->dVal = instance->speed;
+            out->dVal = instance.speed;
             break;
         case IV_VSPEED:
-            out->dVal = instance->vspeed;
+            out->dVal = instance.vspeed;
             break;
         case IV_HSPEED:
-            out->dVal = instance->hspeed;
+            out->dVal = instance.hspeed;
             break;
         case IV_GRAVITY:
-            out->dVal = instance->gravity;
+            out->dVal = instance.gravity;
             break;
         case IV_GRAVITY_DIRECTION:
-            out->dVal = instance->gravity_direction;
+            out->dVal = instance.gravity_direction;
             break;
         case IV_FRICTION:
-            out->dVal = instance->friction;
+            out->dVal = instance.friction;
             break;
         case IV_IMAGE_INDEX:
-            out->dVal = instance->image_index;
+            out->dVal = instance.image_index;
             break;
         case IV_IMAGE_SPEED:
-            out->dVal = instance->image_speed;
+            out->dVal = instance.image_speed;
             break;
         case IV_SPRITE_INDEX:
-            out->dVal = instance->sprite_index;
+            out->dVal = instance.sprite_index;
             break;
         case IV_SPRITE_WIDTH:
-            if (instance->sprite_index < 0 || instance->sprite_index >= ( int )AssetManager::GetSpriteCount()) {
+            if (instance.sprite_index < 0 || instance.sprite_index >= ( int )AssetManager::GetSpriteCount()) {
                 out->dVal = 0;
             }
             else {
-                Sprite* s = AssetManager::GetSprite(instance->sprite_index);
+                Sprite* s = AssetManager::GetSprite(instance.sprite_index);
                 out->dVal = (s->exists ? s->width : 0);
             }
             break;
         case IV_SPRITE_HEIGHT:
-            if (instance->sprite_index < 0 || instance->sprite_index >= ( int )AssetManager::GetSpriteCount()) {
+            if (instance.sprite_index < 0 || instance.sprite_index >= ( int )AssetManager::GetSpriteCount()) {
                 out->dVal = 0.0;
             }
             else {
-                Sprite* s = AssetManager::GetSprite(instance->sprite_index);
+                Sprite* s = AssetManager::GetSprite(instance.sprite_index);
                 out->dVal = (s->exists ? s->height : 0);
             }
             break;
         case IV_MASK_INDEX:
-            out->dVal = instance->mask_index;
+            out->dVal = instance.mask_index;
             break;
         case IV_IMAGE_XSCALE:
-            out->dVal = instance->image_xscale;
+            out->dVal = instance.image_xscale;
             break;
         case IV_IMAGE_YSCALE:
-            out->dVal = instance->image_yscale;
+            out->dVal = instance.image_yscale;
             break;
         case IV_IMAGE_ANGLE:
-            out->dVal = instance->image_angle;
+            out->dVal = instance.image_angle;
             break;
         case IV_IMAGE_BLEND:
-            out->dVal = ( double )instance->image_blend;
+            out->dVal = ( double )instance.image_blend;
             break;
         case IV_IMAGE_ALPHA:
-            out->dVal = instance->image_alpha;
+            out->dVal = instance.image_alpha;
             break;
         case IV_PATH_INDEX:
-            out->dVal = ( double )instance->path_index;
+            out->dVal = ( double )instance.path_index;
             break;
         case IV_PATH_POSITION:
-            out->dVal = instance->path_position;
+            out->dVal = instance.path_position;
             break;
         case IV_PATH_SPEED:
-            out->dVal = instance->path_speed;
+            out->dVal = instance.path_speed;
             break;
         case IV_PATH_SCALE:
-            out->dVal = instance->path_scale;
+            out->dVal = instance.path_scale;
             break;
         case IV_PATH_ORIENTATION:
-            out->dVal = instance->path_orientation;
+            out->dVal = instance.path_orientation;
             break;
         case IV_PATH_ENDACTION:
-            out->dVal = instance->path_endaction;
+            out->dVal = instance.path_endaction;
             break;
         case IV_PATH_POSITIONPREVIOUS:
-            out->dVal = instance->path_positionprevious;
+            out->dVal = instance.path_positionprevious;
             break;
         case IV_TIMELINE_INDEX:
-            out->dVal = ( double )instance->timeline_index;
+            out->dVal = ( double )instance.timeline_index;
             break;
         case IV_TIMELINE_RUNNING:
-            out->dVal = instance->timeline_running ? GMLTrue : GMLFalse;
+            out->dVal = instance.timeline_running ? GMLTrue : GMLFalse;
             break;
         case IV_TIMELINE_LOOP:
-            out->dVal = instance->timeline_loop ? GMLTrue : GMLFalse;
+            out->dVal = instance.timeline_loop ? GMLTrue : GMLFalse;
             break;
         case IV_TIMELINE_SPEED:
-            out->dVal = instance->timeline_speed;
+            out->dVal = instance.timeline_speed;
             break;
         case IV_TIMELINE_POSITION:
-            out->dVal = instance->timeline_position;
+            out->dVal = instance.timeline_position;
             break;
         case IV_BBOX_LEFT:
-            RefreshInstanceBbox(instance);
-            out->dVal = instance->bbox_left;
+            RefreshInstanceBbox(&instance);
+            out->dVal = instance.bbox_left;
             break;
         case IV_BBOX_RIGHT:
-            RefreshInstanceBbox(instance);
-            out->dVal = instance->bbox_right;
+            RefreshInstanceBbox(&instance);
+            out->dVal = instance.bbox_right;
             break;
         case IV_BBOX_BOTTOM:
-            RefreshInstanceBbox(instance);
-            out->dVal = instance->bbox_bottom;
+            RefreshInstanceBbox(&instance);
+            out->dVal = instance.bbox_bottom;
             break;
         case IV_BBOX_TOP:
-            RefreshInstanceBbox(instance);
-            out->dVal = instance->bbox_top;
+            RefreshInstanceBbox(&instance);
+            out->dVal = instance.bbox_top;
             break;
         default:
             _cause = Runtime::ReturnCause::ExitError;
@@ -846,7 +846,7 @@ const char* Runtime::GetErrorMessage() { return _error.c_str(); }
 
 void Runtime::PushErrorMessage(const char* m) { _error += m; }
 
-bool Runtime::Execute(CRActionList& actions, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, unsigned int argc, GMLType* argv) {
+bool Runtime::Execute(CRActionList& actions, InstanceHandle self, InstanceHandle other, int ev, int sub, unsigned int asObjId, unsigned int argc, GMLType* argv) {
     Context c = _context;
     _context.self = self;
     _context.other = other;
@@ -860,7 +860,7 @@ bool Runtime::Execute(CRActionList& actions, Instance* self, Instance* other, in
     return result ? true : (_cause == ReturnCause::Break || _cause == ReturnCause::Continue || _cause == ReturnCause::Return || _cause == ReturnCause::ExitNormal);
 }
 
-bool Runtime::EvalExpression(CRExpression& expression, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, GMLType* out, unsigned int argc, GMLType* argv) {
+bool Runtime::EvalExpression(CRExpression& expression, InstanceHandle self, InstanceHandle other, int ev, int sub, unsigned int asObjId, GMLType* out, unsigned int argc, GMLType* argv) {
     Context c = _context;
     _context.self = self;
     _context.other = other;
@@ -1123,16 +1123,16 @@ bool CRActionAssignmentField::Run() {
         int id = Runtime::_round(d.dVal);
         switch (id) {
             case SELF: {
-                if (!_applySetMethod(InstanceList::GetField(_context.self->id, _field), _method, &v)) return false;
+                if (!_applySetMethod(InstanceList::GetField(_context.self, _field), _method, &v)) return false;
             }
             case OTHER: {
-                if (!_applySetMethod(InstanceList::GetField(_context.other->id, _field), _method, &v)) return false;
+                if (!_applySetMethod(InstanceList::GetField(_context.other, _field), _method, &v)) return false;
             }
             case ALL: {
                 InstanceList::Iterator iter;
-                Instance* i;
-                while (i = iter.Next()) {
-                    if (!_applySetMethod(InstanceList::GetField(i->id, _field), _method, &v)) return false;
+                InstanceHandle i;
+                while ((i = iter.Next()) != InstanceList::NoInstance) {
+                    if (!_applySetMethod(InstanceList::GetField(i, _field), _method, &v)) return false;
                 }
             }
             case GLOBAL: {
@@ -1149,10 +1149,10 @@ bool CRActionAssignmentField::Run() {
                     _error = "Tried to dereference negative number: " + std::to_string(id);
                     return false;
                 }
-                InstanceList::Iterator iter(( unsigned int )id);
-                Instance* i;
-                while (i = iter.Next()) {
-                    if (!_applySetMethod(InstanceList::GetField(i->id, _field), _method, &v)) return false;
+                InstanceList::Iterator iter(static_cast<unsigned int>(id));
+                InstanceHandle i;
+                while ((i = iter.Next()) != InstanceList::NoInstance) {
+                    if (!_applySetMethod(InstanceList::GetField(i, _field), _method, &v)) return false;
                 }
             }
         }
@@ -1164,7 +1164,7 @@ bool CRActionAssignmentField::Run() {
         }
         else {
             // Field
-            if (!_applySetMethod(InstanceList::GetField(_context.self->id, _field), _method, &v)) return false;
+            if (!_applySetMethod(InstanceList::GetField(_context.self, _field), _method, &v)) return false;
         }
     }
     return true;
@@ -1184,18 +1184,18 @@ bool CRActionAssignmentArray::Run() {
         int id = Runtime::_round(d.dVal);
         switch (id) {
             case SELF: {
-                if (!_applySetMethod(InstanceList::GetField(_context.self->id, _field, index), _method, &v)) return false;
+                if (!_applySetMethod(InstanceList::GetField(_context.self, _field, index), _method, &v)) return false;
                 break;
             }
             case OTHER: {
-                if (!_applySetMethod(InstanceList::GetField(_context.other->id, _field, index), _method, &v)) return false;
+                if (!_applySetMethod(InstanceList::GetField(_context.other, _field, index), _method, &v)) return false;
                 break;
             }
             case ALL: {
                 InstanceList::Iterator iter;
-                Instance* i;
-                while (i = iter.Next()) {
-                    if (!_applySetMethod(InstanceList::GetField(i->id, _field, index), _method, &v)) return false;
+                InstanceHandle i;
+                while ((i = iter.Next()) != InstanceList::NoInstance) {
+                    if (!_applySetMethod(InstanceList::GetField(i, _field, index), _method, &v)) return false;
                 }
                 break;
             }
@@ -1213,10 +1213,10 @@ bool CRActionAssignmentArray::Run() {
                     _error = "Tried to dereference negative number: " + std::to_string(id);
                     return false;
                 }
-                InstanceList::Iterator iter(( unsigned int )id);
-                Instance* i;
-                while (i = iter.Next()) {
-                    if (!_applySetMethod(InstanceList::GetField(i->id, _field, index), _method, &v)) return false;
+                InstanceList::Iterator iter(static_cast<unsigned int>(id));
+                InstanceHandle i;
+                while ((i = iter.Next()) != InstanceList::NoInstance) {
+                    if (!_applySetMethod(InstanceList::GetField(i, _field, index), _method, &v)) return false;
                 }
             }
         }
@@ -1228,7 +1228,7 @@ bool CRActionAssignmentArray::Run() {
         }
         else {
             // Field
-            if (!_applySetMethod(InstanceList::GetField(_context.self->id, _field, index), _method, &v)) return false;
+            if (!_applySetMethod(InstanceList::GetField(_context.self, _field, index), _method, &v)) return false;
         }
     }
     return true;
@@ -1248,18 +1248,18 @@ bool CRActionAssignmentInstanceVar::Run() {
         int id = Runtime::_round(d.dVal);
         switch (id) {
             case SELF: {
-                if (!_setInstanceVar(_context.self, _var, index, _method, v)) return false;
+                if (!_setInstanceVar(InstanceList::GetInstance(_context.self), _var, index, _method, v)) return false;
                 break;
             }
             case OTHER: {
-                if (!_setInstanceVar(_context.other, _var, index, _method, v)) return false;
+                if (!_setInstanceVar(InstanceList::GetInstance(_context.other), _var, index, _method, v)) return false;
                 break;
             }
             case ALL: {
                 InstanceList::Iterator iter;
-                Instance* i;
-                while (i = iter.Next()) {
-                    if (!_setInstanceVar(i, _var, index, _method, v)) return false;
+                InstanceHandle i;
+                while ((i = iter.Next()) != InstanceList::NoInstance) {
+                    if (!_setInstanceVar(InstanceList::GetInstance(i), _var, index, _method, v)) return false;
                 }
                 break;
             }
@@ -1278,15 +1278,15 @@ bool CRActionAssignmentInstanceVar::Run() {
                     return false;
                 }
                 InstanceList::Iterator iter(( unsigned int )id);
-                Instance* i;
-                while (i = iter.Next()) {
-                    if (!_setInstanceVar(i, _var, index, _method, v)) return false;
+                InstanceHandle i;
+                while ((i = iter.Next()) != InstanceList::NoInstance) {
+                    if (!_setInstanceVar(InstanceList::GetInstance(i), _var, index, _method, v)) return false;
                 }
             }
         }
     }
     else {
-        if (!_setInstanceVar(_context.self, _var, index, _method, v)) return false;
+        if (!_setInstanceVar(InstanceList::GetInstance(_context.self), _var, index, _method, v)) return false;
     }
     return true;
 }
@@ -1363,7 +1363,7 @@ bool CRActionWith::Run() {
             Runtime::Context c = _context;
             _context.self = c.other;
             _context.other = c.self;
-            _context.objId = c.other->id;
+            _context.objId = InstanceList::GetInstance(c.other).object_index;
             bool r = _code->Run();
             c.locals = _context.locals;
             c.localInstance = _context.localInstance;
@@ -1374,10 +1374,10 @@ bool CRActionWith::Run() {
             Runtime::Context c = _context;
             _context.other = c.self;
             InstanceList::Iterator iter;
-            Instance* i;
-            while (i = iter.Next()) {
+            InstanceHandle i;
+            while ((i = iter.Next()) != InstanceList::NoInstance) {
                 _context.self = i;
-                _context.objId = i->id;
+                _context.objId = InstanceList::GetInstance(i).object_index;
                 if (!_code->Run()) {
                     if (_cause == Runtime::ReturnCause::Continue)
                         continue;
@@ -1406,10 +1406,10 @@ bool CRActionWith::Run() {
             Runtime::Context c = _context;
             _context.other = c.self;
             InstanceList::Iterator iter(objID);
-            Instance* i;
-            while (i = iter.Next()) {
+            InstanceHandle i;
+            while ((i = iter.Next()) != InstanceList::NoInstance) {
                 _context.self = i;
-                _context.objId = i->id;
+                _context.objId = InstanceList::GetInstance(i).object_index;
                 if (!_code->Run()) {
                     if (_cause == Runtime::ReturnCause::Continue)
                         continue;
@@ -1586,16 +1586,16 @@ bool CRExpField::_evaluate(GMLType* output) {
         int id = Runtime::_round(d.dVal);
         switch (id) {
             case SELF: {
-                (*output) = *InstanceList::GetField(_context.self->id, _fieldNumber);
+                (*output) = *InstanceList::GetField(_context.self, _fieldNumber);
                 return true;
             }
             case OTHER: {
-                (*output) = *InstanceList::GetField(_context.other->id, _fieldNumber);
+                (*output) = *InstanceList::GetField(_context.other, _fieldNumber);
                 return true;
             }
             case ALL: {
-                Instance* i = InstanceList::Iterator().Next();
-                (*output) = *InstanceList::GetField(i->id, _fieldNumber);
+                InstanceHandle i = InstanceList::Iterator().Next();
+                (*output) = *InstanceList::GetField(i, _fieldNumber);
                 return true;
             }
             case NOONE: {
@@ -1616,9 +1616,9 @@ bool CRExpField::_evaluate(GMLType* output) {
                     _error = "Tried to dereference negative number: " + std::to_string(id);
                     return false;
                 }
-                Instance* i = InstanceList::Iterator(( unsigned int )id).Next();
-                if(i) {
-                    (*output) = *InstanceList::GetField(i->id, _fieldNumber);
+                InstanceHandle i = InstanceList::Iterator(static_cast<unsigned int>(id)).Next();
+                if (i != InstanceList::NoInstance) {
+                    (*output) = *InstanceList::GetField(i, _fieldNumber);
                 }
                 else {
                     (*output) = GMLType();
@@ -1635,7 +1635,7 @@ bool CRExpField::_evaluate(GMLType* output) {
         }
         else {
             // Field
-            (*output) = *InstanceList::GetField(_context.self->id, _fieldNumber);
+            (*output) = *InstanceList::GetField(_context.self, _fieldNumber);
             return true;
         }
     }
@@ -1653,17 +1653,17 @@ bool CRExpArray::_evaluate(GMLType* output) {
         int id = Runtime::_round(d.dVal);
         switch (id) {
             case SELF: {
-                (*output) = *InstanceList::GetField(_context.self->id, _fieldNumber, index);
+                (*output) = *InstanceList::GetField(_context.self, _fieldNumber, index);
                 return true;
             }
             case OTHER: {
-                (*output) = *InstanceList::GetField(_context.other->id, _fieldNumber, index);
+                (*output) = *InstanceList::GetField(_context.other, _fieldNumber, index);
                 return true;
             }
             case ALL: {
-                Instance* i = InstanceList::Iterator().Next();
+                InstanceHandle i = InstanceList::Iterator().Next();
                 if (i) {
-                    (*output) = *InstanceList::GetField(i->id, _fieldNumber, index);
+                    (*output) = *InstanceList::GetField(i, _fieldNumber, index);
                 }
                 else {
                     (*output) = GMLType();
@@ -1688,9 +1688,9 @@ bool CRExpArray::_evaluate(GMLType* output) {
                     _error = "Tried to dereference negative number: " + std::to_string(id);
                     return false;
                 }
-                Instance* i = InstanceList::Iterator(( unsigned int )id).Next();
-                if (i) {
-                    (*output) = *InstanceList::GetField(i->id, _fieldNumber, index);
+                InstanceHandle i = InstanceList::Iterator(static_cast<unsigned int>(id)).Next();
+                if (i != InstanceList::NoInstance) {
+                    (*output) = *InstanceList::GetField(i, _fieldNumber, index);
                 }
                 else {
                     (*output) = GMLType();
@@ -1707,7 +1707,7 @@ bool CRExpArray::_evaluate(GMLType* output) {
         }
         else {
             // Field
-            (*output) = *InstanceList::GetField(_context.self->id, _fieldNumber, index);
+            (*output) = *InstanceList::GetField(_context.self, _fieldNumber, index);
             return true;
         }
     }
@@ -1725,15 +1725,15 @@ bool CRExpInstanceVar::_evaluate(GMLType* output) {
         int id = Runtime::_round(d.dVal);
         switch (id) {
             case SELF: {
-                return _getInstanceVar(_context.self, _var, index, output);
+                return _getInstanceVar(InstanceList::GetInstance(_context.self), _var, index, output);
             }
             case OTHER: {
-                return _getInstanceVar(_context.other, _var, index, output);
+                return _getInstanceVar(InstanceList::GetInstance(_context.other), _var, index, output);
             }
             case ALL: {
-                Instance* i = InstanceList::Iterator().Next();
+                InstanceHandle i = InstanceList::Iterator().Next();
                 if (i) {
-                    return _getInstanceVar(i, _var, index, output);
+                    return _getInstanceVar(InstanceList::GetInstance(i), _var, index, output);
                 }
                 else {
                     (*output) = GMLType();
@@ -1754,9 +1754,9 @@ bool CRExpInstanceVar::_evaluate(GMLType* output) {
                     _error = "Tried to dereference negative number: " + std::to_string(id);
                     return false;
                 }
-                Instance* i = InstanceList::Iterator(( unsigned int )id).Next();
-                if (i) {
-                    return _getInstanceVar(i, _var, index, output);
+                InstanceHandle i = InstanceList::Iterator(static_cast<unsigned int>(id)).Next();
+                if (i != InstanceList::NoInstance) {
+                    return _getInstanceVar(InstanceList::GetInstance(i), _var, index, output);
                 }
                 else {
                     (*output) = GMLType();
@@ -1766,7 +1766,7 @@ bool CRExpInstanceVar::_evaluate(GMLType* output) {
         }
     }
     else {
-        return _getInstanceVar(_context.self, _var, index, output);
+        return _getInstanceVar(InstanceList::GetInstance(_context.self), _var, index, output);
     }
     return true;
 }

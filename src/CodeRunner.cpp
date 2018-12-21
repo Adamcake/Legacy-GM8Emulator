@@ -81,18 +81,18 @@ bool CodeManager::Compile(CodeObject object) {
 	}
 }
 
-bool CodeManager::Run(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, unsigned int argc, GMLType* argv) {
+bool CodeManager::Run(CodeObject code, InstanceHandle self, InstanceHandle other, int ev, int sub, unsigned int asObjId, unsigned int argc, GMLType* argv) {
     return Runtime::Execute(_codeObjects[code]._actions, self, other, ev, sub, asObjId, argc, argv);
 }
 
-bool CodeManager::Query(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, bool* response, unsigned int argc, GMLType* argv) {
+bool CodeManager::Query(CodeObject code, InstanceHandle self, InstanceHandle other, int ev, int sub, unsigned int asObjId, bool* response, unsigned int argc, GMLType* argv) {
     GMLType t;
     if (!Runtime::EvalExpression(_codeObjects[code]._expression, self, other, ev, sub, asObjId, &t, argc, argv))return false;
     (*response) = Runtime::_isTrue(&t);
     return true;
 }
 
-bool CodeManager::Query(CodeObject code, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, GMLType* response) {
+bool CodeManager::Query(CodeObject code, InstanceHandle self, InstanceHandle other, int ev, int sub, unsigned int asObjId, GMLType* response) {
     GMLType t;
     if (!Runtime::EvalExpression(_codeObjects[code]._expression, self, other, ev, sub, asObjId, &t)) return false;
     (*response) = t;

@@ -4,7 +4,7 @@
 #include "CREnums.hpp"
 struct GMLType;
 struct GlobalValues;
-struct Instance;
+typedef unsigned int InstanceHandle;
 class CRActionList;
 class CRExpression;
 
@@ -43,8 +43,8 @@ namespace Runtime {
 
     // Runtime context
     struct Context {
-        Instance* self;
-        Instance* other;
+        InstanceHandle self;
+        InstanceHandle other;
         int eventId;
         int eventNumber;
         unsigned int objId;
@@ -55,8 +55,8 @@ namespace Runtime {
     };
     Context GetContext();
 
-    bool Execute(CRActionList&, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, unsigned int argc = 0, GMLType* argv = nullptr);
-    bool EvalExpression(CRExpression&, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, GMLType* out, unsigned int argc = 0, GMLType* argv = nullptr);
+    bool Execute(CRActionList&, InstanceHandle self, InstanceHandle other, int ev, int sub, unsigned int asObjId, unsigned int argc = 0, GMLType* argv = nullptr);
+    bool EvalExpression(CRExpression&, InstanceHandle self, InstanceHandle other, int ev, int sub, unsigned int asObjId, GMLType* out, unsigned int argc = 0, GMLType* argv = nullptr);
 
     bool _assertArgs(unsigned int& argc, GMLType* argv, unsigned int arge, bool lenient, ...);
 

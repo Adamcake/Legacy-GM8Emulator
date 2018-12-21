@@ -123,13 +123,14 @@ bool Runtime::collision_rectangle(unsigned int argc, GMLType* argv, GMLType* out
 
         InstanceList::Iterator iter(obj);
         if(obj == -3) iter = InstanceList::Iterator();
-        Instance* i;
-        while(i = iter.Next()) {
+        InstanceHandle i;
+        while((i = iter.Next()) != InstanceList::NoInstance) {
             if(notme && (i == GetContext().self)) continue;
 
-            if(CollisionRectangleCheck(i, x1, y1, x2, y2, prec)) {
+            Instance& inst = InstanceList::GetInstance(i);
+            if(CollisionRectangleCheck(&inst, x1, y1, x2, y2, prec)) {
                 out->state = GMLTypeState::Double;
-                out->dVal = static_cast<double>(i->id);
+                out->dVal = static_cast<double>(inst.id);
                 return true;
             }
         }
@@ -161,25 +162,26 @@ bool Runtime::degtorad(unsigned int argc, GMLType* argv, GMLType* out) {
 
 bool Runtime::distance_to_object(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
-    Instance* self = GetContext().self;
-    Instance* other;
+    Instance& self = InstanceList::GetInstance(GetContext().self);
+    InstanceHandle other;
     InstanceList::Iterator iter(_round(argv[0].dVal));
     double lowestDist = 1000000.0;  // GML default
-    RefreshInstanceBbox(self);
+    RefreshInstanceBbox(&self);
 
     while (other = iter.Next()) {
-        RefreshInstanceBbox(other);
+        Instance& otherInst = InstanceList::GetInstance(other);
+        RefreshInstanceBbox(&otherInst);
 
-        int distanceAbove = other->bbox_top - self->bbox_bottom;
-        int distanceBelow = self->bbox_top - other->bbox_bottom;
+        int distanceAbove = otherInst.bbox_top - self.bbox_bottom;
+        int distanceBelow = self.bbox_top - otherInst.bbox_bottom;
         unsigned int absHeightDiff = 0;
         if (distanceAbove > 0)
             absHeightDiff = distanceAbove;
         else if (distanceBelow > 0)
             absHeightDiff = distanceBelow;
 
-        int distanceLeft = other->bbox_left - self->bbox_right;
-        int distanceRight = self->bbox_left - other->bbox_right;
+        int distanceLeft = otherInst.bbox_left - self.bbox_right;
+        int distanceRight = self.bbox_left - otherInst.bbox_right;
         unsigned int absSideDiff = 0;
         if (distanceLeft > 0)
             absSideDiff = distanceLeft;
@@ -209,12 +211,12 @@ bool Runtime::draw_rectangle(unsigned int argc, GMLType* argv, GMLType* out) {
 }
 
 bool Runtime::draw_self(unsigned int argc, GMLType* argv, GMLType* out) {
-    Instance* self = GetContext().self;
-    if (self->sprite_index < 0) return true;
-    Sprite* spr = AssetManager::GetSprite(self->sprite_index);
+    Instance& self = InstanceList::GetInstance(GetContext().self);
+    if (self.sprite_index < 0) return true;
+    Sprite* spr = AssetManager::GetSprite(self.sprite_index);
     if (spr->exists) {
-        RDrawImage(spr->frames[static_cast<int>(self->image_index) % spr->frameCount], self->x, self->y, self->image_xscale, self->image_yscale, self->image_angle, self->image_blend,
-            self->image_alpha, self->depth);
+        RDrawImage(spr->frames[static_cast<int>(self.image_index) % spr->frameCount], self.x, self.y, self.image_xscale, self.image_yscale, self.image_angle, self.image_blend,
+            self.image_alpha, self.depth);
     }
     return true;
 }
@@ -252,10 +254,10 @@ bool Runtime::draw_set_valign(unsigned int argc, GMLType* argv, GMLType* out) {
 bool Runtime::draw_sprite(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 4, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
     Sprite* spr = AssetManager::GetSprite(_round(argv[0].dVal));
-    Instance* self = GetContext().self;
+    Instance& self = InstanceList::GetInstance(GetContext().self);
     int frame = _round(argv[1].dVal);
-    if (frame < 0) frame = static_cast<int>(::floor(self->image_index));
-    RDrawImage(spr->frames[frame % spr->frameCount], argv[2].dVal, argv[3].dVal, 1.0, 1.0, 0.0, 0xFFFFFFFF, 1.0, self->depth);
+    if (frame < 0) frame = static_cast<int>(::floor(self.image_index));
+    RDrawImage(spr->frames[frame % spr->frameCount], argv[2].dVal, argv[3].dVal, 1.0, 1.0, 0.0, 0xFFFFFFFF, 1.0, self.depth);
     return true;
 }
 
@@ -264,10 +266,10 @@ bool Runtime::draw_sprite_ext(unsigned int argc, GMLType* argv, GMLType* out) {
             GMLTypeState::Double, GMLTypeState::Double))
         return false;
     Sprite* spr = AssetManager::GetSprite(_round(argv[0].dVal));
-    Instance* self = GetContext().self;
+    Instance& self = InstanceList::GetInstance(GetContext().self);
     int frame = _round(argv[1].dVal);
-    if (frame < 0) frame = static_cast<int>(::floor(self->image_index));
-    RDrawImage(spr->frames[frame % spr->frameCount], argv[2].dVal, argv[3].dVal, argv[4].dVal, argv[5].dVal, argv[6].dVal, _round(argv[7].dVal), argv[8].dVal, self->depth);
+    if (frame < 0) frame = static_cast<int>(::floor(self.image_index));
+    RDrawImage(spr->frames[frame % spr->frameCount], argv[2].dVal, argv[3].dVal, argv[4].dVal, argv[5].dVal, argv[6].dVal, _round(argv[7].dVal), argv[8].dVal, self.depth);
     return true;
 }
 
@@ -345,7 +347,7 @@ bool Runtime::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
                 unsigned int cCW = *(dmapPos + 4);
                 unsigned int cCO = *(dmapPos + 5);
 
-                RDrawPartialImage(font->image, cursorX + ( int )cCO, cursorY, 1, 1, 0.0, _drawColour, _drawAlpha, cX, cY, cW, cH, GetContext().self->depth);
+                RDrawPartialImage(font->image, cursorX + ( int )cCO, cursorY, 1, 1, 0.0, _drawColour, _drawAlpha, cX, cY, cW, cH, InstanceList::GetInstance(GetContext().self).depth);
                 cursorX += cCW;
             }
         }
@@ -374,7 +376,7 @@ bool Runtime::event_inherited(unsigned int argc, GMLType* argv, GMLType* out) {
 
 bool Runtime::event_perform(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
-    return CodeActionManager::RunInstanceEvent(_round(argv[0].dVal), _round(argv[1].dVal), GetContext().self, GetContext().other, GetContext().self->object_index);
+    return CodeActionManager::RunInstanceEvent(_round(argv[0].dVal), _round(argv[1].dVal), GetContext().self, GetContext().other, InstanceList::GetInstance(GetContext().self).object_index);
 }
 
 
@@ -525,9 +527,9 @@ bool Runtime::file_exists(unsigned int argc, GMLType* argv, GMLType* out) {
 bool Runtime::instance_change(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 2, false, GMLTypeState::Double, GMLTypeState::Double)) return false;
     bool events = _isTrue(&argv[1]);
-    Instance* i = GetContext().self;
+    Instance& self = InstanceList::GetInstance(GetContext().self);
     if (events) {
-        if (!CodeActionManager::RunInstanceEvent(1, 0, i, NULL, i->object_index)) return false;
+        if (!CodeActionManager::RunInstanceEvent(1, 0, GetContext().self, NULL, self.object_index)) return false;
     }
     int objId = _round(argv[0].dVal);
     if (objId < 0 || objId >= static_cast<int>(AssetManager::GetObjectCount())) {
@@ -541,15 +543,15 @@ bool Runtime::instance_change(unsigned int argc, GMLType* argv, GMLType* out) {
         Runtime::PushErrorMessage("Non-existent object passed to instance_change");
         return false;
     }
-    i->object_index = objId;
-    i->solid = obj->solid;
-    i->visible = obj->visible;
-    i->persistent = obj->persistent;
-    i->depth = obj->depth;
-    i->sprite_index = obj->spriteIndex;
-    i->mask_index = obj->maskIndex;
+    self.object_index = objId;
+    self.solid = obj->solid;
+    self.visible = obj->visible;
+    self.persistent = obj->persistent;
+    self.depth = obj->depth;
+    self.sprite_index = obj->spriteIndex;
+    self.mask_index = obj->maskIndex;
     if (events) {
-        if (!CodeActionManager::RunInstanceEvent(0, 0, i, NULL, i->object_index)) return false;
+        if (!CodeActionManager::RunInstanceEvent(0, 0, GetContext().self, InstanceList::NoInstance, self.object_index)) return false;
     }
     return true;
 }
@@ -557,18 +559,20 @@ bool Runtime::instance_change(unsigned int argc, GMLType* argv, GMLType* out) {
 bool Runtime::instance_create(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 3, false, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
     unsigned int objID = _round(argv[2].dVal);
-    Instance* i = InstanceList::AddInstance(argv[0].dVal, argv[1].dVal, objID);
+    InstanceHandle i = InstanceList::AddInstance(argv[0].dVal, argv[1].dVal, objID);
     if (out) {
         out->state = GMLTypeState::Double;
-        out->dVal = i->id;
+        out->dVal = InstanceList::GetInstance(i).id;
     }
-    if (!CodeActionManager::RunInstanceEvent(0, 0, i, NULL, i->object_index)) return false;
+    if (!CodeActionManager::RunInstanceEvent(0, 0, i, InstanceList::NoInstance, objID)) return false;
     return true;
 }
 
 bool Runtime::instance_destroy(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!CodeActionManager::RunInstanceEvent(1, 0, GetContext().self, NULL, GetContext().self->object_index)) return false;
-    GetContext().self->exists = false;
+    if (!_assertArgs(argc, argv, 0, false)) return false;
+    Instance& self = InstanceList::GetInstance(GetContext().self);
+    if (!CodeActionManager::RunInstanceEvent(1, 0, GetContext().self, InstanceList::NoInstance, self.object_index)) return false;
+    self.exists = false;
     return true;
 }
 
@@ -577,7 +581,7 @@ bool Runtime::instance_exists(unsigned int argc, GMLType* argv, GMLType* out) {
     int objId = _round(argv[0].dVal);
     InstanceList::Iterator it(( unsigned int )objId);
     out->state = GMLTypeState::Double;
-    out->dVal = (it.Next() ? GMLTrue : GMLFalse);
+    out->dVal = ((it.Next() != InstanceList::NoInstance) ? GMLTrue : GMLFalse);
     return true;
 }
 
@@ -595,31 +599,32 @@ bool Runtime::instance_number(unsigned int argc, GMLType* argv, GMLType* out) {
 bool Runtime::instance_place(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 3, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
     if (out) {
-        Instance* self = GetContext().self;
-        double oldX = self->x;
-        double oldY = self->y;
-        self->x = argv[0].dVal;
-        self->y = argv[1].dVal;
-        self->bboxIsStale = true;
+        Instance& self = InstanceList::GetInstance(GetContext().self);
+        double oldX = self.x;
+        double oldY = self.y;
+        self.x = argv[0].dVal;
+        self.y = argv[1].dVal;
+        self.bboxIsStale = true;
 
         int objId = _round(argv[2].dVal);
         InstanceList::Iterator it(( unsigned int )objId);
         if (objId == -3) it = InstanceList::Iterator();
         double ret = -4.0;
 
-        Instance* instance;
-        while (instance = it.Next()) {
-            if (CollisionCheck(self, instance)) {
-                ret = instance->id;
+        InstanceHandle instance;
+        while ((instance = it.Next()) != InstanceList::NoInstance) {
+            Instance& inst = InstanceList::GetInstance(instance);
+            if (CollisionCheck(&self, &inst)) {
+                ret = inst.id;
                 break;
             }
         }
         out->state = GMLTypeState::Double;
         out->dVal = ret;
 
-        self->x = oldX;
-        self->y = oldY;
-        self->bboxIsStale = true;
+        self.x = oldX;
+        self.y = oldY;
+        self.bboxIsStale = true;
     }
     return true;
 }
@@ -632,11 +637,12 @@ bool Runtime::instance_position(unsigned int argc, GMLType* argv, GMLType* out) 
         int y = _round(argv[1].dVal);
         InstanceList::Iterator it(( unsigned int )objId);
         if (objId == -3) it = InstanceList::Iterator();
-        Instance* instance;
+        InstanceHandle instance;
         double ret = -4.0;
-        while (instance = it.Next()) {
-            if (CollisionPointCheck(instance, x, y)) {
-                ret = instance->id;
+        while ((instance = it.Next()) != InstanceList::NoInstance) {
+            Instance& inst = InstanceList::GetInstance(instance);
+            if (CollisionPointCheck(&inst, x, y)) {
+                ret = inst.id;
                 break;
             }
         }
@@ -700,9 +706,9 @@ bool Runtime::game_restart(unsigned int argc, GMLType* argv, GMLType* out) {
     GetGlobals()->changeRoom = true;
     GetGlobals()->roomTarget = (*_roomOrder)[0];
     InstanceList::Iterator iter;
-    Instance* i;
-    while (i = iter.Next()) {
-        i->exists = false;
+    InstanceHandle inst;
+    while ((inst = iter.Next()) != InstanceList::NoInstance) {
+        InstanceList::GetInstance(inst).exists = false;
     }
     return true;
 }
@@ -935,9 +941,9 @@ bool Runtime::min(unsigned int argc, GMLType* argv, GMLType* out) {
 
 bool Runtime::motion_set(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 2, true, GMLTypeState::Double, GMLTypeState::Double)) return false;
-    Instance* self = GetContext().self;
-    self->direction = argv[0].dVal;
-    self->speed = argv[1].dVal;
+    Instance& self = InstanceList::GetInstance(GetContext().self);
+    self.direction = argv[0].dVal;
+    self.speed = argv[1].dVal;
     return true;
 }
 
@@ -949,19 +955,20 @@ bool Runtime::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* out) 
     }
     else {
         // Basic bouncing
-        Instance* self = GetContext().self;
-        double startx = self->x, starty = self->y;
-        Instance* target;
+        Instance& self = InstanceList::GetInstance(GetContext().self);
+        double startx = self.x, starty = self.y;
+        InstanceHandle target;
 
         // First collision check - x offset only
-        self->x += self->hspeed;
-        self->bboxIsStale = true;
+        self.x += self.hspeed;
+        self.bboxIsStale = true;
         bool didChange = false;
         InstanceList::Iterator iter;
-        while (target = iter.Next()) {
-            if (target->solid) {
-                if (CollisionCheck(self, target)) {
-                    self->hspeed = -self->hspeed;
+        while ((target = iter.Next()) != InstanceList::NoInstance) {
+            Instance& targetInst = InstanceList::GetInstance(target);
+            if (targetInst.solid) {
+                if (CollisionCheck(&self, &targetInst)) {
+                    self.hspeed = -self.hspeed;
                     didChange = true;
                     break;
                 }
@@ -969,14 +976,15 @@ bool Runtime::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* out) 
         }
 
         // Second collision check - y offset only
-        self->x = startx;
-        self->y += self->vspeed;
-        self->bboxIsStale = true;
+        self.x = startx;
+        self.y += self.vspeed;
+        self.bboxIsStale = true;
         iter = InstanceList::Iterator();
-        while (target = iter.Next()) {
-            if (target->solid) {
-                if (CollisionCheck(self, target)) {
-                    self->vspeed = -self->vspeed;
+        while ((target = iter.Next()) != InstanceList::NoInstance) {
+            Instance& targetInst = InstanceList::GetInstance(target);
+            if (targetInst.solid) {
+                if (CollisionCheck(&self, &targetInst)) {
+                    self.vspeed = -self.vspeed;
                     didChange = true;
                     break;
                 }
@@ -985,28 +993,27 @@ bool Runtime::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* out) 
 
         if (!didChange) {
             // Third collision check - x and y offset
-            self->x += self->hspeed;
-            self->bboxIsStale = true;
+            self.x += self.hspeed;
+            self.bboxIsStale = true;
             iter = InstanceList::Iterator();
-            while (target = iter.Next()) {
-                if (target->solid) {
-                    if (CollisionCheck(self, target)) {
-                        self->hspeed = -self->hspeed;
-                        self->vspeed = -self->vspeed;
-                        didChange = true;
-                        break;
-                    }
+            while ((target = iter.Next()) != InstanceList::NoInstance) {
+                Instance& targetInst = InstanceList::GetInstance(target);
+                if (CollisionCheck(&self, &targetInst)) {
+                    self.hspeed = -self.hspeed;
+                    self.vspeed = -self.vspeed;
+                    didChange = true;
+                    break;
                 }
             }
         }
 
-        self->x = startx;
-        self->y = starty;
-        self->bboxIsStale = true;
+        self.x = startx;
+        self.y = starty;
+        self.bboxIsStale = true;
 
         if (didChange) {
-            self->direction = ::atan2(-self->vspeed * GML_PI / 180.0, self->hspeed * GML_PI / 180.0) * 180.0 / GML_PI;
-            self->speed = ::sqrt(pow(self->hspeed, 2) + pow(self->vspeed, 2));
+            self.direction = ::atan2(-self.vspeed * GML_PI / 180.0, self.hspeed * GML_PI / 180.0) * 180.0 / GML_PI;
+            self.speed = ::sqrt(pow(self.hspeed, 2) + pow(self.vspeed, 2));
         }
 
         return true;
@@ -1019,17 +1026,18 @@ bool Runtime::move_contact_solid(unsigned int argc, GMLType* argv, GMLType* out)
     if (maxdist <= 0) maxdist = 1000;  // GML default
     double hspeed = ::cos(argv[0].dVal * GML_PI / 180.0);
     double vspeed = -::sin(argv[0].dVal * GML_PI / 180.0);
-    Instance* self = GetContext().self;
+    Instance& self = InstanceList::GetInstance(GetContext().self);
     bool moved = false;
 
     for (int i = 0; i <= maxdist; i++) {
         InstanceList::Iterator iter;
         bool collision = false;
 
-        Instance* target;
-        while (target = iter.Next()) {
-            if ((target != self) && target->solid) {
-                if (CollisionCheck(self, target)) {
+        InstanceHandle target;
+        while ((target = iter.Next()) != InstanceList::NoInstance) {
+            Instance& targetInst = InstanceList::GetInstance(target);
+            if ((targetInst.id != self.id) && targetInst.solid) {
+                if (CollisionCheck(&self, &targetInst)) {
                     collision = true;
                     break;
                 }
@@ -1038,17 +1046,17 @@ bool Runtime::move_contact_solid(unsigned int argc, GMLType* argv, GMLType* out)
 
         if (collision) {
             if (moved) {
-                self->x -= hspeed;
-                self->y -= vspeed;
-                self->bboxIsStale = true;
+                self.x -= hspeed;
+                self.y -= vspeed;
+                self.bboxIsStale = true;
             }
             break;
         }
         else {
             if (i != maxdist) {
-                self->x += hspeed;
-                self->y += vspeed;
-                self->bboxIsStale = true;
+                self.x += hspeed;
+                self.y += vspeed;
+                self.bboxIsStale = true;
                 moved = true;
             }
             else {
@@ -1061,11 +1069,11 @@ bool Runtime::move_contact_solid(unsigned int argc, GMLType* argv, GMLType* out)
 
 bool Runtime::move_towards_point(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 3, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
-    Instance* i = GetContext().self;
-    i->direction = (::atan2((i->y - argv[1].dVal), (argv[0].dVal - i->x))) * 180.0 / GML_PI;
-    i->speed = argv[2].dVal;
-    i->hspeed = ::cos(i->direction * GML_PI / 180.0) * i->speed;
-    i->vspeed = -::sin(i->direction * GML_PI / 180.0) * i->speed;
+    Instance& i = InstanceList::GetInstance(GetContext().self);
+    i.direction = (::atan2((i.y - argv[1].dVal), (argv[0].dVal - i.x))) * 180.0 / GML_PI;
+    i.speed = argv[2].dVal;
+    i.hspeed = ::cos(i.direction * GML_PI / 180.0) * i.speed;
+    i.vspeed = -::sin(i.direction * GML_PI / 180.0) * i.speed;
     return true;
 }
 
@@ -1074,25 +1082,25 @@ bool Runtime::move_wrap(unsigned int argc, GMLType* argv, GMLType* out) {
     bool hor = _isTrue(argv + 0);
     bool ver = _isTrue(argv + 1);
     double margin = argv[2].dVal;
-    Instance* instance = GetContext().self;
+    Instance& instance = InstanceList::GetInstance(GetContext().self);
 
     if (hor) {
         unsigned int roomW = AssetManager::GetRoom(GetGlobals()->room)->width;
-        if (instance->x < -margin) {
-            instance->x += roomW;
+        if (instance.x < -margin) {
+            instance.x += roomW;
         }
-        else if (instance->x >= (roomW + margin)) {
-            instance->x -= roomW;
+        else if (instance.x >= (roomW + margin)) {
+            instance.x -= roomW;
         }
     }
 
     if (ver) {
         unsigned int roomH = AssetManager::GetRoom(GetGlobals()->room)->height;
-        if (instance->y < -margin) {
-            instance->y += roomH;
+        if (instance.y < -margin) {
+            instance.y += roomH;
         }
-        else if (instance->y >= (roomH + margin)) {
-            instance->y -= roomH;
+        else if (instance.y >= (roomH + margin)) {
+            instance.y -= roomH;
         }
     }
 
@@ -1115,26 +1123,27 @@ bool Runtime::place_free(unsigned int argc, GMLType* argv, GMLType* out) {
         out->dVal = GMLTrue;
 
         InstanceList::Iterator iter;
-        Instance* self = GetContext().self;
-        double oldX = self->x;
-        double oldY = self->y;
-        self->x = argv[0].dVal;
-        self->y = argv[1].dVal;
-        self->bboxIsStale = true;
+        Instance& self = InstanceList::GetInstance(GetContext().self);
+        double oldX = self.x;
+        double oldY = self.y;
+        self.x = argv[0].dVal;
+        self.y = argv[1].dVal;
+        self.bboxIsStale = true;
 
-        Instance* target;
-        while (target = iter.Next()) {
-            if ((target != self) && target->solid) {
-                if (CollisionCheck(self, target)) {
+        InstanceHandle target;
+        while ((target = iter.Next()) != InstanceList::NoInstance) {
+            Instance& targetInst = InstanceList::GetInstance(target);
+            if ((targetInst.id != self.id) && targetInst.solid) {
+                if (CollisionCheck(&self, &targetInst)) {
                     out->dVal = GMLFalse;
                     break;
                 }
             }
         }
 
-        self->x = oldX;
-        self->y = oldY;
-        self->bboxIsStale = true;
+        self.x = oldX;
+        self.y = oldY;
+        self.bboxIsStale = true;
     }
     return true;
 }
@@ -1148,26 +1157,27 @@ bool Runtime::place_meeting(unsigned int argc, GMLType* argv, GMLType* out) {
         InstanceList::Iterator iter(( unsigned int )obj);
         if (obj == -3) iter = InstanceList::Iterator();
 
-        Instance* self = GetContext().self;
-        double oldX = self->x;
-        double oldY = self->y;
-        self->x = argv[0].dVal;
-        self->y = argv[1].dVal;
-        self->bboxIsStale = true;
+        Instance& self = InstanceList::GetInstance(GetContext().self);
+        double oldX = self.x;
+        double oldY = self.y;
+        self.x = argv[0].dVal;
+        self.y = argv[1].dVal;
+        self.bboxIsStale = true;
 
-        Instance* target;
-        while (target = iter.Next()) {
-            if (target != self) {
-                if (CollisionCheck(self, target)) {
+        InstanceHandle target;
+        while ((target = iter.Next()) != InstanceList::NoInstance) {
+            Instance& targetInst = InstanceList::GetInstance(target);
+            if (targetInst.id != self.id) {
+                if (CollisionCheck(&self, &targetInst)) {
                     out->dVal = GMLTrue;
                     break;
                 }
             }
         }
 
-        self->x = oldX;
-        self->y = oldY;
-        self->bboxIsStale = true;
+        self.x = oldX;
+        self.y = oldY;
+        self.bboxIsStale = true;
     }
     return true;
 }

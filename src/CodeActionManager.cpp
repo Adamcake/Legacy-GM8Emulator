@@ -12,7 +12,7 @@
 namespace CodeActionManager {
     class Parameter {
       public:
-        virtual bool Evaluate(Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, GMLType* out) = 0;
+        virtual bool Evaluate(InstanceHandle self, InstanceHandle other, int ev, int sub, unsigned int asObjId, GMLType* out) = 0;
         virtual bool Compile() { return true; }
         virtual ~Parameter() {}
     };
@@ -24,7 +24,7 @@ namespace CodeActionManager {
       public:
         ParamExpression(CodeObject exp) : _exp(exp) {}
         ~ParamExpression() {}
-        virtual bool Evaluate(Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, GMLType* out) { return CodeManager::Query(_exp, self, other, ev, sub, asObjId, out); }
+        virtual bool Evaluate(InstanceHandle self, InstanceHandle other, int ev, int sub, unsigned int asObjId, GMLType* out) { return CodeManager::Query(_exp, self, other, ev, sub, asObjId, out); }
         virtual bool Compile() override { return CodeManager::Compile(_exp); }
     };
 
@@ -35,7 +35,7 @@ namespace CodeActionManager {
       public:
         ParamGML(CodeObject code) : _code(code) {}
         ~ParamGML() {}
-        virtual bool Evaluate(Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, GMLType* out) { return CodeManager::Run(_code, self, other, ev, sub, asObjId); }
+        virtual bool Evaluate(InstanceHandle self, InstanceHandle other, int ev, int sub, unsigned int asObjId, GMLType* out) { return CodeManager::Run(_code, self, other, ev, sub, asObjId); }
         virtual bool Compile() override { return true; /*return CodeManager::Compile(_code);*/ }
     };
 
@@ -47,7 +47,7 @@ namespace CodeActionManager {
         ParamLiteral(int p) { _param.dVal = static_cast<double>(p); }
         ParamLiteral(const char* p) { _param.sVal = p; }
         ~ParamLiteral() {}
-        virtual bool Evaluate(Instance* self, Instance* other, int ev, int sub, unsigned int asObjId, GMLType* out) {
+        virtual bool Evaluate(InstanceHandle self, InstanceHandle other, int ev, int sub, unsigned int asObjId, GMLType* out) {
             (*out) = _param;
             return true;
         }
@@ -513,7 +513,7 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
             // Set variable
             gml = args[0];
             gml += relative ? "+=" : "=";
-            gml += "argument[0]";
+            gml += "argument[1]";
             break;
         }
         case 612: {
@@ -576,7 +576,7 @@ bool CodeActionManager::Compile(CodeAction action) {
     return CodeManager::Compile(_actions[action].codeObj);
 }
 
-bool CodeActionManager::Run(CodeAction* actions, unsigned int count, Instance* self, Instance* other, int ev, int sub, unsigned int asObjId) {
+bool CodeActionManager::Run(CodeAction* actions, unsigned int count, InstanceHandle self, InstanceHandle other, int ev, int sub, unsigned int asObjId) {
     unsigned int pos = 0;
     while (pos < count) {
         bool run = true;
@@ -601,18 +601,18 @@ bool CodeActionManager::Run(CodeAction* actions, unsigned int count, Instance* s
             if (_actions[actions[pos]].appliesToSomething && _actions[actions[pos]].appliesTo != -1) {
                 if (_actions[actions[pos]].appliesTo == -2) {
                     for (unsigned int i = 0; i < _actions[actions[pos]].paramCount; i++) {
-                        if(!_actions[actions[pos]].params[i]->Evaluate(other, self, ev, sub, other->object_index, &args[i])) return false;
+                        if(!_actions[actions[pos]].params[i]->Evaluate(other, self, ev, sub, InstanceList::GetInstance(other).object_index, &args[i])) return false;
                     }
-                    if (!CodeManager::Run(_actions[actions[pos]].codeObj, other, self, ev, sub, other->object_index, _actions[actions[pos]].paramCount, args)) return false;
+                    if (!CodeManager::Run(_actions[actions[pos]].codeObj, other, self, ev, sub, InstanceList::GetInstance(other).object_index, _actions[actions[pos]].paramCount, args)) return false;
                 }
                 else {
                     InstanceList::Iterator iter(_actions[actions[pos]].appliesTo);
-                    Instance* inst;
-                    while (inst = iter.Next()) {
+                    InstanceHandle inst;
+                    while ((inst = iter.Next()) != InstanceList::NoInstance) {
                         for (unsigned int i = 0; i < _actions[actions[pos]].paramCount; i++) {
-                            if(!_actions[actions[pos]].params[i]->Evaluate(inst, self, ev, sub, inst->object_index, &args[i])) return false;
+                            if(!_actions[actions[pos]].params[i]->Evaluate(inst, self, ev, sub, InstanceList::GetInstance(inst).object_index, &args[i])) return false;
                         }
-                        if (!CodeManager::Run(_actions[actions[pos]].codeObj, inst, self, ev, sub, inst->object_index, _actions[actions[pos]].paramCount, args)) return false;
+                        if (!CodeManager::Run(_actions[actions[pos]].codeObj, inst, self, ev, sub, InstanceList::GetInstance(inst).object_index, _actions[actions[pos]].paramCount, args)) return false;
                     }
                 }
             }
@@ -647,7 +647,7 @@ bool CodeActionManager::Run(CodeAction* actions, unsigned int count, Instance* s
 }
 
 
-bool CodeActionManager::RunInstanceEvent(int ev, int sub, Instance* target, Instance* other, unsigned int asObjId) {
+bool CodeActionManager::RunInstanceEvent(int ev, int sub, InstanceHandle target, InstanceHandle other, unsigned int asObjId) {
     Object* o = AssetManager::GetObject(asObjId);
     while (!CheckObjectEvent(ev, sub, o)) {
         if (o->parentIndex < 0) return true;
