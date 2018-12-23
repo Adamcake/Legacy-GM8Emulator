@@ -342,13 +342,13 @@ bool _setGameValue(CRGameVar index, unsigned int arrayIndex, CRSetMethod method,
         case ROOM:
             lhs.dVal = static_cast<double>(_globalValues->roomTarget);
             if(!_applySetMethod(&lhs, method, &value)) return false;
-            _globalValues->roomTarget = ( unsigned int )Runtime::_round(lhs.dVal);
+            _globalValues->roomTarget = static_cast<unsigned int>(Runtime::_round(lhs.dVal));
             _globalValues->changeRoom = true;
             break;
         case ROOM_SPEED:
             lhs.dVal = static_cast<double>(_globalValues->room_speed);
             if (!_applySetMethod(&lhs, method, &value)) return false;
-            _globalValues->room_speed = ( unsigned int )Runtime::_round(lhs.dVal);
+            _globalValues->room_speed = static_cast<unsigned int>(Runtime::_round(lhs.dVal));
             break;
         case ROOM_CAPTION:
             lhs.state = GMLTypeState::String;
@@ -458,9 +458,9 @@ bool _setInstanceVar(Instance& instance, CRInstanceVar index, unsigned int array
         case IV_ALARM: {
             int alarmValue = (value.state == GMLTypeState::Double ? Runtime::_round(value.dVal) : 0);
             if (alarmValue)
-                AlarmSet(instance.id, ( unsigned int )arrayIndex, alarmValue);
+                AlarmSet(instance.id, static_cast<unsigned int>(arrayIndex), alarmValue);
             else
-                AlarmDelete(instance.id, ( unsigned int )arrayIndex);
+                AlarmDelete(instance.id, static_cast<unsigned int>(arrayIndex));
             break;
         }
         case IV_DIRECTION:
@@ -658,7 +658,7 @@ bool _getInstanceVar(Instance& instance, CRInstanceVar index, unsigned int array
     out->state = GMLTypeState::Double;
     switch (index) {
         case IV_ALARM:
-            out->dVal = ( double )AlarmGet(instance.id, arrayIndex);
+            out->dVal = static_cast<double>(AlarmGet(instance.id, arrayIndex));
             break;
         case IV_INSTANCE_ID:
             out->dVal = instance.id;
@@ -688,7 +688,7 @@ bool _getInstanceVar(Instance& instance, CRInstanceVar index, unsigned int array
             out->dVal = (instance.solid ? GMLTrue : GMLFalse);
             break;
         case IV_DEPTH:
-            out->dVal = ( double )instance.depth;
+            out->dVal = static_cast<double>(instance.depth);
             break;
         case IV_VISIBLE:
             out->dVal = (instance.visible ? GMLTrue : GMLFalse);
@@ -727,7 +727,7 @@ bool _getInstanceVar(Instance& instance, CRInstanceVar index, unsigned int array
             out->dVal = instance.sprite_index;
             break;
         case IV_SPRITE_WIDTH:
-            if (instance.sprite_index < 0 || instance.sprite_index >= ( int )AssetManager::GetSpriteCount()) {
+            if (instance.sprite_index < 0 || instance.sprite_index >= static_cast<int>(AssetManager::GetSpriteCount())) {
                 out->dVal = 0;
             }
             else {
@@ -736,7 +736,7 @@ bool _getInstanceVar(Instance& instance, CRInstanceVar index, unsigned int array
             }
             break;
         case IV_SPRITE_HEIGHT:
-            if (instance.sprite_index < 0 || instance.sprite_index >= ( int )AssetManager::GetSpriteCount()) {
+            if (instance.sprite_index < 0 || instance.sprite_index >= static_cast<int>(AssetManager::GetSpriteCount())) {
                 out->dVal = 0.0;
             }
             else {
@@ -757,13 +757,13 @@ bool _getInstanceVar(Instance& instance, CRInstanceVar index, unsigned int array
             out->dVal = instance.image_angle;
             break;
         case IV_IMAGE_BLEND:
-            out->dVal = ( double )instance.image_blend;
+            out->dVal = static_cast<double>(instance.image_blend);
             break;
         case IV_IMAGE_ALPHA:
             out->dVal = instance.image_alpha;
             break;
         case IV_PATH_INDEX:
-            out->dVal = ( double )instance.path_index;
+            out->dVal = static_cast<double>(instance.path_index);
             break;
         case IV_PATH_POSITION:
             out->dVal = instance.path_position;
@@ -784,7 +784,7 @@ bool _getInstanceVar(Instance& instance, CRInstanceVar index, unsigned int array
             out->dVal = instance.path_positionprevious;
             break;
         case IV_TIMELINE_INDEX:
-            out->dVal = ( double )instance.timeline_index;
+            out->dVal = static_cast<double>(instance.timeline_index);
             break;
         case IV_TIMELINE_RUNNING:
             out->dVal = instance.timeline_running ? GMLTrue : GMLFalse;
@@ -826,7 +826,7 @@ bool _getInstanceVar(Instance& instance, CRInstanceVar index, unsigned int array
 int Runtime::_round(double d) {
     // This mimics the x86_32 "FISTP" operator which is commonly used in the GM8 runner.
     // We can't actually use that operator, because we're targeting other platforms than x86 Windows.
-    int down = ( int )d;
+    int down = static_cast<int>(d);
     if ((d - down) < 0.5) return down;
     if ((d - down) > 0.5) return (down + 1);
     return down + (down & 1);
@@ -1277,7 +1277,7 @@ bool CRActionAssignmentInstanceVar::Run() {
                     _error = "Tried to dereference negative number: " + std::to_string(id);
                     return false;
                 }
-                InstanceList::Iterator iter(( unsigned int )id);
+                InstanceList::Iterator iter(static_cast<unsigned int>(id));
                 InstanceHandle i;
                 while ((i = iter.Next()) != InstanceList::NoInstance) {
                     if (!_setInstanceVar(InstanceList::GetInstance(i), _var, index, _method, v)) return false;

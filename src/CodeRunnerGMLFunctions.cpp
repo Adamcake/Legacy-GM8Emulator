@@ -338,7 +338,7 @@ bool Runtime::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
                 recalcX = false;
             }
 
-            if (font->rangeBegin <= ( unsigned int )c && font->rangeEnd >= ( unsigned int )c) {
+            if (font->rangeBegin <= static_cast<unsigned int>(c) && font->rangeEnd >= static_cast<unsigned int>(c)) {
                 unsigned int* dmapPos = font->dmap + (c * 6);
                 unsigned int cX = *(dmapPos);
                 unsigned int cY = *(dmapPos + 1);
@@ -347,7 +347,7 @@ bool Runtime::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
                 unsigned int cCW = *(dmapPos + 4);
                 unsigned int cCO = *(dmapPos + 5);
 
-                RDrawPartialImage(font->image, cursorX + ( int )cCO, cursorY, 1, 1, 0.0, _drawColour, _drawAlpha, cX, cY, cW, cH, InstanceList::GetInstance(GetContext().self).depth);
+                RDrawPartialImage(font->image, cursorX + static_cast<int>(cCO), cursorY, 1, 1, 0.0, _drawColour, _drawAlpha, cX, cY, cW, cH, InstanceList::GetInstance(GetContext().self).depth);
                 cursorX += cCW;
             }
         }
@@ -607,7 +607,7 @@ bool Runtime::instance_place(unsigned int argc, GMLType* argv, GMLType* out) {
         self.bboxIsStale = true;
 
         int objId = _round(argv[2].dVal);
-        InstanceList::Iterator it(( unsigned int )objId);
+        InstanceList::Iterator it(static_cast<unsigned int>(objId));
         if (objId == -3) it = InstanceList::Iterator();
         double ret = -4.0;
 
@@ -621,7 +621,7 @@ bool Runtime::instance_place(unsigned int argc, GMLType* argv, GMLType* out) {
         }
         out->state = GMLTypeState::Double;
         out->dVal = ret;
-
+        
         self.x = oldX;
         self.y = oldY;
         self.bboxIsStale = true;
@@ -635,7 +635,7 @@ bool Runtime::instance_position(unsigned int argc, GMLType* argv, GMLType* out) 
         int objId = _round(argv[2].dVal);
         int x = _round(argv[0].dVal);
         int y = _round(argv[1].dVal);
-        InstanceList::Iterator it(( unsigned int )objId);
+        InstanceList::Iterator it(static_cast<unsigned int>(objId));
         if (objId == -3) it = InstanceList::Iterator();
         InstanceHandle instance;
         double ret = -4.0;
@@ -657,7 +657,7 @@ bool Runtime::irandom(unsigned int argc, GMLType* argv, GMLType* out) {
     int rand = RNG::Irandom(_round(argv[0].dVal));
     if (out) {
         out->state = GMLTypeState::Double;
-        out->dVal = ( double )rand;
+        out->dVal = static_cast<double>(rand);
     }
     return true;
 }
@@ -667,7 +667,7 @@ bool Runtime::irandom_range(unsigned int argc, GMLType* argv, GMLType* out) {
     int rand = RNG::Irandom(::abs(_round(argv[1].dVal) - _round(argv[0].dVal)));
     if (out) {
         out->state = GMLTypeState::Double;
-        out->dVal = ( double )rand + std::fmin(argv[0].dVal, argv[1].dVal);
+        out->dVal = static_cast<double>(rand) + std::fmin(argv[0].dVal, argv[1].dVal);
     }
     return true;
 }
@@ -808,13 +808,13 @@ bool Runtime::ln(unsigned int argc, GMLType* argv, GMLType* out) {
 bool Runtime::make_color_hsv(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 3, false, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
     if (out) {
-        float fH = ( float )((argv[0].dVal / 255.0) * 360.0);
-        float fS = ( float )(argv[1].dVal / 255.0);
-        float fV = ( float )(argv[2].dVal / 255.0);
+        float fH = static_cast<float>((argv[0].dVal / 255.0) * 360.0);
+        float fS = static_cast<float>(argv[1].dVal / 255.0);
+        float fV = static_cast<float>(argv[2].dVal / 255.0);
         float fR, fG, fB;
         float fC = fV * fS;  // Chroma
-        float fHPrime = ( float )fmod(fH / 60.0, 6);
-        float fX = fC * ( float )(1 - fabs(fmod(fHPrime, 2) - 1));
+        float fHPrime = static_cast<float>(fmod(fH / 60.0, 6));
+        float fX = fC * static_cast<float>(1 - fabs(fmod(fHPrime, 2) - 1));
         float fM = fV - fC;
 
         if (0 <= fHPrime && fHPrime < 1) {
@@ -858,7 +858,7 @@ bool Runtime::make_color_hsv(unsigned int argc, GMLType* argv, GMLType* out) {
         fB += fM;
 
         out->state = GMLTypeState::Double;
-        out->dVal = (( unsigned int )(fR * 255)) | ((( unsigned int )(fG * 255)) << 8) | ((( unsigned int )(fB * 255)) << 16);
+        out->dVal = (static_cast<unsigned int>(fR * 255)) | ((static_cast<unsigned int>(fG * 255)) << 8) | ((static_cast<unsigned int>(fB * 255)) << 16);
     }
     return true;
 }
@@ -1111,7 +1111,7 @@ bool Runtime::ord(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     if (out) {
         out->state = GMLTypeState::Double;
-        out->dVal = ( double )argv[0].sVal[0];
+        out->dVal = static_cast<double>(argv[0].sVal[0]);
     }
     return true;
 }
@@ -1154,7 +1154,7 @@ bool Runtime::place_meeting(unsigned int argc, GMLType* argv, GMLType* out) {
         out->state = GMLTypeState::Double;
         out->dVal = GMLFalse;
         int obj = _round(argv[2].dVal);
-        InstanceList::Iterator iter(( unsigned int )obj);
+        InstanceList::Iterator iter(static_cast<unsigned int>(obj));
         if (obj == -3) iter = InstanceList::Iterator();
 
         Instance& self = InstanceList::GetInstance(GetContext().self);
@@ -1241,7 +1241,7 @@ bool Runtime::random_range(unsigned int argc, GMLType* argv, GMLType* out) {
 bool Runtime::random_get_seed(unsigned int argc, GMLType* argv, GMLType* out) {
     if (out) {
         out->state = GMLTypeState::Double;
-        out->dVal = ( double )RNG::GetSeed();
+        out->dVal = static_cast<double>(RNG::GetSeed());
     }
     return true;
 }
