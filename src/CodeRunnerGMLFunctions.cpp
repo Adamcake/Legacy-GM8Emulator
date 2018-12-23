@@ -168,7 +168,7 @@ bool Runtime::distance_to_object(unsigned int argc, GMLType* argv, GMLType* out)
     double lowestDist = 1000000.0;  // GML default
     RefreshInstanceBbox(&self);
 
-    while (other = iter.Next()) {
+    while ((other = iter.Next()) != InstanceList::NoInstance) {
         Instance& otherInst = InstanceList::GetInstance(other);
         RefreshInstanceBbox(&otherInst);
 
@@ -579,7 +579,7 @@ bool Runtime::instance_destroy(unsigned int argc, GMLType* argv, GMLType* out) {
 bool Runtime::instance_exists(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     int objId = _round(argv[0].dVal);
-    InstanceList::Iterator it(( unsigned int )objId);
+    InstanceList::Iterator it(static_cast<unsigned int>(objId));
     out->state = GMLTypeState::Double;
     out->dVal = ((it.Next() != InstanceList::NoInstance) ? GMLTrue : GMLFalse);
     return true;
@@ -588,11 +588,11 @@ bool Runtime::instance_exists(unsigned int argc, GMLType* argv, GMLType* out) {
 bool Runtime::instance_number(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
     int objId = _round(argv[0].dVal);
-    InstanceList::Iterator it(( unsigned int )objId);
+    InstanceList::Iterator it(static_cast<unsigned int>(objId));
     out->state = GMLTypeState::Double;
     unsigned int count = 0;
-    while (it.Next()) count++;
-    out->dVal = ( double )count;
+    while (it.Next() != InstanceList::NoInstance) count++;
+    out->dVal = static_cast<double>(count);
     return true;
 }
 
