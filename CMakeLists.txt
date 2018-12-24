@@ -4,8 +4,6 @@ project(GM8Emulator)
 set(CMAKE_CXX_STANDARD 17)
 set(CXX_STANDARD_REQUIRED ON)
 
-include("deps/cmake/cmake-precompiled-header.cmake")
-
 set(AMD64 OFF CACHE BOOL "" FORCE) # zlib
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)

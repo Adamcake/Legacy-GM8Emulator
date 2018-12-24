@@ -1,8 +1,13 @@
-#include <pch.h>
 #define PI 3.14159265358979324
+#include "Renderer.hpp"
 #include "GameSettings.hpp"
 #include "InputHandler.hpp"
-#include "Renderer.hpp"
+
+// It's supposed to be in GLAD *then* GLFW, don't remove the newline inbetween.
+#include <glad/glad.h>
+
+#include <GLFW/glfw3.h>
+#include <finders_interface.h>  // rectpack2D
 
 const GLchar* fragmentShaderCode =
     "#version 330\n"
@@ -192,9 +197,9 @@ bool RMakeGameWindow(GameSettings* settings, unsigned int w, unsigned int h) {
     glCompileShader(fragmentShader);
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &vertexCompiled);
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &fragmentCompiled);
-     if ((!vertexCompiled) || (!fragmentCompiled)) {
-    	// Failed to compile shaders
-    	return false;
+    if ((!vertexCompiled) || (!fragmentCompiled)) {
+        // Failed to compile shaders
+        return false;
     }
     _glProgram = glCreateProgram();
     glAttachShader(_glProgram, vertexShader);

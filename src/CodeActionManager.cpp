@@ -1,5 +1,3 @@
-#include <pch.h>
-
 #include "CodeActionManager.hpp"
 #include "AssetManager.hpp"
 #include "CRGMLType.hpp"
@@ -7,6 +5,8 @@
 #include "Instance.hpp"
 #include "InstanceList.hpp"
 #include "StreamUtil.hpp"
+
+#include <string>
 
 // Private vars
 namespace CodeActionManager {
@@ -66,13 +66,11 @@ namespace CodeActionManager {
     std::vector<CACodeAction> _actions;
 }
 
-bool CodeActionManager::Init() {
-    return true;
-}
+bool CodeActionManager::Init() { return true; }
 
 void CodeActionManager::Finalize() {
-    for(CACodeAction& action : _actions) {
-        for(unsigned int i = 0; i < action.paramCount; i++) {
+    for (CACodeAction& action : _actions) {
+        for (unsigned int i = 0; i < action.paramCount; i++) {
             delete action.params[i];
         }
     }
@@ -91,8 +89,7 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
     (*pos) += ReadDword(stream, pos);  // Function code?
 
     action.paramCount = ReadDword(stream, pos);
-    if (action.paramCount > 8)
-        return false;  // There's space for 8 args per action. If we try to read more than this, something's wrong.
+    if (action.paramCount > 8) return false;  // There's space for 8 args per action. If we try to read more than this, something's wrong.
 
     (*pos) += 4;  // Version id
     unsigned int types[8];
@@ -403,7 +400,7 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
         }
         case 405: {
             // 1 in n chance to perform the next action
-            if(_not) 
+            if (_not)
                 gml = "random(argument[0]) > 1";
             else
                 gml = "random(argument[0]) < 1";
@@ -435,16 +432,20 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
             break;
         }
         case 501: {
-            if(relative) gml = "draw_sprite(argument[0],argument[3],x+argument[1],y+argument[2])";
-            else gml = "draw_sprite(argument[0],argument[3],argument[1],argument[2])";
+            if (relative)
+                gml = "draw_sprite(argument[0],argument[3],x+argument[1],y+argument[2])";
+            else
+                gml = "draw_sprite(argument[0],argument[3],argument[1],argument[2])";
             break;
         }
         case 514: {
             const char* arg0 = args[0];
             const char* arg1 = args[1];
             const char* arg2 = args[2];
-            if(relative) gml = "draw_text(x+argument[1],y+argument[2],argument[0])";
-            else gml = "draw_text(argument[1],argument[2],argument[0])";
+            if (relative)
+                gml = "draw_text(x+argument[1],y+argument[2],argument[0])";
+            else
+                gml = "draw_text(argument[1],argument[2],argument[0])";
             break;
         }
         case 524: {
@@ -569,7 +570,7 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
 
 bool CodeActionManager::Compile(CodeAction action) {
     for (unsigned int i = 0; i < _actions[action].paramCount; i++) {
-        if(!_actions[action].params[i]->Compile()) {
+        if (!_actions[action].params[i]->Compile()) {
             return false;
         }
     }
@@ -601,7 +602,7 @@ bool CodeActionManager::Run(CodeAction* actions, unsigned int count, InstanceHan
             if (_actions[actions[pos]].appliesToSomething && _actions[actions[pos]].appliesTo != -1) {
                 if (_actions[actions[pos]].appliesTo == -2) {
                     for (unsigned int i = 0; i < _actions[actions[pos]].paramCount; i++) {
-                        if(!_actions[actions[pos]].params[i]->Evaluate(other, self, ev, sub, InstanceList::GetInstance(other).object_index, &args[i])) return false;
+                        if (!_actions[actions[pos]].params[i]->Evaluate(other, self, ev, sub, InstanceList::GetInstance(other).object_index, &args[i])) return false;
                     }
                     if (!CodeManager::Run(_actions[actions[pos]].codeObj, other, self, ev, sub, InstanceList::GetInstance(other).object_index, _actions[actions[pos]].paramCount, args)) return false;
                 }
@@ -610,7 +611,7 @@ bool CodeActionManager::Run(CodeAction* actions, unsigned int count, InstanceHan
                     InstanceHandle inst;
                     while ((inst = iter.Next()) != InstanceList::NoInstance) {
                         for (unsigned int i = 0; i < _actions[actions[pos]].paramCount; i++) {
-                            if(!_actions[actions[pos]].params[i]->Evaluate(inst, self, ev, sub, InstanceList::GetInstance(inst).object_index, &args[i])) return false;
+                            if (!_actions[actions[pos]].params[i]->Evaluate(inst, self, ev, sub, InstanceList::GetInstance(inst).object_index, &args[i])) return false;
                         }
                         if (!CodeManager::Run(_actions[actions[pos]].codeObj, inst, self, ev, sub, InstanceList::GetInstance(inst).object_index, _actions[actions[pos]].paramCount, args)) return false;
                     }
@@ -618,7 +619,7 @@ bool CodeActionManager::Run(CodeAction* actions, unsigned int count, InstanceHan
             }
             else {
                 for (unsigned int i = 0; i < _actions[actions[pos]].paramCount; i++) {
-                    if(!_actions[actions[pos]].params[i]->Evaluate(self, other, ev, sub, asObjId, &args[i])) return false;
+                    if (!_actions[actions[pos]].params[i]->Evaluate(self, other, ev, sub, asObjId, &args[i])) return false;
                 }
                 if (!CodeManager::Run(_actions[actions[pos]].codeObj, self, other, ev, sub, asObjId, _actions[actions[pos]].paramCount, args)) return false;
             }

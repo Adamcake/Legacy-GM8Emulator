@@ -1,5 +1,5 @@
-#ifndef _A_CODEACTION_HPP_
-#define _A_CODEACTION_HPP_
+#pragma once
+
 #include <vector>
 
 typedef unsigned int CodeAction;
@@ -33,5 +33,3 @@ namespace CodeActionManager {
     // If not, the instance's parent should usually be checked next.
     bool CheckObjectEvent(int ev, int sub, Object* obj);
 };
-
-#endif

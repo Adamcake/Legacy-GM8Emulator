@@ -1,5 +1,4 @@
-#ifndef _A_RNG_HPP_
-#define _A_RNG_HPP_
+#pragma once
 
 namespace RNG {
     // Sets the seed to a new value unrelated to the previous one, based on the current unix time.
@@ -15,6 +14,4 @@ namespace RNG {
     // Get and set seed
     void SetSeed(int s);
     int GetSeed();
-}
-
-#endif
+};

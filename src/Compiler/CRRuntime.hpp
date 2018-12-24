@@ -1,7 +1,8 @@
-#ifndef _A_CRRUNTIME_HPP_
-#define _A_CRRUNTIME_HPP_
-#include <pch.h>
+#pragma once
+
 #include "CREnums.hpp"
+#include <map>
+
 struct GMLType;
 struct GlobalValues;
 typedef unsigned int InstanceHandle;
@@ -28,14 +29,7 @@ namespace Runtime {
     bool _isTrue(const GMLType* value);
 
     // Return reasons
-    enum ReturnCause {
-        ExitNormal,
-        ExitGameEnd,
-        ExitError,
-        Continue,
-        Break,
-        Return
-    };
+    enum ReturnCause { ExitNormal, ExitGameEnd, ExitError, Continue, Break, Return };
     ReturnCause GetReturnCause();
     void SetReturnCause(ReturnCause);
     const char* GetErrorMessage();
@@ -50,7 +44,7 @@ namespace Runtime {
         unsigned int objId;
         unsigned int argc;
         const GMLType* argv;
-        std::map<unsigned int,  std::map<unsigned int, GMLType>> locals;
+        std::map<unsigned int, std::map<unsigned int, GMLType>> locals;
         std::map<CRInstanceVar, std::map<unsigned int, GMLType>> localInstance;
     };
     Context GetContext();
@@ -148,6 +142,4 @@ namespace Runtime {
     bool window_set_caption(unsigned int argc, GMLType* argv, GMLType* out);
     bool window_get_caption(unsigned int argc, GMLType* argv, GMLType* out);
     bool unimplemented(unsigned int argc, GMLType* argv, GMLType* out);
-}
-
-#endif
+};

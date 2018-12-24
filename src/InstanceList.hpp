@@ -1,10 +1,10 @@
-#ifndef _A_INSTANCELIST_HPP_
-#define _A_INSTANCELIST_HPP_
-#include <pch.h>
+#pragma once
 
 #include <functional>
+
 struct GMLType;
 struct Instance;
+
 typedef unsigned int InstanceID;
 typedef unsigned int InstanceHandle;
 
@@ -36,7 +36,7 @@ namespace InstanceList {
     // Gets a dummy instance for use in room creation code.
     // Doesn't need to be destroyed, won't ever be iterated, and doesn't count towards instance_count.
     InstanceHandle GetDummyInstance();
-    
+
     // Get the number of active instances
     size_t Count();
 
@@ -84,5 +84,3 @@ namespace InstanceList {
 
     extern unsigned int NoInstance;
 };
-
-#endif

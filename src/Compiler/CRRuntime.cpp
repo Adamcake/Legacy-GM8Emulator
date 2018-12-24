@@ -1,19 +1,21 @@
-#include <pch.h>
-
-#include <chrono>
+#include "CRRuntime.hpp"
 #include "Alarm.hpp"
 #include "AssetManager.hpp"
-#include "CRRuntime.hpp"
 #include "CodeRunner.hpp"
 #include "Collision.hpp"
 #include "Compiled.hpp"
+#include "Constants.hpp"
 #include "GlobalValues.hpp"
 #include "Instance.hpp"
 #include "InstanceList.hpp"
 #include "Renderer.hpp"
 
+#include <chrono>
+#include <math.h>
+#include <stdarg.h>
+
 GlobalValues* _globalValues;
-std::map<unsigned int,  std::map<unsigned int, GMLType>> _global;
+std::map<unsigned int, std::map<unsigned int, GMLType>> _global;
 std::map<CRInstanceVar, std::map<unsigned int, GMLType>> _globalInstance;
 std::vector<bool (*)(unsigned int, GMLType*, GMLType*)> _gmlFuncs;
 std::string _error;
@@ -246,7 +248,7 @@ bool _getGameValue(CRGameVar index, unsigned int arrayIndex, GMLType* out) {
             break;
         case CURRENT_TIME: {
             std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-            unsigned long time = (unsigned long)(t1.time_since_epoch() / std::chrono::milliseconds(1));
+            unsigned long time = ( unsigned long )(t1.time_since_epoch() / std::chrono::milliseconds(1));
             out->dVal = static_cast<double>(time);
             break;
         }
@@ -341,7 +343,7 @@ bool _setGameValue(CRGameVar index, unsigned int arrayIndex, CRSetMethod method,
     switch (index) {
         case ROOM:
             lhs.dVal = static_cast<double>(_globalValues->roomTarget);
-            if(!_applySetMethod(&lhs, method, &value)) return false;
+            if (!_applySetMethod(&lhs, method, &value)) return false;
             _globalValues->roomTarget = static_cast<unsigned int>(Runtime::_round(lhs.dVal));
             _globalValues->changeRoom = true;
             break;
@@ -353,7 +355,7 @@ bool _setGameValue(CRGameVar index, unsigned int arrayIndex, CRSetMethod method,
         case ROOM_CAPTION:
             lhs.state = GMLTypeState::String;
             lhs.sVal = _globalValues->room_caption;
-            if(!_applySetMethod(&lhs, method, &value)) return false;
+            if (!_applySetMethod(&lhs, method, &value)) return false;
             _globalValues->room_caption = lhs.sVal;
             break;
         case VIEW_ENABLED:
@@ -885,7 +887,7 @@ bool CRActionList::Run(unsigned int start) {
 }
 
 void CRActionList::Finalize() {
-    for(CRAction* action : _actions) {
+    for (CRAction* action : _actions) {
         action->Finalize();
         delete action;
     }
@@ -1060,7 +1062,7 @@ bool CRExpression::Evaluate(GMLType* output) {
 }
 
 void CRExpression::Finalize() {
-    for(CRExpressionValue* value : _values) {
+    for (CRExpressionValue* value : _values) {
         value->Finalize();
         delete value;
     }
@@ -1108,9 +1110,7 @@ bool _evalArrayAccessor(std::vector<CRExpression>& dimensions, int* out) {
 }
 
 
-bool CRActionBindVars::Run() {
-    return true;
-}
+bool CRActionBindVars::Run() { return true; }
 
 bool CRActionAssignmentField::Run() {
     GMLType v;
@@ -1264,7 +1264,7 @@ bool CRActionAssignmentInstanceVar::Run() {
                 break;
             }
             case GLOBAL: {
-                if(!_applySetMethod(&_globalInstance[_var][index], _method, &v)) return false;
+                if (!_applySetMethod(&_globalInstance[_var][index], _method, &v)) return false;
                 return true;
             }
             case LOCAL: {
@@ -1518,7 +1518,7 @@ bool CRActionSwitch::Run() {
                 }
             }
             else {
-                if(exp.sVal == caseExp.sVal) {
+                if (exp.sVal == caseExp.sVal) {
                     offset = c.offset;
                     break;
                 }

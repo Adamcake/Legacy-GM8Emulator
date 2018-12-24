@@ -1,9 +1,9 @@
-#ifndef _A_GAMERENDERER_HPP_
-#define _A_GAMERENDERER_HPP_
-struct GameSettings;
-typedef unsigned int RImageIndex;
+#pragma once
+
 #include <vector>
 
+struct GameSettings;
+typedef unsigned int RImageIndex;
 
 void RInit();
 void RTerminate();
@@ -41,5 +41,3 @@ void RStartFrame();
 
 // Render the current frame after drawing all images
 void RRenderFrame();
-
-#endif

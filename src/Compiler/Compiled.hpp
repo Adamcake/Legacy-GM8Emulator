@@ -1,6 +1,5 @@
-#ifndef _A_COMPILED_HPP_
-#define _A_COMPILED_HPP_
-#include <pch.h>
+#pragma once
+
 #include "CREnums.hpp"
 #include "CRGMLType.hpp"
 
@@ -28,7 +27,7 @@ class CRExpressionValue {
 
     inline CROperator GetOperator() { return _operator; }
     inline void SetOperator(CROperator op) { _operator = op; }
-    inline std::vector<CRUnaryOperator>* GetUnaries() {return &_unary;}
+    inline std::vector<CRUnaryOperator>* GetUnaries() { return &_unary; }
     inline void SetUnaries(const std::vector<CRUnaryOperator>&& v) { _unary = v; }
 };
 
@@ -42,7 +41,7 @@ class CRActionList {
     bool Run(unsigned int start = 0);
     virtual void Finalize();
 
-    inline size_t Count() {return _actions.size();}
+    inline size_t Count() { return _actions.size(); }
 };
 
 // List of expression values
@@ -53,7 +52,7 @@ class CRExpression {
   public:
     inline void Append(CRExpressionValue* a) { _values.push_back(a); }
     bool Evaluate(GMLType* output);
-    inline std::vector<CRExpressionValue*>* GetValues() {return &_values;}
+    inline std::vector<CRExpressionValue*>* GetValues() { return &_values; }
     virtual void Finalize();
 };
 
@@ -76,12 +75,14 @@ class CRActionAssignmentField : public CRAction {
     bool _isLocal;
 
   public:
-    CRActionAssignmentField(unsigned int field, CRSetMethod method, CRExpression exp, bool isLocal) :
-        _field(field), _method(method), _expression(exp), _hasDeref(false), _isLocal(isLocal) {}
-    CRActionAssignmentField(unsigned int field, CRSetMethod method, CRExpression deref, CRExpression exp, bool isLocal) :
-        _field(field), _method(method), _deref(deref), _expression(exp), _hasDeref(true), _isLocal(isLocal) {}
+    CRActionAssignmentField(unsigned int field, CRSetMethod method, CRExpression exp, bool isLocal) : _field(field), _method(method), _expression(exp), _hasDeref(false), _isLocal(isLocal) {}
+    CRActionAssignmentField(unsigned int field, CRSetMethod method, CRExpression deref, CRExpression exp, bool isLocal)
+        : _field(field), _method(method), _deref(deref), _expression(exp), _hasDeref(true), _isLocal(isLocal) {}
     virtual bool Run() override;
-    virtual void Finalize() override {_deref.Finalize(); _expression.Finalize();}
+    virtual void Finalize() override {
+        _deref.Finalize();
+        _expression.Finalize();
+    }
 };
 
 class CRActionAssignmentArray : public CRAction {
@@ -95,15 +96,15 @@ class CRActionAssignmentArray : public CRAction {
     bool _isLocal;
 
   public:
-    CRActionAssignmentArray(unsigned int field, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression exp, bool isLocal) :
-        _field(field), _method(method), _expression(exp), _dimensions(dimensions), _hasDeref(false), _isLocal(isLocal) {}
-    CRActionAssignmentArray(unsigned int field, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression deref, CRExpression exp, bool isLocal) :
-        _field(field), _method(method), _dimensions(dimensions), _deref(deref), _expression(exp), _hasDeref(true), _isLocal(isLocal) {}
+    CRActionAssignmentArray(unsigned int field, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression exp, bool isLocal)
+        : _field(field), _method(method), _expression(exp), _dimensions(dimensions), _hasDeref(false), _isLocal(isLocal) {}
+    CRActionAssignmentArray(unsigned int field, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression deref, CRExpression exp, bool isLocal)
+        : _field(field), _method(method), _dimensions(dimensions), _deref(deref), _expression(exp), _hasDeref(true), _isLocal(isLocal) {}
     virtual bool Run() override;
     virtual void Finalize() override {
         _deref.Finalize();
         _expression.Finalize();
-        for(CRExpression& exp : _dimensions) {
+        for (CRExpression& exp : _dimensions) {
             exp.Finalize();
         }
     }
@@ -119,10 +120,10 @@ class CRActionAssignmentInstanceVar : public CRAction {
     CRExpression _expression;
 
   public:
-    CRActionAssignmentInstanceVar(CRInstanceVar var, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression exp) :
-        _var(var), _method(method), _expression(exp), _dimensions(dimensions), _hasDeref(false) {}
-    CRActionAssignmentInstanceVar(CRInstanceVar var, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression deref, CRExpression exp) :
-        _var(var), _method(method), _dimensions(dimensions), _deref(deref), _expression(exp), _hasDeref(true) {}
+    CRActionAssignmentInstanceVar(CRInstanceVar var, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression exp)
+        : _var(var), _method(method), _expression(exp), _dimensions(dimensions), _hasDeref(false) {}
+    CRActionAssignmentInstanceVar(CRInstanceVar var, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression deref, CRExpression exp)
+        : _var(var), _method(method), _dimensions(dimensions), _deref(deref), _expression(exp), _hasDeref(true) {}
     virtual bool Run() override;
     virtual void Finalize() override {
         _deref.Finalize();
@@ -141,8 +142,8 @@ class CRActionAssignmentGameVar : public CRAction {
     CRExpression _expression;
 
   public:
-    CRActionAssignmentGameVar(CRGameVar var, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression expression) :
-        _var(var), _method(method), _dimensions(dimensions), _expression(expression) {}
+    CRActionAssignmentGameVar(CRGameVar var, CRSetMethod method, std::vector<CRExpression>& dimensions, CRExpression expression)
+        : _var(var), _method(method), _dimensions(dimensions), _expression(expression) {}
     virtual bool Run() override;
     virtual void Finalize() override {
         _expression.Finalize();
@@ -159,7 +160,7 @@ class CRActionBlock : public CRAction {
   public:
     CRActionBlock(CRActionList list) : _list(list) {}
     virtual bool Run() override;
-    virtual void Finalize() override {_list.Finalize();}
+    virtual void Finalize() override { _list.Finalize(); }
 };
 
 class CRActionRunFunction : public CRAction {
@@ -204,7 +205,7 @@ class CRActionIfElse : public CRAction {
     virtual void Finalize() override {
         _if->Finalize();
         delete _if;
-        if(_else) {
+        if (_else) {
             _else->Finalize();
             delete _else;
         }
@@ -312,7 +313,7 @@ class CRActionSwitch : public CRAction {
     virtual void Finalize() override {
         _expression.Finalize();
         _actions.Finalize();
-        for(SwitchCase& c : _cases) {
+        for (SwitchCase& c : _cases) {
             c.expression.Finalize();
         }
     }
@@ -343,7 +344,7 @@ class CRActionReturn : public CRAction {
   public:
     CRActionReturn(CRExpression exp) : _expression(exp) {}
     virtual bool Run() override;
-    virtual void Finalize() override {_expression.Finalize();}
+    virtual void Finalize() override { _expression.Finalize(); }
 };
 
 // Expression value types
@@ -373,7 +374,7 @@ class CRExpFunction : public CRExpressionValue {
     CRExpFunction(CRInternalFunction func, std::vector<CRExpression>& args) : _function(func), _args(args) {}
     bool _evaluate(GMLType* output) override;
     void Finalize() override {
-        for(CRExpression& arg : _args) {
+        for (CRExpression& arg : _args) {
             arg.Finalize();
         }
     }
@@ -401,7 +402,7 @@ class CRExpNestedExpression : public CRExpressionValue {
   public:
     CRExpNestedExpression(CRExpression exp) : _expression(exp) {}
     bool _evaluate(GMLType* output) override;
-    void Finalize() override {_expression.Finalize();}
+    void Finalize() override { _expression.Finalize(); }
 };
 
 class CRExpField : public CRExpressionValue {
@@ -428,7 +429,8 @@ class CRExpArray : public CRExpressionValue {
 
   public:
     CRExpArray(unsigned int field, std::vector<CRExpression>& dimensions, bool isLocal) : _fieldNumber(field), _dimensions(dimensions), _hasDeref(false), _isLocal(isLocal) {}
-    CRExpArray(unsigned int field, std::vector<CRExpression>& dimensions, CRExpression deref, bool isLocal) : _fieldNumber(field), _dimensions(dimensions), _deref(deref), _hasDeref(true), _isLocal(isLocal) {}
+    CRExpArray(unsigned int field, std::vector<CRExpression>& dimensions, CRExpression deref, bool isLocal)
+        : _fieldNumber(field), _dimensions(dimensions), _deref(deref), _hasDeref(true), _isLocal(isLocal) {}
     bool _evaluate(GMLType* output) override;
     void Finalize() override {
         for (CRExpression& arg : _dimensions) {
@@ -471,5 +473,3 @@ class CRExpGameVar : public CRExpressionValue {
         }
     }
 };
-
-#endif

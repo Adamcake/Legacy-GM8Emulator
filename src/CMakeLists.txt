@@ -2,11 +2,9 @@
 file(GLOB_RECURSE Source "*.cpp" "*.cxx")
 file(GLOB_RECURSE Headers "*.hxx" "*.hpp" "*.h")
 
-add_executable(GM8Emulator ${Source} ${Headers} "pch.cpp" "pch.h")
-add_precompiled_header(GM8Emulator "pch.h" SOURCE_CXX "pch.cpp")
+add_executable(GM8Emulator ${Source} ${Headers} "../deps/glad/src/glad.c")
 source_group("Headers" FILES ${Headers})
 source_group("Source" FILES ${Source})
-target_sources(GM8Emulator PUBLIC "../deps/glad/src/glad.c")
 include_directories("../deps/glfw/include")
 include_directories("../deps/rectpack2D/src")
 include_directories("../deps/zlib")

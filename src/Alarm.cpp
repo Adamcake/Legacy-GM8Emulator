@@ -1,4 +1,3 @@
-#include <pch.h>
 #include "Alarm.hpp"
 
 std::map<InstanceID, std::map<unsigned int, int>> _alarms;

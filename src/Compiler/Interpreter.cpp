@@ -1,9 +1,8 @@
-#include <pch.h>
-
+#include "Interpreter.hpp"
 #include "AssetManager.hpp"
 #include "CRRuntime.hpp"
 #include "Compiled.hpp"
-#include "Interpreter.hpp"
+#include "Constants.hpp"
 
 namespace GM8Emulator {
     namespace Compiler {

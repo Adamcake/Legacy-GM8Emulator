@@ -1,7 +1,9 @@
-#include <pch.h>
 #include "RNG.hpp"
+#include <inttypes.h>
+#include <stdlib.h>
+#include <time.h>
 
-__int32 seed;
+int32_t seed;
 
 void _cycleSeed() {
     seed *= 0x8088405;
@@ -9,7 +11,7 @@ void _cycleSeed() {
 }
 
 void RNG::Randomize() {
-	seed = static_cast<int>(std::time(NULL));
+    seed = static_cast<int>(time(NULL));
     _cycleSeed();
 }
 
@@ -27,10 +29,6 @@ int RNG::Irandom(int bound) {
     return static_cast<int>(v);
 }
 
-void RNG::SetSeed(int s) {
-	seed = s;
-}
+void RNG::SetSeed(int s) { seed = s; }
 
-int RNG::GetSeed() {
-	return seed;
-}
+int RNG::GetSeed() { return seed; }

@@ -1,11 +1,11 @@
-#ifndef _GM8_GAME_HPP_
-#define _GM8_GAME_HPP_
+#pragma once
+
 #include "AssetManager.hpp"
 #include "GameSettings.hpp"
-#include "InstanceList.hpp"
 #include "GlobalValues.hpp"
-class CodeRunner;
+#include "InstanceList.hpp"
 
+class CodeRunner;
 
 void GameInit();
 void GameTerminate();
@@ -36,5 +36,3 @@ bool GameGetError(const char**);
 // Get event holder lists
 std::map<unsigned int, std::vector<unsigned int>>& GetEventHolderList(unsigned int ev);
 std::vector<unsigned int>& GetEventHolderList(unsigned int ev, unsigned int sub);
-
-#endif

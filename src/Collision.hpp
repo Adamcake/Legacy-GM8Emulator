@@ -1,5 +1,5 @@
-#ifndef _A_COLLISION_HPP_
-#define _A_COLLISION_HPP_
+#pragma once
+
 #include "InstanceList.hpp"
 
 // Should always be called before accessing an instance's bbox variables.
@@ -13,5 +13,3 @@ bool CollisionPointCheck(Instance* i, int x, int y);
 
 // Checks for an instance collision with a given rectangle
 bool CollisionRectangleCheck(Instance* i, int x1, int y1, int x2, int y2, bool pixelPerfect);
-
-#endif

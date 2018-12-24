@@ -1,6 +1,4 @@
-#ifndef _A_CODERUNNER_HPP_
-#define _A_CODERUNNER_HPP_
-#include <pch.h>
+#pragma once
 
 struct GlobalValues;
 struct GMLType;
@@ -42,5 +40,3 @@ namespace CodeManager {
     // Checks if there was a runtime error and, if so, gets the associated error message
     bool GetError(const char** err);
 };
-
-#endif

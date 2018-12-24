@@ -1,25 +1,25 @@
-#ifndef _A_GAMEPRIVATEGLOBALS_HPP_
-#define _A_GAMEPRIVATEGLOBALS_HPP_
+#pragma once
 
-#include "InstanceList.hpp"
-#include "GlobalValues.hpp"
 #include "GameSettings.hpp"
+#include "GlobalValues.hpp"
+#include "InstanceList.hpp"
+
 class CodeRunner;
 
 // Wrapper for game information
 struct GameInfo {
-	unsigned int backgroundColour;
-	bool separateWindow;
-	char* caption;
-	unsigned int left;
-	unsigned int top;
-	unsigned int width;
-	unsigned int height;
-	bool showBorder;
-	bool allowWindowResize;
-	bool onTop;
-	bool freezeGame;
-	char* gameInfo;
+    unsigned int backgroundColour;
+    bool separateWindow;
+    char* caption;
+    unsigned int left;
+    unsigned int top;
+    unsigned int width;
+    unsigned int height;
+    bool showBorder;
+    bool allowWindowResize;
+    bool onTop;
+    bool freezeGame;
+    char* gameInfo;
 };
 
 // All global values such as room_speed, health, etc
@@ -41,5 +41,3 @@ extern GameSettings settings;
 
 // Misc game variables
 extern unsigned int _lastUsedRoomSpeed;
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef _A_STREAMUTIL_HPP_
-#define _A_STREAMUTIL_HPP_
+#pragma once
 
 // Reads a dword from the given position in the byte stream
 unsigned int ReadDword(const unsigned char* pStream, unsigned int* pPos);
@@ -12,4 +11,3 @@ char* ReadString(const unsigned char* pStream, unsigned int* pPos, unsigned int*
 // Reads a double from the given position in the byte stream
 double ReadDouble(const unsigned char* pStream, unsigned int* pPos);
 
-#endif

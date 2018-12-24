@@ -1,7 +1,6 @@
-#ifndef TOKENIZERV3_HXX
-#define TOKENIZERV3_HXX
+#pragma once
 
-#include <cstdint>
+#include <stdint.h>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -200,5 +199,3 @@ namespace GM8Emulator {
         void TokenizerUnitTest(std::ostream& out);
     };
 };
-
-#endif  // !TOKENIZERV3_HXX

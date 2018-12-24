@@ -1,15 +1,13 @@
-#include <pch.h>
-
-#include <algorithm>
 #include "InstanceList.hpp"
 #include "Alarm.hpp"
 #include "AssetManager.hpp"
 #include "CRGMLType.hpp"
 #include "Instance.hpp"
+#include <algorithm>
 #define INSTANCE_CAPACITY 65536
 
 // Field/array map (if you're maintaining this: god help you)
-//std::map<InstanceID, std::map<unsigned int, std::map<int, GMLType>>> _arrays;
+// std::map<InstanceID, std::map<unsigned int, std::map<int, GMLType>>> _arrays;
 
 std::vector<Instance> _list;
 
@@ -19,15 +17,8 @@ unsigned int _lastInstanceID;
 // Give an Instance its default values - returns false if the Object does not exist and game should close
 bool _InitInstance(Instance* instance, unsigned int id, double x, double y, unsigned int objectId);
 
-void _handleDeletedInstance(InstanceID instance) {
-    AlarmRemoveInstance(instance);
-}
-
-
-void InstanceList::Init() {
-    _list.reserve(INSTANCE_CAPACITY);
-}
-
+void _handleDeletedInstance(InstanceID instance) { AlarmRemoveInstance(instance); }
+void InstanceList::Init() { _list.reserve(INSTANCE_CAPACITY); }
 void InstanceList::Finalize() { _list.clear(); }
 
 InstanceHandle InstanceList::AddInstance(unsigned int id, double x, double y, unsigned int objectId) {
@@ -52,16 +43,12 @@ void InstanceList::ClearAll() {
 }
 
 void InstanceList::ClearNonPersistent() {
-    auto it = std::remove_if(_list.begin(), _list.end(), [](Instance& inst) {
-        return (!inst.persistent) || (!inst.exists);
-    });
+    auto it = std::remove_if(_list.begin(), _list.end(), [](Instance& inst) { return (!inst.persistent) || (!inst.exists); });
     _list.erase(it, _list.end());
 }
 
 void InstanceList::ClearDeleted() {
-    auto it = std::remove_if(_list.begin(), _list.end(), [](Instance& inst) {
-        return !inst.exists;
-    });
+    auto it = std::remove_if(_list.begin(), _list.end(), [](Instance& inst) { return !inst.exists; });
     _list.erase(it, _list.end());
 }
 
@@ -91,9 +78,7 @@ Instance* InstanceList::GetInstanceByNumber(unsigned int num, unsigned int start
     return nullptr;
 }
 
-Instance& InstanceList::GetInstance(InstanceHandle handle) {
-    return _list[handle];
-}
+Instance& InstanceList::GetInstance(InstanceHandle handle) { return _list[handle]; }
 
 Instance _dummy;
 InstanceHandle InstanceList::GetDummyInstance() {
@@ -153,7 +138,6 @@ InstanceHandle InstanceList::GetDummyInstance() {
 
 size_t InstanceList::Count() { return _list.size(); }
 
-
 // Private
 
 bool _InitInstance(Instance* instance, unsigned int id, double x, double y, unsigned int objectId) {
@@ -208,10 +192,9 @@ bool _InitInstance(Instance* instance, unsigned int id, double x, double y, unsi
 }
 
 
-unsigned int InstanceList::NoInstance = (unsigned int)-1;
+unsigned int InstanceList::NoInstance = ( unsigned int )-1;
 
-InstanceList::Iterator::Iterator(unsigned int id, InstanceHandle startPos) :
-    _pos(startPos), _id(id), _byId(true), _limit(InstanceList::Count()) {}
+InstanceList::Iterator::Iterator(unsigned int id, InstanceHandle startPos) : _pos(startPos), _id(id), _byId(true), _limit(InstanceList::Count()) {}
 
 InstanceHandle InstanceList::Iterator::Next() {
     if (_byId) {
@@ -233,36 +216,21 @@ InstanceHandle InstanceList::Iterator::Next() {
     }
 }
 
-void InstanceList::SetLastInstanceID(unsigned int i) {
-    _lastInstanceID = i;
-}
+void InstanceList::SetLastInstanceID(unsigned int i) { _lastInstanceID = i; }
 
-GMLType* InstanceList::GetField(InstanceHandle instance, unsigned int field) {
-    return &_list[instance]._fields[field][0];
-}
-void InstanceList::SetField(InstanceHandle instance, unsigned int field, const GMLType* value) {
-    _list[instance]._fields[field][0] = *value;
-}
-
-GMLType* InstanceList::GetField(InstanceHandle instance, unsigned int field, unsigned int array) {
-    return &_list[instance]._fields[field][array];
-}
-
-void InstanceList::SetField(InstanceHandle instance, unsigned int field, unsigned int array, const GMLType* value) {
-    _list[instance]._fields[field][array] = *value;
-}
-
-GMLType* InstanceList::GetField(InstanceHandle instance, unsigned int field, unsigned int array1, unsigned int array2) {
-    return &_list[instance]._fields[field][(array1 * 32000) + array2];
-}
+GMLType* InstanceList::GetField(InstanceHandle instance, uint32_t field) { return &_list[instance]._fields[field][0]; }
+void InstanceList::SetField(InstanceHandle instance, uint32_t field, const GMLType* value) { _list[instance]._fields[field][0] = *value; }
+GMLType* InstanceList::GetField(InstanceHandle instance, uint32_t field, uint32_t array) { return &_list[instance]._fields[field][array]; }
+void InstanceList::SetField(InstanceHandle instance, uint32_t field, uint32_t array, const GMLType* value) { _list[instance]._fields[field][array] = *value; }
+GMLType* InstanceList::GetField(InstanceHandle instance, uint32_t field, uint32_t array1, uint32_t array2) { return &_list[instance]._fields[field][(array1 * 32000) + array2]; }
 
 void InstanceList::SetField(InstanceHandle instance, unsigned int field, unsigned int array1, unsigned int array2, const GMLType* value) {
     _list[instance]._fields[field][(array1 * 32000) + array2] = *value;
 }
 
 InstanceHandle InstanceList::LambdaIterator::Next() {
-    while(_pos < _limit) {
-        if(func(_list[_pos])) {
+    while (_pos < _limit) {
+        if (func(_list[_pos])) {
             _pos++;
             return static_cast<InstanceHandle>(_pos);
         }

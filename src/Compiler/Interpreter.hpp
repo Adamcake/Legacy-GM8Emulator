@@ -1,7 +1,7 @@
-#ifndef _A_INTERPRETER_HPP_
-#define _A_INTERPRETER_HPP_
-#include <pch.h>
+#pragma once
+
 #include "Tokenizer.hxx"
+
 class CRActionList;
 class CRExpression;
 struct GlobalValues;
@@ -14,7 +14,5 @@ namespace GM8Emulator {
         bool InterpretExpression(const TokenList& list, CRExpression* output, unsigned int* pos = nullptr, char precedence = 5, char lowestAllowedPrec = 0);
 
         void FlushLocals();
-    }
-}
-
-#endif
+    };
+};

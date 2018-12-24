@@ -1,18 +1,21 @@
-#include <pch.h>
-
 #include "AssetManager.hpp"
 #include "CRGMLType.hpp"
 #include "CodeActionManager.hpp"
 #include "CodeRunner.hpp"
 #include "Collision.hpp"
 #include "Compiler/CRRuntime.hpp"
-#include "File.hpp"
+#include "Constants.hpp"
 #include "GlobalValues.hpp"
 #include "InputHandler.hpp"
 #include "Instance.hpp"
 #include "InstanceList.hpp"
 #include "RNG.hpp"
 #include "Renderer.hpp"
+
+#include <fstream>
+#include <math.h>
+#include <sstream>
+#include <string>
 
 // Private vars
 namespace Runtime {
@@ -111,8 +114,9 @@ bool Runtime::choose(unsigned int argc, GMLType* argv, GMLType* out) {
 }
 
 bool Runtime::collision_rectangle(unsigned int argc, GMLType* argv, GMLType* out) {
-    if (!_assertArgs(argc, argv, 7, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
-    if(out) {
+    if (!_assertArgs(argc, argv, 7, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double))
+        return false;
+    if (out) {
         int x1 = _round(argv[0].dVal);
         int y1 = _round(argv[1].dVal);
         int x2 = _round(argv[2].dVal);
@@ -122,13 +126,13 @@ bool Runtime::collision_rectangle(unsigned int argc, GMLType* argv, GMLType* out
         bool notme = _isTrue(&argv[6]);
 
         InstanceList::Iterator iter(obj);
-        if(obj == -3) iter = InstanceList::Iterator();
+        if (obj == -3) iter = InstanceList::Iterator();
         InstanceHandle i;
-        while((i = iter.Next()) != InstanceList::NoInstance) {
-            if(notme && (i == GetContext().self)) continue;
+        while ((i = iter.Next()) != InstanceList::NoInstance) {
+            if (notme && (i == GetContext().self)) continue;
 
             Instance& inst = InstanceList::GetInstance(i);
-            if(CollisionRectangleCheck(&inst, x1, y1, x2, y2, prec)) {
+            if (CollisionRectangleCheck(&inst, x1, y1, x2, y2, prec)) {
                 out->state = GMLTypeState::Double;
                 out->dVal = static_cast<double>(inst.id);
                 return true;
@@ -215,8 +219,8 @@ bool Runtime::draw_self(unsigned int argc, GMLType* argv, GMLType* out) {
     if (self.sprite_index < 0) return true;
     Sprite* spr = AssetManager::GetSprite(self.sprite_index);
     if (spr->exists) {
-        RDrawImage(spr->frames[static_cast<int>(self.image_index) % spr->frameCount], self.x, self.y, self.image_xscale, self.image_yscale, self.image_angle, self.image_blend,
-            self.image_alpha, self.depth);
+        RDrawImage(
+            spr->frames[static_cast<int>(self.image_index) % spr->frameCount], self.x, self.y, self.image_xscale, self.image_yscale, self.image_angle, self.image_blend, self.image_alpha, self.depth);
     }
     return true;
 }
@@ -621,7 +625,7 @@ bool Runtime::instance_place(unsigned int argc, GMLType* argv, GMLType* out) {
         }
         out->state = GMLTypeState::Double;
         out->dVal = ret;
-        
+
         self.x = oldX;
         self.y = oldY;
         self.bboxIsStale = true;

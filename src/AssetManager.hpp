@@ -1,8 +1,7 @@
-#ifndef _A_ASSETMANAGER_HPP_
-#define _A_ASSETMANAGER_HPP_
-#include <vector>
+#pragma once
+
 #include "Assets.hpp"
-#undef GetObject  // dunno
+#include <vector>
 
 namespace AssetManager {
     void Clear();
@@ -62,6 +61,4 @@ namespace AssetManager {
     unsigned int GetObjectCount();
     unsigned int GetRoomCount();
     unsigned int GetIncludeFileCount();
-}
-
-#endif
+};

@@ -1,5 +1,3 @@
-#include <pch.h>
-
 #include "Game.hpp"
 #include <chrono>
 #include <iostream>
