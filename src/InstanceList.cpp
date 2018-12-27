@@ -16,7 +16,7 @@ unsigned int _lastInstanceID;
 // Give an Instance its default values - returns false if the Object does not exist and game should close
 bool _InitInstance(Instance* instance, unsigned int id, double x, double y, unsigned int objectId);
 
-void InstanceList::Init() { _list.reserve(INSTANCE_CAPACITY); }
+void InstanceList::Init() { /*_list.reserve(INSTANCE_CAPACITY);*/ }
 void InstanceList::Finalize() { _list.clear(); }
 
 InstanceHandle InstanceList::AddInstance(unsigned int id, double x, double y, unsigned int objectId) {
