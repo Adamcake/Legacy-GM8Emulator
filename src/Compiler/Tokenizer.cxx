@@ -145,6 +145,7 @@ void GM8Emulator::Compiler::TokenList::ParseGML(const char* gml, const size_t& l
             size_t buf_len = static_cast<size_t>(i - num_start) + 1;  // Total length (in characters) of the number matched above with extra space for a null
             size_t co = 0;                                            // How many characters we've co(pied) from num_start (so we can glue all the characters together)
             char* number = new char[buf_len];                         // Allocate as much space as the source in case it's like, a normal fucking number
+            memset(number, 0, buf_len);                               // Clear out buffer with NULL to prevent errors when passing to stod
             bool foundDecimalSeparator = false;                       // Read above for explanation (tl;dr only the first . counts)
             for (size_t p = 0; p < (buf_len - 1); p++) {
                 if (isperiod(num_start[p])) {
