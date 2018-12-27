@@ -589,14 +589,41 @@ bool Runtime::instance_exists(unsigned int argc, GMLType* argv, GMLType* out) {
     return true;
 }
 
+bool Runtime::instance_nearest(unsigned int argc, GMLType* argv, GMLType* out) {
+    if (!_assertArgs(argc, argv, 3, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
+    const int oX = argv[0].dVal;
+    const int oY = argv[1].dVal;
+    const int objId = _round(argv[2].dVal);
+    InstanceList::Iterator it(static_cast<unsigned int>(objId));
+
+    double nearestDist = 100000;
+    int nearestID = -4;
+    InstanceHandle inst;
+    while ((inst = it.Next()) != InstanceList::NoInstance) {
+        Instance& other = InstanceList::GetInstance(inst);
+        double dist = ::sqrt(::pow(oX - other.x, 2) + ::pow(oY - other.y, 2));
+        if(dist < nearestDist) {
+            nearestDist = dist;
+            nearestID = other.id;
+        }
+    }
+    if(out) {
+        out->state = GMLTypeState::Double;
+        out->dVal = static_cast<double>(nearestID);
+    }
+    return true;
+}
+
 bool Runtime::instance_number(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 1, true, GMLTypeState::Double)) return false;
-    int objId = _round(argv[0].dVal);
-    InstanceList::Iterator it(static_cast<unsigned int>(objId));
-    out->state = GMLTypeState::Double;
-    unsigned int count = 0;
-    while (it.Next() != InstanceList::NoInstance) count++;
-    out->dVal = static_cast<double>(count);
+    if(out) {
+        int objId = _round(argv[0].dVal);
+        InstanceList::Iterator it(static_cast<unsigned int>(objId));
+        out->state = GMLTypeState::Double;
+        unsigned int count = 0;
+        while (it.Next() != InstanceList::NoInstance) count++;
+        out->dVal = static_cast<double>(count);
+    }
     return true;
 }
 

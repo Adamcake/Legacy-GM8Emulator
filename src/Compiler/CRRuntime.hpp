@@ -90,6 +90,7 @@ namespace Runtime {
     bool instance_create(unsigned int argc, GMLType* argv, GMLType* out);
     bool instance_destroy(unsigned int argc, GMLType* argv, GMLType* out);
     bool instance_exists(unsigned int argc, GMLType* argv, GMLType* out);
+    bool instance_nearest(unsigned int argc, GMLType* argv, GMLType* out);
     bool instance_number(unsigned int argc, GMLType* argv, GMLType* out);
     bool instance_place(unsigned int argc, GMLType* argv, GMLType* out);
     bool instance_position(unsigned int argc, GMLType* argv, GMLType* out);

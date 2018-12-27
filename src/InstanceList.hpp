@@ -21,6 +21,9 @@ namespace InstanceList {
     // As above, but using a dynamic instance ID
     InstanceHandle AddInstance(double x, double y, unsigned int objectId);
 
+    // Used to inform InstanceList that an instance has changed object type
+    void HandleChangedInstance(InstanceHandle handle, unsigned int oldObject, unsigned int newObject);
+
     // Remove all instances
     void ClearAll();
 
@@ -48,12 +51,12 @@ namespace InstanceList {
     Instance& GetInstance(InstanceHandle);
 
     // Getters and setters for instance fields
-    GMLType* GetField(InstanceHandle instance, unsigned int field);
-    void SetField(InstanceHandle instance, unsigned int field, const GMLType* value);
-    GMLType* GetField(InstanceHandle instance, unsigned int field, unsigned int array);
-    void SetField(InstanceHandle instance, unsigned int field, unsigned int array, const GMLType* value);
-    GMLType* GetField(InstanceHandle instance, unsigned int field, unsigned int array1, unsigned int array2);
-    void SetField(InstanceHandle instance, unsigned int field, unsigned int array1, unsigned int array2, const GMLType* value);
+    GMLType* GetField(InstanceHandle instance, uint32_t field);
+    void SetField(InstanceHandle instance, uint32_t field, const GMLType& value);
+    GMLType* GetField(InstanceHandle instance, uint32_t field, uint32_t array);
+    void SetField(InstanceHandle instance, uint32_t field, uint32_t array, const GMLType& value);
+    GMLType* GetField(InstanceHandle instance, uint32_t field, uint32_t array1, uint32_t array2);
+    void SetField(InstanceHandle instance, uint32_t field, uint32_t array1, uint32_t array2, const GMLType& value);
 
     // Iterator class for looping over instances. Has two modes of operation: all instances, or all matching a certain object/instance number.
     // Mode of operation is determined by which constructor is used. In other words, pass an ID if you want to iterate by that ID. Otherwise it will iterate all.

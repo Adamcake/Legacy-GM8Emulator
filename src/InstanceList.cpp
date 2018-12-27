@@ -3,10 +3,6 @@
 #include "CRGMLType.hpp"
 #include "Instance.hpp"
 #include <algorithm>
-#define INSTANCE_CAPACITY 65536
-
-// Field/array map (if you're maintaining this: god help you)
-// std::map<InstanceID, std::map<unsigned int, std::map<int, GMLType>>> _arrays;
 
 std::vector<Instance> _list;
 
@@ -16,7 +12,7 @@ unsigned int _lastInstanceID;
 // Give an Instance its default values - returns false if the Object does not exist and game should close
 bool _InitInstance(Instance* instance, unsigned int id, double x, double y, unsigned int objectId);
 
-void InstanceList::Init() { /*_list.reserve(INSTANCE_CAPACITY);*/ }
+void InstanceList::Init() { _list.reserve(1024); }
 void InstanceList::Finalize() { _list.clear(); }
 
 InstanceHandle InstanceList::AddInstance(unsigned int id, double x, double y, unsigned int objectId) {
@@ -34,6 +30,8 @@ InstanceHandle InstanceList::AddInstance(double x, double y, unsigned int object
     _lastInstanceID++;
     return AddInstance(_lastInstanceID, x, y, objectId);
 }
+
+void InstanceList::HandleChangedInstance(InstanceHandle handle, unsigned int oldObject, unsigned int newObject) {}
 
 void InstanceList::ClearAll() {
     _list.clear();
@@ -217,14 +215,11 @@ InstanceHandle InstanceList::Iterator::Next() {
 void InstanceList::SetLastInstanceID(unsigned int i) { _lastInstanceID = i; }
 
 GMLType* InstanceList::GetField(InstanceHandle instance, uint32_t field) { return &_list[instance]._fields[field][0]; }
-void InstanceList::SetField(InstanceHandle instance, uint32_t field, const GMLType* value) { _list[instance]._fields[field][0] = *value; }
+void InstanceList::SetField(InstanceHandle instance, uint32_t field, const GMLType& value) { _list[instance]._fields[field][0] = value; }
 GMLType* InstanceList::GetField(InstanceHandle instance, uint32_t field, uint32_t array) { return &_list[instance]._fields[field][array]; }
-void InstanceList::SetField(InstanceHandle instance, uint32_t field, uint32_t array, const GMLType* value) { _list[instance]._fields[field][array] = *value; }
+void InstanceList::SetField(InstanceHandle instance, uint32_t field, uint32_t array, const GMLType& value) { _list[instance]._fields[field][array] = value; }
 GMLType* InstanceList::GetField(InstanceHandle instance, uint32_t field, uint32_t array1, uint32_t array2) { return &_list[instance]._fields[field][(array1 * 32000) + array2]; }
-
-void InstanceList::SetField(InstanceHandle instance, unsigned int field, unsigned int array1, unsigned int array2, const GMLType* value) {
-    _list[instance]._fields[field][(array1 * 32000) + array2] = *value;
-}
+void InstanceList::SetField(InstanceHandle instance, uint32_t field, uint32_t array1, uint32_t array2, const GMLType& value) { _list[instance]._fields[field][(array1 * 32000) + array2] = value; }
 
 InstanceHandle InstanceList::LambdaIterator::Next() {
     while (_pos < _limit) {

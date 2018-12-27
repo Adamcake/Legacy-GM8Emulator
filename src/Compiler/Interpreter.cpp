@@ -2427,7 +2427,7 @@ bool GM8Emulator::Compiler::Init(GlobalValues* globals) {
                 break;
             case INSTANCE_NEAREST:
                 _internalFuncNames.push_back("instance_nearest");
-                _gmlFuncs.push_back(&Runtime::unimplemented);
+                _gmlFuncs.push_back(&Runtime::instance_nearest);
                 break;
             case INSTANCE_NUMBER:
                 _internalFuncNames.push_back("instance_number");
