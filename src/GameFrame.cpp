@@ -1,4 +1,3 @@
-#include "Alarm.hpp"
 #include "CodeActionManager.hpp"
 #include "CodeRunner.hpp"
 #include "Collision.hpp"
@@ -149,17 +148,18 @@ bool GameFrame() {
     }
 
     // Subtract from alarms and run event if they reach 0
-    AlarmUpdateAll();
     for (const auto& ev : GetEventHolderList(2)) {      // alarm number
         for (const unsigned int& holder : ev.second) {  // event holder
             iter = InstanceList::Iterator(holder);
             while ((instance = iter.Next()) != InstanceList::NoInstance) {
                 Instance& inst = InstanceList::GetInstance(instance);
-                if (AlarmGetMap(inst.id).count(ev.first)) {
-                    if (AlarmGetMap(inst.id)[ev.first] == 0) {
-                        if (!CodeActionManager::RunInstanceEvent(2, ev.first, instance, instance, inst.object_index)) return false;
-                        if (AlarmGet(inst.id, ev.first) == 0) AlarmDelete(inst.id, ev.first);  // Only remove entry if it's still 0
-                        if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+                if (inst._alarms.count(ev.first)) {
+                    if (inst._alarms[ev.first] >= 0) {
+                        inst._alarms[ev.first]--;
+                        if (inst._alarms[ev.first] == 0) {
+                            if (!CodeActionManager::RunInstanceEvent(2, ev.first, instance, instance, inst.object_index)) return false;
+                            if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+                        }
                     }
                 }
             }

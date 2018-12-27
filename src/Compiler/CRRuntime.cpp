@@ -1,5 +1,4 @@
 #include "CRRuntime.hpp"
-#include "Alarm.hpp"
 #include "AssetManager.hpp"
 #include "CodeRunner.hpp"
 #include "Collision.hpp"
@@ -459,10 +458,7 @@ bool _setInstanceVar(Instance& instance, CRInstanceVar index, unsigned int array
     switch (index) {
         case IV_ALARM: {
             int alarmValue = (value.state == GMLTypeState::Double ? Runtime::_round(value.dVal) : 0);
-            if (alarmValue)
-                AlarmSet(instance.id, static_cast<unsigned int>(arrayIndex), alarmValue);
-            else
-                AlarmDelete(instance.id, static_cast<unsigned int>(arrayIndex));
+            instance._alarms[arrayIndex] = alarmValue;
             break;
         }
         case IV_DIRECTION:
@@ -660,7 +656,13 @@ bool _getInstanceVar(Instance& instance, CRInstanceVar index, unsigned int array
     out->state = GMLTypeState::Double;
     switch (index) {
         case IV_ALARM:
-            out->dVal = static_cast<double>(AlarmGet(instance.id, arrayIndex));
+            // out->dVal = static_cast<double>(AlarmGet(instance.id, arrayIndex));
+            if (instance._alarms.count(arrayIndex)) {
+                out->dVal = static_cast<double>(instance._alarms[arrayIndex]);
+            }
+            else {
+                out->dVal = -1.0;
+            }
             break;
         case IV_INSTANCE_ID:
             out->dVal = instance.id;

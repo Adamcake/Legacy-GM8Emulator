@@ -1,5 +1,4 @@
 #include "InstanceList.hpp"
-#include "Alarm.hpp"
 #include "AssetManager.hpp"
 #include "CRGMLType.hpp"
 #include "Instance.hpp"
@@ -17,7 +16,6 @@ unsigned int _lastInstanceID;
 // Give an Instance its default values - returns false if the Object does not exist and game should close
 bool _InitInstance(Instance* instance, unsigned int id, double x, double y, unsigned int objectId);
 
-void _handleDeletedInstance(InstanceID instance) { AlarmRemoveInstance(instance); }
 void InstanceList::Init() { _list.reserve(INSTANCE_CAPACITY); }
 void InstanceList::Finalize() { _list.clear(); }
 
@@ -38,7 +36,6 @@ InstanceHandle InstanceList::AddInstance(double x, double y, unsigned int object
 }
 
 void InstanceList::ClearAll() {
-    AlarmDeleteAll();
     _list.clear();
 }
 
@@ -82,7 +79,6 @@ Instance& InstanceList::GetInstance(InstanceHandle handle) { return _list[handle
 
 Instance _dummy;
 InstanceHandle InstanceList::GetDummyInstance() {
-    AlarmRemoveInstance(0);
     _dummy.id = 0;
     _dummy.object_index = 0;
     _dummy.solid = false;
@@ -130,6 +126,7 @@ InstanceHandle InstanceList::GetDummyInstance() {
     _dummy.bbox_top = -100000;
     _dummy.bboxIsStale = false;
     _dummy._fields.clear();
+    _dummy._alarms.clear();
 
     InstanceHandle ret = static_cast<InstanceHandle>(_list.size());
     _list.push_back(_dummy);
@@ -188,11 +185,12 @@ bool _InitInstance(Instance* instance, unsigned int id, double x, double y, unsi
     instance->bboxIsStale = true;
 
     instance->_fields.clear();
+    instance->_alarms.clear();
     return true;
 }
 
 
-unsigned int InstanceList::NoInstance = ( unsigned int )-1;
+uint32_t InstanceList::NoInstance = static_cast<uint32_t>(-1);
 
 InstanceList::Iterator::Iterator(unsigned int id, InstanceHandle startPos) : _pos(startPos), _id(id), _byId(true), _limit(InstanceList::Count()) {}
 
@@ -230,9 +228,11 @@ void InstanceList::SetField(InstanceHandle instance, unsigned int field, unsigne
 
 InstanceHandle InstanceList::LambdaIterator::Next() {
     while (_pos < _limit) {
-        if (func(_list[_pos])) {
-            _pos++;
-            return static_cast<InstanceHandle>(_pos);
+        if (_list[_pos].exists) {
+            if (func(_list[_pos])) {
+                _pos++;
+                return static_cast<InstanceHandle>(_pos);
+            }
         }
         _pos++;
     }

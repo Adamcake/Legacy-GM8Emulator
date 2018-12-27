@@ -54,4 +54,5 @@ struct Instance {
     bool bboxIsStale;
 
     std::map<unsigned int, std::map<int, GMLType>> _fields;
+    std::map<unsigned int, int> _alarms;
 };
