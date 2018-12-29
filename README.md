@@ -1,5 +1,6 @@
 # GM8Emulator
 An emulator for games created with GameMaker 8.
+**NOTE**: 2018-12-29: today we discovered an aspect of GameMaker 8's behaviour which cannot be consistently replicated. More specifically, it has to do with the execution order of collision events when parenting and overriding are involved. Since this causes noticeable issues with fangames I've no choice but to discontinue this project.
 
 ## What's GameMaker?
 GameMaker is an IDE for creating Windows games, developed by YoYo Games. *GameMaker 8* (GM8) was the last of the numbered releases of GameMaker, released on December 22nd 2009 (surpassing *GameMaker 7*) and succeeded by *GameMaker: Studio* in 2011. Due to the huge behavioral differences between "Numbered GameMaker" and *GameMaker: Studio*, as well as Studio's lack of backward-compatibility, GM8 is still widely used, with thousands of games to its name.
