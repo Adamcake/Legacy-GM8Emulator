@@ -33,6 +33,3 @@ unsigned int GameGetRoomSpeed();
 // Checks if the game closed because of an error and, if so, the associated error message
 bool GameGetError(const char**);
 
-// Get event holder lists
-std::map<unsigned int, std::vector<unsigned int>>& GetEventHolderList(unsigned int ev);
-std::vector<unsigned int>& GetEventHolderList(unsigned int ev, unsigned int sub);

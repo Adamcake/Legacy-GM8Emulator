@@ -61,4 +61,8 @@ namespace AssetManager {
     unsigned int GetObjectCount();
     unsigned int GetRoomCount();
     unsigned int GetIncludeFileCount();
+
+    void CompileObjectIdentities();
+    std::map<unsigned int, std::vector<unsigned int>>& GetEventHolderList(unsigned int ev);
+    std::vector<unsigned int>& GetEventHolderList(unsigned int ev, unsigned int sub);
 };

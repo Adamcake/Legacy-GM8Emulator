@@ -31,6 +31,12 @@ InstanceHandle InstanceList::AddInstance(double x, double y, unsigned int object
     return AddInstance(_lastInstanceID, x, y, objectId);
 }
 
+InstanceHandle InstanceList::AddInstances(std::vector<Instance>& instances) {
+    InstanceHandle ret = (InstanceHandle)_list.size();
+    std::copy(instances.begin(), instances.end(), std::back_inserter(_list));
+    return ret;
+}
+
 void InstanceList::HandleChangedInstance(InstanceHandle handle, unsigned int oldObject, unsigned int newObject) {}
 
 void InstanceList::ClearAll() {
@@ -226,7 +232,7 @@ InstanceHandle InstanceList::LambdaIterator::Next() {
         if (_list[_pos].exists) {
             if (func(_list[_pos])) {
                 _pos++;
-                return static_cast<InstanceHandle>(_pos);
+                return static_cast<InstanceHandle>(_pos - 1);
             }
         }
         _pos++;

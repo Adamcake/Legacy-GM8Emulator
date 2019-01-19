@@ -1029,11 +1029,13 @@ bool Runtime::move_bounce_solid(unsigned int argc, GMLType* argv, GMLType* out) 
             iter = InstanceList::Iterator();
             while ((target = iter.Next()) != InstanceList::NoInstance) {
                 Instance& targetInst = InstanceList::GetInstance(target);
-                if (CollisionCheck(&self, &targetInst)) {
-                    self.hspeed = -self.hspeed;
-                    self.vspeed = -self.vspeed;
-                    didChange = true;
-                    break;
+                if(targetInst.solid) {
+                    if (CollisionCheck(&self, &targetInst)) {
+                        self.hspeed = -self.hspeed;
+                        self.vspeed = -self.vspeed;
+                        didChange = true;
+                        break;
+                    }
                 }
             }
         }

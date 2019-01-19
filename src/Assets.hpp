@@ -271,6 +271,7 @@ class Object {
     std::map<unsigned int, IndexedEvent> events[12];
     std::vector<unsigned int> evList[12];
     std::set<unsigned int> identities;
+    std::set<unsigned int> children; // includes extended children
 };
 
 class Room {

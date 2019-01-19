@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "AssetManager.hpp"
 
 std::vector<Extension> _extensions;
@@ -13,6 +14,7 @@ std::vector<Timeline> _timelines;
 std::vector<Object> _objects;
 std::vector<Room> _rooms;
 std::vector<IncludeFile> _includeFiles;
+std::map<unsigned int, std::vector<unsigned int>> _eventHolderList[12];
 
 void AssetManager::Clear() {
     _extensions.clear();
@@ -136,3 +138,113 @@ unsigned int AssetManager::GetTimelineCount() { return static_cast<unsigned int>
 unsigned int AssetManager::GetObjectCount() { return static_cast<unsigned int>(_objects.size()); }
 unsigned int AssetManager::GetRoomCount() { return static_cast<unsigned int>(_rooms.size()); }
 unsigned int AssetManager::GetIncludeFileCount() { return static_cast<unsigned int>(_includeFiles.size()); }
+
+void AssetManager::CompileObjectIdentities() {
+    // Compile object identity lists and children lists
+    for (unsigned int i = 0; i < _objects.size(); i++) {
+        Object& obj = _objects[i];
+        if (!obj.exists) continue;
+        obj.identities.insert(i);
+        Object* o = &obj;
+        while (o->parentIndex >= 0) {
+            obj.identities.insert(o->parentIndex);
+            o = &_objects[o->parentIndex];
+            o->children.insert(i);
+        }
+    }
+
+    // Compile object parented event lists and identities
+    for (unsigned int i = 0; i < _objects.size(); i++) {
+        Object& obj = _objects[i];
+        if (!obj.exists) continue;
+
+        // event lists
+        for (unsigned int j = 0; j < 12; j++) {
+            Object* o = &obj;
+            while (true) {
+                for (const auto& e : o->events[j]) {
+                    if (std::find(obj.evList[j].begin(), obj.evList[j].end(), e.first) == obj.evList[j].end()) {
+                        obj.evList[j].push_back(e.first);
+                    }
+                }
+                if (o->parentIndex < 0) break;
+                o = &_objects[o->parentIndex];
+            }
+            std::sort(obj.evList[j].begin(), obj.evList[j].end());
+            obj.evList[j].shrink_to_fit();
+        }
+    }
+
+    // Trade collision events between holders and targets, including extended children
+    for (unsigned int i = 0; i < _objects.size(); i++) {
+        Object& obj = _objects[i];
+        if (!obj.exists) continue;
+
+        for(const unsigned int& targetId : obj.evList[4]) { // For each collision target
+            Object& target = _objects[targetId];
+            if (!target.exists) continue;
+
+            // update o2 to collide with o1
+            if (std::find(target.evList[4].begin(), target.evList[4].end(), i) == target.evList[4].end()) {
+                target.evList[4].push_back(i);
+            }
+            // update all of o1's children to collide with o2 and all of its children
+            for(const unsigned int& childId : obj.children) {
+                Object& child = _objects[childId];
+                // o1 child -> o2
+                if (std::find(child.evList[4].begin(), child.evList[4].end(), targetId) == child.evList[4].end()) {
+                    child.evList[4].push_back(targetId);
+                }
+                for (const unsigned int& child2Id : target.children) {
+                    // o1 child -> o2 child
+                    if (std::find(child.evList[4].begin(), child.evList[4].end(), child2Id) == child.evList[4].end()) {
+                        child.evList[4].push_back(child2Id);
+                    }
+                }
+            }
+            // update all of o2's children to collide with o1 and all of its children
+            for (const unsigned int& childId : target.children) {
+                Object& child = _objects[childId];
+                // o2 child -> o1
+                if (std::find(child.evList[4].begin(), child.evList[4].end(), i) == child.evList[4].end()) {
+                    child.evList[4].push_back(i);
+                }
+                for (const unsigned int& child2Id : obj.children) {
+                    // o2 child -> o1 child
+                    if (std::find(child.evList[4].begin(), child.evList[4].end(), child2Id) == child.evList[4].end()) {
+                        child.evList[4].push_back(child2Id);
+                    }
+                }
+            }
+        }
+    }
+    /*
+    for each object, o1
+        for each collision target, o2
+            update o2 to collide with o1
+            update all of o1's children to collide with o2 and all of its children
+            update all of o2's children to collide with o1 and all of its children
+    */
+
+    // Populate event holder lists
+    for (unsigned int i = 0; i < _objects.size(); i++) {
+        Object& obj = _objects[i];
+        if (!obj.exists) continue;
+        std::sort(obj.evList[4].begin(), obj.evList[4].end());
+
+        // event lists
+        for (unsigned int j = 0; j < 12; j++) {
+            for (const unsigned int& e : obj.evList[j]) {
+                _eventHolderList[j][e].push_back(i);
+            }
+        }
+    }
+}
+
+std::map<unsigned int, std::vector<unsigned int>>& AssetManager::GetEventHolderList(unsigned int ev) {
+    return _eventHolderList[ev];
+}
+
+std::vector<unsigned int>& AssetManager::GetEventHolderList(unsigned int ev, unsigned int sub) {
+    return _eventHolderList[ev][sub];
+}

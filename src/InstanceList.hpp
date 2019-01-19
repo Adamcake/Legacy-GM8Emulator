@@ -21,6 +21,9 @@ namespace InstanceList {
     // As above, but using a dynamic instance ID
     InstanceHandle AddInstance(double x, double y, unsigned int objectId);
 
+    // Restore list of instances
+    InstanceHandle AddInstances(std::vector<Instance>& instances);
+
     // Used to inform InstanceList that an instance has changed object type
     void HandleChangedInstance(InstanceHandle handle, unsigned int oldObject, unsigned int newObject);
 

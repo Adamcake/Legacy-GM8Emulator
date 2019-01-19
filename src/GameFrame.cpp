@@ -30,8 +30,13 @@ bool GameLoadRoom(int id) {
         }
     }
 
-    // Delete non-persistent instances
-    InstanceList::ClearNonPersistent();
+    // Backup persistent instances
+    std::vector<Instance> persistent;
+    InstanceList::LambdaIterator lit([](Instance& inst) -> bool {return inst.persistent;});
+    while ((i = lit.Next()) != InstanceList::NoInstance) {
+        persistent.push_back(InstanceList::GetInstance(i));
+    }
+    InstanceList::ClearAll();
 
     // Clear inputs, because gm8 does this for some reason
     InputClearKeys();
@@ -74,8 +79,18 @@ bool GameLoadRoom(int id) {
 
     // Create all instances in new room
     for (unsigned int i = 0; i < room->instanceCount; i++) {
-        if (!InstanceList::GetInstanceByNumber(room->instances[i].id)) {
-            unsigned int id = room->instances[i].id;
+        unsigned int id = room->instances[i].id;
+
+        // Only create this if it's not already a persistent instance
+        bool alreadyExists = false;
+        for(unsigned int j = 0; j < persistent.size(); j++) {
+            if (persistent[j].id == id) {
+                alreadyExists = true;
+                break;
+            }
+        }
+
+        if(!alreadyExists) {
             InstanceHandle instance = InstanceList::AddInstance(id, room->instances[i].x, room->instances[i].y, room->instances[i].objectIndex);
             if (instance == InstanceList::NoInstance) {
                 // Failed to create instance
@@ -88,6 +103,9 @@ bool GameLoadRoom(int id) {
             if (!CodeActionManager::RunInstanceEvent(0, 0, instance, InstanceList::NoInstance, oIndex)) return false;
         }
     }
+
+    // Restore persistent instances
+    InstanceList::AddInstances(persistent);
 
     // run room's creation code
     if (!CodeManager::Run(room->creationCode, InstanceList::GetDummyInstance(), InstanceList::NoInstance, 11, 32, 0)) return false;
@@ -116,7 +134,7 @@ bool GameFrame() {
     // TODO: "begin step" trigger events
 
     // Run "begin step" event for all instances
-    for (unsigned int i : GetEventHolderList(3, 1)) {
+    for (unsigned int i : AssetManager::GetEventHolderList(3, 1)) {
         iter = InstanceList::Iterator(i);
         while ((instance = iter.Next()) != InstanceList::NoInstance) {
             unsigned int oIndex = InstanceList::GetInstance(instance).object_index;
@@ -148,7 +166,7 @@ bool GameFrame() {
     }
 
     // Subtract from alarms and run event if they reach 0
-    for (const auto& ev : GetEventHolderList(2)) {      // alarm number
+    for (const auto& ev : AssetManager::GetEventHolderList(2)) {      // alarm number
         for (const unsigned int& holder : ev.second) {  // event holder
             iter = InstanceList::Iterator(holder);
             while ((instance = iter.Next()) != InstanceList::NoInstance) {
@@ -167,7 +185,7 @@ bool GameFrame() {
     }
 
     // Key events
-    for (const auto& ev : GetEventHolderList(5)) {      // key number
+    for (const auto& ev : AssetManager::GetEventHolderList(5)) {      // key number
         for (const unsigned int& holder : ev.second) {  // event holder
             iter = InstanceList::Iterator(holder);
             while ((instance = iter.Next()) != InstanceList::NoInstance) {
@@ -182,7 +200,7 @@ bool GameFrame() {
     // TODO: mouse events
 
     // Key press events
-    for (const auto& ev : GetEventHolderList(9)) {      // key number
+    for (const auto& ev : AssetManager::GetEventHolderList(9)) {      // key number
         for (const unsigned int& holder : ev.second) {  // event holder
             iter = InstanceList::Iterator(holder);
             while ((instance = iter.Next()) != InstanceList::NoInstance) {
@@ -195,7 +213,7 @@ bool GameFrame() {
     }
 
     // Key release events
-    for (const auto& ev : GetEventHolderList(10)) {     // key number
+    for (const auto& ev : AssetManager::GetEventHolderList(10)) {     // key number
         for (const unsigned int& holder : ev.second) {  // event holder
             iter = InstanceList::Iterator(holder);
             while ((instance = iter.Next()) != InstanceList::NoInstance) {
@@ -210,13 +228,13 @@ bool GameFrame() {
     // TODO: "normal step" trigger events
 
     // Run "step" event for all instances
-    for (unsigned int i : GetEventHolderList(3, 0)) {
+    for (unsigned int i : AssetManager::GetEventHolderList(3, 0)) {
         iter = InstanceList::Iterator(i);
         while ((instance = iter.Next()) != InstanceList::NoInstance) {
-            // if (instance->object_index == i) {
-            if (!CodeActionManager::RunInstanceEvent(3, 0, instance, InstanceList::NoInstance, InstanceList::GetInstance(instance).object_index)) return false;
-            if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
-            //}
+            if (InstanceList::GetInstance(instance).object_index == i) {
+                if (!CodeActionManager::RunInstanceEvent(3, 0, instance, InstanceList::NoInstance, InstanceList::GetInstance(instance).object_index)) return false;
+                if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+            }
         }
     }
 
@@ -262,83 +280,141 @@ bool GameFrame() {
     }
 
     // Outside Room event
-    for (unsigned int i : GetEventHolderList(7, 0)) {
+    for (unsigned int i : AssetManager::GetEventHolderList(7, 0)) {
         iter = InstanceList::Iterator(i);
         while ((instance = iter.Next()) != InstanceList::NoInstance) {
-            // if (instance->object_index == i) {
             Instance& inst = InstanceList::GetInstance(instance);
 
-            RefreshInstanceBbox(&inst);
-            if ((inst.sprite_index < 0) ? (inst.x < 0 || inst.y < 0 || inst.x > ( int )_globals.room_width || inst.y > ( int )_globals.room_height)
-                                        : (inst.bbox_bottom < 0 || inst.bbox_right < 0 || inst.bbox_top > ( int )_globals.room_height || inst.bbox_left > ( int )_globals.room_width)) {
-                if (!CodeActionManager::RunInstanceEvent(7, 0, instance, InstanceList::NoInstance, inst.object_index)) return false;
-                if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+            if (inst.object_index == i) {
+                RefreshInstanceBbox(&inst);
+                if ((inst.sprite_index < 0) ? (inst.x < 0 || inst.y < 0 || inst.x > ( int )_globals.room_width || inst.y > ( int )_globals.room_height)
+                                            : (inst.bbox_bottom < 0 || inst.bbox_right < 0 || inst.bbox_top > ( int )_globals.room_height || inst.bbox_left > ( int )_globals.room_width)) {
+                    if (!CodeActionManager::RunInstanceEvent(7, 0, instance, InstanceList::NoInstance, inst.object_index)) return false;
+                    if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+                }
             }
-            //}
         }
     }
 
     // Intersect boundary event
-    for (unsigned int i : GetEventHolderList(7, 1)) {
+    for (unsigned int i : AssetManager::GetEventHolderList(7, 1)) {
         iter = InstanceList::Iterator(i);
         while ((instance = iter.Next()) != InstanceList::NoInstance) {
             Instance& inst = InstanceList::GetInstance(instance);
-            // if (instance->object_index == i) {
-            RefreshInstanceBbox(&inst);
-            if (inst.bbox_bottom > ( int )_globals.room_height || inst.bbox_right > ( int )_globals.room_width || inst.bbox_top < 0 || inst.bbox_left < 0) {
-                if (!CodeActionManager::RunInstanceEvent(7, 1, instance, InstanceList::NoInstance, inst.object_index)) return false;
-                if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+
+            if (inst.object_index == i) {
+                RefreshInstanceBbox(&inst);
+                if (inst.bbox_bottom > ( int )_globals.room_height || inst.bbox_right > ( int )_globals.room_width || inst.bbox_top < 0 || inst.bbox_left < 0) {
+                    if (!CodeActionManager::RunInstanceEvent(7, 1, instance, InstanceList::NoInstance, inst.object_index)) return false;
+                    if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+                }
             }
-            //}
         }
     }
 
     // TODO: in this order, if views are enabled: "outside view x" events for all instances, "intersect boundary view x" events for all instances
 
     // Collision events
-    for (const auto& ev : GetEventHolderList(4)) {      // target object id
-        for (const unsigned int& holder : ev.second) {  // event holder
-            iter = InstanceList::Iterator(holder);
-            while ((instance = iter.Next()) != InstanceList::NoInstance) {
-                Instance& inst1 = InstanceList::GetInstance(instance);
+    for (const auto& ev : AssetManager::GetEventHolderList(4)) {  // target object id
 
-                InstanceList::Iterator iter2(ev.first, instance);
+        iter = InstanceList::Iterator(ev.first);
+        while ((instance = iter.Next()) != InstanceList::NoInstance) {
+            Instance& inst1 = InstanceList::GetInstance(instance);
+            if (inst1.object_index != ev.first) continue;
+
+            for (const unsigned int& target : ev.second) {  // event holder
+                if(target < ev.first) continue;
+
+                InstanceList::Iterator iter2(target);
                 InstanceHandle instance2;
                 while ((instance2 = iter2.Next()) != InstanceList::NoInstance) {
                     if (instance != instance2) {
                         Instance& inst2 = InstanceList::GetInstance(instance2);
+                        if (inst2.object_index != target) continue;
+
                         if (CollisionCheck(&inst1, &inst2)) {
+                            Object* inst1Obj = AssetManager::GetObject(inst1.object_index);
+                            Object* inst2Obj = AssetManager::GetObject(inst2.object_index);
 
                             // self->other
-                            if (inst2.solid) {
-                                // If the target is solid, we move outside of it
-                                inst1.x = inst1.xprevious;
-                                inst1.y = inst1.yprevious;
-                                inst1.bboxIsStale = true;
-                            }
-                            if (!CodeActionManager::RunInstanceEvent(4, ev.first, instance, instance2, inst1.object_index)) return false;
-                            if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 
-                            if (inst2.solid) {
-                                inst1.x += inst1.hspeed;
-                                inst1.y += inst1.vspeed;
-                                inst1.bboxIsStale = true;
+                            int parentedHolder = target;
+                            Object* parentedI1Obj = inst1Obj;
+                            while(parentedHolder >= 0) {
+                                bool b = false;
+                                while(true) {
+                                    if (parentedI1Obj->events[4].count(parentedHolder)) {
+                                        b = true;
+                                        break;
+                                    }
+                                    if(parentedI1Obj->parentIndex < 0) break;
+                                    parentedI1Obj = AssetManager::GetObject(parentedI1Obj->parentIndex);
+                                }
+                                if(b) break;
+                                parentedHolder = AssetManager::GetObject(parentedHolder)->parentIndex;
                             }
+                            if(parentedHolder >= 0) {
+                                if (inst2.solid) {
+                                    // If the target is solid, we move outside of it
+                                    inst1.x = inst1.xprevious;
+                                    inst1.y = inst1.yprevious;
+                                    inst1.bboxIsStale = true;
+                                }
+
+                                if (!CodeActionManager::RunInstanceEvent(4, parentedHolder, instance, instance2, inst1.object_index)) return false;
+                                if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+
+                                if (inst2.solid) {
+                                    inst1.x += inst1.hspeed;
+                                    inst1.y += inst1.vspeed;
+                                    inst1.bboxIsStale = true;
+                                    if (CollisionCheck(&inst1, &inst2)) {
+                                        inst1.x -= inst1.hspeed;
+                                        inst1.y -= inst1.vspeed;
+                                        inst1.bboxIsStale = true;
+                                    }
+                                }
+                            }
+
 
                             // other->self
-                            if (inst1.solid) {
-                                // If the target is solid, we move outside of it
-                                inst2.x = inst2.xprevious;
-                                inst2.y = inst2.yprevious;
-                                inst2.bboxIsStale = true;
-                            }
-                            if (!CodeActionManager::RunInstanceEvent(4, holder, instance2, instance, inst2.object_index)) return false;
-                            if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 
-                            if (inst1.solid) {
-                                inst2.x += inst2.hspeed;
-                                inst2.y += inst2.vspeed;
-                                inst2.bboxIsStale = true;
+                            parentedHolder = ev.first;
+                            Object* parentedI2Obj = inst2Obj;
+                            while (parentedHolder >= 0) {
+                                bool b = false;
+                                while (true) {
+                                    if (parentedI2Obj->events[4].count(parentedHolder)) {
+                                        b = true;
+                                        break;
+                                    }
+                                    if (parentedI2Obj->parentIndex < 0) break;
+                                    parentedI2Obj = AssetManager::GetObject(parentedI2Obj->parentIndex);
+                                }
+                                if (b) break;
+                                parentedHolder = AssetManager::GetObject(parentedHolder)->parentIndex;
+                            }
+                            if(parentedHolder >= 0) {
+                                if (inst1.solid) {
+                                    // If the target is solid, we move outside of it
+                                    inst2.x = inst2.xprevious;
+                                    inst2.y = inst2.yprevious;
+                                    inst2.bboxIsStale = true;
+                                }
+
+                                if (!CodeActionManager::RunInstanceEvent(4, parentedHolder, instance2, instance, inst2.object_index)) return false;
+                                if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+
+                                if (inst1.solid) {
+                                    inst2.x += inst2.hspeed;
+                                    inst2.y += inst2.vspeed;
+                                    inst2.bboxIsStale = true;
+                                    if (CollisionCheck(&inst2, &inst1)) {
+                                        inst2.x -= inst2.hspeed;
+                                        inst2.y -= inst2.vspeed;
+                                        inst2.bboxIsStale = true;
+                                    }
+                                }
                             }
                         }
                     }
@@ -350,7 +426,7 @@ bool GameFrame() {
     // TODO: "end step" trigger events
 
     // Run "end step" event for all instances
-    for (unsigned int i : GetEventHolderList(3, 2)) {
+    for (unsigned int i : AssetManager::GetEventHolderList(3, 2)) {
         iter = InstanceList::Iterator(i);
         while ((instance = iter.Next()) != InstanceList::NoInstance) {
             // if (instance->object_index == i) {

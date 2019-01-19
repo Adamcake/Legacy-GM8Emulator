@@ -6,7 +6,6 @@
 #include "Instance.hpp"
 #include "Renderer.hpp"
 #include "StreamUtil.hpp"
-#include <algorithm>
 #include <fstream>
 #include <new>
 #include <string.h>
@@ -241,7 +240,6 @@ unsigned int* _roomOrder;
 unsigned int _roomOrderCount;
 GameSettings settings;
 unsigned int _lastUsedRoomSpeed;
-std::map<unsigned int, std::vector<unsigned int>> _eventHolderList[12];
 #pragma endregion
 
 void GameInit() {
@@ -1296,19 +1294,9 @@ bool GameLoad(const char* pFilename) {
     }
     CodeManager::SetRoomOrder(&_roomOrder, _roomOrderCount);
 
-    // Swap over collision events
-    for (unsigned int i = 0; i < objectCount; i++) {
-        Object* obj = AssetManager::GetObject(i);
-        if (!obj->exists) continue;
-        for (const auto& e : obj->events[4]) {
-            Object* other = AssetManager::GetObject(e.first);
-            if (std::find(other->evList[4].begin(), other->evList[4].end(), e.first) == other->evList[4].end()) {
-                other->evList[4].push_back(i);
-            }
-        }
-    }
-
     // Compile object parented event lists and identities
+    AssetManager::CompileObjectIdentities();
+    /*
     for (unsigned int i = 0; i < objectCount; i++) {
         Object* obj = AssetManager::GetObject(i);
         if (!obj->exists) continue;
@@ -1329,7 +1317,6 @@ bool GameLoad(const char* pFilename) {
             obj->evList[j].shrink_to_fit();
         }
 
-        // identities
         obj->identities.insert(i);
         Object* o = obj;
         while (o->parentIndex >= 0) {
@@ -1350,6 +1337,7 @@ bool GameLoad(const char* pFilename) {
             }
         }
     }
+    */
 
     // Compile scripts
     for (unsigned int i = 0; i < scriptCount; i++) {
@@ -1459,6 +1447,3 @@ unsigned int GameGetRoomSpeed() { return _globals.room_speed; }
 
 bool GameGetError(const char** err) { return CodeManager::GetError(err); }
 
-std::map<unsigned int, std::vector<unsigned int>>& GetEventHolderList(unsigned int ev) { return _eventHolderList[ev]; }
-
-std::vector<unsigned int>& GetEventHolderList(unsigned int ev, unsigned int sub) { return _eventHolderList[ev][sub]; }

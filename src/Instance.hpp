@@ -1,4 +1,5 @@
 #pragma once
+#include "CRGMLType.hpp"
 
 typedef unsigned int InstanceID;
 
