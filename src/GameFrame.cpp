@@ -131,6 +131,13 @@ bool GameFrame() {
     // Update inputs from keyboard and mouse (doesn't really matter where this is in the event order as far as I know)
     InputUpdate();
 
+    // Set all xprevious and yprevious
+    while ((instance = iter.Next()) != InstanceList::NoInstance) {
+        Instance& i = InstanceList::GetInstance(instance);
+        i.xprevious = i.x;
+        i.yprevious = i.y;
+    }
+
     // TODO: "begin step" trigger events
 
     // Run "begin step" event for all instances
@@ -242,10 +249,6 @@ bool GameFrame() {
     iter = InstanceList::Iterator();
     while ((instance = iter.Next()) != InstanceList::NoInstance) {
         Instance& inst = InstanceList::GetInstance(instance);
-
-        // Set xprevious and yprevious
-        inst.xprevious = inst.x;
-        inst.yprevious = inst.y;
 
         if (inst.friction != 0) {
             // Subtract friction from speed towards 0
