@@ -218,13 +218,18 @@ void AssetManager::CompileObjectIdentities() {
             }
         }
     }
-    /*
-    for each object, o1
-        for each collision target, o2
-            update o2 to collide with o1
-            update all of o1's children to collide with o2 and all of its children
-            update all of o2's children to collide with o1 and all of its children
-    */
+
+    // Remove registered collisions with lower object IDs than the holder
+    for (unsigned int i = 0; i < _objects.size(); i++) {
+        Object& obj = _objects[i];
+        if (!obj.exists) continue;
+
+        std::vector<unsigned int> copyList;
+        for(const unsigned int& targetId : obj.evList[4]) {
+            if(targetId >= i) copyList.push_back(targetId);
+        }
+        obj.evList[4] = copyList;
+    }
 
     // Populate event holder lists
     for (unsigned int i = 0; i < _objects.size(); i++) {

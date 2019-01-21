@@ -323,7 +323,6 @@ bool GameFrame() {
             if (inst1.object_index != ev.first) continue;
 
             for (const unsigned int& target : ev.second) {  // event holder
-                if(target < ev.first) continue;
 
                 InstanceList::Iterator iter2(target);
                 InstanceHandle instance2;
