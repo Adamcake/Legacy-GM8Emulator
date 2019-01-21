@@ -591,8 +591,8 @@ bool Runtime::instance_exists(unsigned int argc, GMLType* argv, GMLType* out) {
 
 bool Runtime::instance_nearest(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 3, true, GMLTypeState::Double, GMLTypeState::Double, GMLTypeState::Double)) return false;
-    const int oX = argv[0].dVal;
-    const int oY = argv[1].dVal;
+    const double oX = argv[0].dVal;
+    const double oY = argv[1].dVal;
     const int objId = _round(argv[2].dVal);
     InstanceList::Iterator it(static_cast<unsigned int>(objId));
 

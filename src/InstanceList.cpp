@@ -53,7 +53,7 @@ void InstanceList::ClearDeleted() {
     _list.erase(it, _list.end());
 }
 
-Instance* InstanceList::GetInstanceByNumber(unsigned int num, unsigned int startPos, unsigned int* endPos) {
+Instance* InstanceList::GetInstanceByNumber(unsigned int num, size_t startPos, size_t* endPos) {
     if (num > 100000) {
         // Instance ID
         for (auto i = _list.begin() + startPos; i != _list.end(); i++) {
@@ -200,17 +200,17 @@ InstanceList::Iterator::Iterator(unsigned int id, InstanceHandle startPos) : _po
 
 InstanceHandle InstanceList::Iterator::Next() {
     if (_byId) {
-        unsigned int endpos;
+        size_t endpos;
         Instance* ret = InstanceList::GetInstanceByNumber(_id, _pos, &endpos);
         if (endpos >= _limit) return NoInstance;
         _pos = endpos + 1;
-        return endpos;
+        return static_cast<InstanceHandle>(endpos);
     }
     else {
         InstanceHandle ret;
         while (true) {
             if (_pos >= _limit) return NoInstance;
-            ret = _pos;
+            ret = static_cast<InstanceHandle>(_pos);
             _pos++;
             if (_list[ret].exists) break;
         }

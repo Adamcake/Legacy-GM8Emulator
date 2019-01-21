@@ -37,7 +37,7 @@ namespace InstanceList {
     void ClearDeleted();
 
     // Gets instance by a number. Similar to GML, if the number is > 100000 it'll be treated as an instance ID, otherwise an object ID.
-    Instance* GetInstanceByNumber(unsigned int id, unsigned int startPos = 0, unsigned int* endPos = nullptr);
+    Instance* GetInstanceByNumber(unsigned int id, size_t startPos = 0, size_t* endPos = nullptr);
 
     // Gets a dummy instance for use in room creation code.
     // Doesn't need to be destroyed, won't ever be iterated, and doesn't count towards instance_count.
@@ -66,9 +66,9 @@ namespace InstanceList {
     class Iterator {
       private:
         bool _byId;
-        unsigned int _pos;
         unsigned int _id;
-        unsigned int _limit;
+        size_t _pos;
+        size_t _limit;
 
       public:
         Iterator() : _pos(0), _byId(false), _limit(InstanceList::Count()) {}
@@ -80,8 +80,8 @@ namespace InstanceList {
     class LambdaIterator {
       private:
         std::function<bool(Instance& inst)> func;
-        unsigned int _limit;
-        unsigned int _pos;
+        size_t _pos;
+        size_t _limit;
 
       public:
         LambdaIterator(std::function<bool(Instance& inst)> p) : func(p), _pos(0), _limit(InstanceList::Count()) {}
