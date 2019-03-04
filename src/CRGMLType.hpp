@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 
 // States a GMLType can be in
 enum struct GMLTypeState { Double, String };
