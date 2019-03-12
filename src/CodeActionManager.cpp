@@ -648,13 +648,27 @@ bool CodeActionManager::Run(CodeAction* actions, unsigned int count, InstanceHan
 }
 
 
-bool CodeActionManager::RunInstanceEvent(int ev, int sub, InstanceHandle target, InstanceHandle other, unsigned int asObjId) {
+bool CodeActionManager::RunInstanceEvent(int ev, int sub, InstanceHandle self, InstanceHandle other, unsigned int asObjId) {
+    // Resolve parented events
     Object* o = AssetManager::GetObject(asObjId);
     while (!CheckObjectEvent(ev, sub, o)) {
-        if (o->parentIndex < 0) return true;
-        o = AssetManager::GetObject(o->parentIndex);
+        if (o->parentIndex < 0) {
+            if (ev == 4) {  // Collision event, parent the target
+                int targetParent = AssetManager::GetObject(sub)->parentIndex;
+                if (targetParent < 0) return true;
+                o = AssetManager::GetObject(asObjId);
+                sub = targetParent;
+            }
+            else
+                return true;
+        }
+        else {
+            o = AssetManager::GetObject(o->parentIndex);
+        }
     }
-    return o->events[ev].count(sub) ? Run(o->events[ev][sub].actions, o->events[ev][sub].actionCount, target, other, ev, sub, asObjId) : true;
+
+    // Run event
+    return o->events[ev].count(sub) ? Run(o->events[ev][sub].actions, o->events[ev][sub].actionCount, self, other, ev, sub, asObjId) : true;
 }
 
 

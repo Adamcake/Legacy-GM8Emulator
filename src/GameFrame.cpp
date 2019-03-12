@@ -340,82 +340,48 @@ bool GameFrame() {
 
                             // self->other
 
-                            int parentedHolder = target;
-                            Object* parentedI1Obj = inst1Obj;
-                            while(parentedHolder >= 0) {
-                                bool b = false;
-                                while(true) {
-                                    if (parentedI1Obj->events[4].count(parentedHolder)) {
-                                        b = true;
-                                        break;
-                                    }
-                                    if(parentedI1Obj->parentIndex < 0) break;
-                                    parentedI1Obj = AssetManager::GetObject(parentedI1Obj->parentIndex);
-                                }
-                                if(b) break;
-                                parentedHolder = AssetManager::GetObject(parentedHolder)->parentIndex;
+                            if (inst2.solid) {
+                                // If the target is solid, we move outside of it
+                                inst1.x = inst1.xprevious;
+                                inst1.y = inst1.yprevious;
+                                inst1.bboxIsStale = true;
                             }
-                            if(parentedHolder >= 0) {
-                                if (inst2.solid) {
-                                    // If the target is solid, we move outside of it
-                                    inst1.x = inst1.xprevious;
-                                    inst1.y = inst1.yprevious;
-                                    inst1.bboxIsStale = true;
-                                }
 
-                                if (!CodeActionManager::RunInstanceEvent(4, parentedHolder, instance, instance2, inst1.object_index)) return false;
-                                if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+                            if (!CodeActionManager::RunInstanceEvent(4, target, instance, instance2, inst1.object_index)) return false;
+                            if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 
-                                if (inst2.solid) {
-                                    inst1.x += inst1.hspeed;
-                                    inst1.y += inst1.vspeed;
+                            if (inst2.solid) {
+                                inst1.x += inst1.hspeed;
+                                inst1.y += inst1.vspeed;
+                                inst1.bboxIsStale = true;
+                                if (CollisionCheck(&inst1, &inst2)) {
+                                    inst1.x -= inst1.hspeed;
+                                    inst1.y -= inst1.vspeed;
                                     inst1.bboxIsStale = true;
-                                    if (CollisionCheck(&inst1, &inst2)) {
-                                        inst1.x -= inst1.hspeed;
-                                        inst1.y -= inst1.vspeed;
-                                        inst1.bboxIsStale = true;
-                                    }
                                 }
                             }
 
 
                             // other->self
 
-                            parentedHolder = ev.first;
-                            Object* parentedI2Obj = inst2Obj;
-                            while (parentedHolder >= 0) {
-                                bool b = false;
-                                while (true) {
-                                    if (parentedI2Obj->events[4].count(parentedHolder)) {
-                                        b = true;
-                                        break;
-                                    }
-                                    if (parentedI2Obj->parentIndex < 0) break;
-                                    parentedI2Obj = AssetManager::GetObject(parentedI2Obj->parentIndex);
-                                }
-                                if (b) break;
-                                parentedHolder = AssetManager::GetObject(parentedHolder)->parentIndex;
+                            if (inst1.solid) {
+                                // If the target is solid, we move outside of it
+                                inst2.x = inst2.xprevious;
+                                inst2.y = inst2.yprevious;
+                                inst2.bboxIsStale = true;
                             }
-                            if(parentedHolder >= 0) {
-                                if (inst1.solid) {
-                                    // If the target is solid, we move outside of it
-                                    inst2.x = inst2.xprevious;
-                                    inst2.y = inst2.yprevious;
-                                    inst2.bboxIsStale = true;
-                                }
 
-                                if (!CodeActionManager::RunInstanceEvent(4, parentedHolder, instance2, instance, inst2.object_index)) return false;
-                                if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
+                            if (!CodeActionManager::RunInstanceEvent(4, ev.first, instance2, instance, inst2.object_index)) return false;
+                            if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 
-                                if (inst1.solid) {
-                                    inst2.x += inst2.hspeed;
-                                    inst2.y += inst2.vspeed;
+                            if (inst1.solid) {
+                                inst2.x += inst2.hspeed;
+                                inst2.y += inst2.vspeed;
+                                inst2.bboxIsStale = true;
+                                if (CollisionCheck(&inst2, &inst1)) {
+                                    inst2.x -= inst2.hspeed;
+                                    inst2.y -= inst2.vspeed;
                                     inst2.bboxIsStale = true;
-                                    if (CollisionCheck(&inst2, &inst1)) {
-                                        inst2.x -= inst2.hspeed;
-                                        inst2.y -= inst2.vspeed;
-                                        inst2.bboxIsStale = true;
-                                    }
                                 }
                             }
                         }
