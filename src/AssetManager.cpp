@@ -180,7 +180,9 @@ void AssetManager::CompileObjectIdentities() {
         Object& obj = _objects[i];
         if (!obj.exists) continue;
 
-        for(const unsigned int& targetId : obj.evList[4]) { // For each collision target
+        // Make a copy of the list because it can be bodified during iteration
+        std::vector<unsigned int> evList4 = obj.evList[4];
+        for(const unsigned int& targetId : evList4) { // For each collision target
             Object& target = _objects[targetId];
             if (!target.exists) continue;
 
@@ -219,18 +221,6 @@ void AssetManager::CompileObjectIdentities() {
         }
     }
 
-    // Remove registered collisions with lower object IDs than the holder
-    for (unsigned int i = 0; i < _objects.size(); i++) {
-        Object& obj = _objects[i];
-        if (!obj.exists) continue;
-
-        std::vector<unsigned int> copyList;
-        for(const unsigned int& targetId : obj.evList[4]) {
-            if(targetId >= i) copyList.push_back(targetId);
-        }
-        obj.evList[4] = copyList;
-    }
-
     // Populate event holder lists
     for (unsigned int i = 0; i < _objects.size(); i++) {
         Object& obj = _objects[i];
@@ -240,7 +230,10 @@ void AssetManager::CompileObjectIdentities() {
         // event lists
         for (unsigned int j = 0; j < 12; j++) {
             for (const unsigned int& e : obj.evList[j]) {
-                _eventHolderList[j][e].push_back(i);
+                // Objects only try to collide with objects later in the resource tree - prevents double collision
+                if (e <= i) {
+                    _eventHolderList[j][e].push_back(i);
+                }
             }
         }
     }
