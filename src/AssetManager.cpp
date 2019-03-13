@@ -231,7 +231,7 @@ void AssetManager::CompileObjectIdentities() {
         for (unsigned int j = 0; j < 12; j++) {
             for (const unsigned int& e : obj.evList[j]) {
                 // Objects only try to collide with objects later in the resource tree - prevents double collision
-                if (e <= i) {
+                if (e <= i || j != 4) {
                     _eventHolderList[j][e].push_back(i);
                 }
             }
