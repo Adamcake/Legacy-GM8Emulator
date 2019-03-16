@@ -532,8 +532,10 @@ bool Runtime::instance_change(unsigned int argc, GMLType* argv, GMLType* out) {
     if (!_assertArgs(argc, argv, 2, false, GMLTypeState::Double, GMLTypeState::Double)) return false;
     bool events = _isTrue(&argv[1]);
     Instance& self = InstanceList::GetInstance(GetContext().self);
+
     if (events) {
-        if (!CodeActionManager::RunInstanceEvent(1, 0, GetContext().self, NULL, self.object_index)) return false;
+        // Only run old object's "destroy" event if run_events is true
+        if (!CodeActionManager::RunInstanceEvent(1, 0, GetContext().self, InstanceList::NoInstance, self.object_index)) return false;
     }
     int objId = _round(argv[0].dVal);
     if (objId < 0 || objId >= static_cast<int>(AssetManager::GetObjectCount())) {
@@ -547,15 +549,36 @@ bool Runtime::instance_change(unsigned int argc, GMLType* argv, GMLType* out) {
         Runtime::PushErrorMessage("Non-existent object passed to instance_change");
         return false;
     }
-    self.object_index = objId;
-    self.solid = obj->solid;
-    self.visible = obj->visible;
-    self.persistent = obj->persistent;
-    self.depth = obj->depth;
-    self.sprite_index = obj->spriteIndex;
-    self.mask_index = obj->maskIndex;
+
+    // The current "self" object is marked as non-existent and we make a new object
+    // Note: this does leave the current "self" instance non-existent, as if we had called instance_destroy().
+    // The self does NOT get updated to the new instance at any time.
+    self.exists = false;
+    InstanceHandle newInstanceHandle = InstanceList::AddInstance(self.x, self.y, objId);
+    Instance& newInstance = InstanceList::GetInstance(newInstanceHandle);
+
+    // InstanceList::AddInstance might have invalidated our reference, so we need a new one...
+    Instance& self2 = InstanceList::GetInstance(GetContext().self);
+
+    // Some variables are updated and some aren't...
+    newInstance._fields = self2._fields;
+    newInstance._alarms = self2._alarms;
+    newInstance.gravity = self2.gravity;
+    newInstance.gravity_direction = self2.gravity_direction;
+    newInstance.hspeed = self2.hspeed;
+    newInstance.vspeed = self2.vspeed;
+    newInstance.speed = self2.speed;
+    newInstance.direction = self2.direction;
+    newInstance.friction = self2.friction;
+    newInstance.image_xscale = self2.image_xscale;
+    newInstance.image_yscale = self2.image_yscale;
+    newInstance.image_speed = self2.image_speed;
+    newInstance.image_angle = self2.image_angle;
+    newInstance.image_blend = self2.image_blend;
+
     if (events) {
-        if (!CodeActionManager::RunInstanceEvent(0, 0, GetContext().self, InstanceList::NoInstance, self.object_index)) return false;
+        // Only run new object's "create" event if run_events is true
+        if (!CodeActionManager::RunInstanceEvent(0, 0, newInstanceHandle, InstanceList::NoInstance, objId)) return false;
     }
     return true;
 }

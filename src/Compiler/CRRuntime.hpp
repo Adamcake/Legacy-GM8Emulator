@@ -47,7 +47,7 @@ namespace Runtime {
         std::map<unsigned int, std::map<unsigned int, GMLType>> locals;
         std::map<CRInstanceVar, std::map<unsigned int, GMLType>> localInstance;
     };
-    Context GetContext();
+    Context& GetContext();
 
     bool Execute(CRActionList&, InstanceHandle self, InstanceHandle other, int ev, int sub, unsigned int asObjId, unsigned int argc = 0, GMLType* argv = nullptr);
     bool EvalExpression(CRExpression&, InstanceHandle self, InstanceHandle other, int ev, int sub, unsigned int asObjId, GMLType* out, unsigned int argc = 0, GMLType* argv = nullptr);

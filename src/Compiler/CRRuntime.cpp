@@ -30,7 +30,7 @@ GlobalValues* Runtime::GetGlobals() { return _globalValues; }
 
 
 Runtime::Context _context;
-Runtime::Context Runtime::GetContext() { return _context; }
+Runtime::Context& Runtime::GetContext() { return _context; }
 
 GMLType returnBuffer;
 Runtime::ReturnCause _cause;

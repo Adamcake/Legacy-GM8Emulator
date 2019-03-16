@@ -1296,48 +1296,6 @@ bool GameLoad(const char* pFilename) {
 
     // Compile object parented event lists and identities
     AssetManager::CompileObjectIdentities();
-    /*
-    for (unsigned int i = 0; i < objectCount; i++) {
-        Object* obj = AssetManager::GetObject(i);
-        if (!obj->exists) continue;
-
-        // event lists
-        for (unsigned int j = 0; j < 12; j++) {
-            Object* o = obj;
-            while (true) {
-                for (const auto& e : o->events[j]) {
-                    if (std::find(obj->evList[j].begin(), obj->evList[j].end(), e.first) == obj->evList[j].end()) {
-                        obj->evList[j].push_back(e.first);
-                    }
-                }
-                if (o->parentIndex < 0) break;
-                o = AssetManager::GetObject(o->parentIndex);
-            }
-            std::sort(obj->evList[j].begin(), obj->evList[j].end());
-            obj->evList[j].shrink_to_fit();
-        }
-
-        obj->identities.insert(i);
-        Object* o = obj;
-        while (o->parentIndex >= 0) {
-            obj->identities.insert(o->parentIndex);
-            o = AssetManager::GetObject(o->parentIndex);
-        }
-    }
-
-    // Populate event holder lists
-    for (unsigned int i = 0; i < objectCount; i++) {
-        Object* obj = AssetManager::GetObject(i);
-        if (!obj->exists) continue;
-
-        // event lists
-        for (unsigned int j = 0; j < 12; j++) {
-            for (const unsigned int& e : obj->evList[j]) {
-                _eventHolderList[j][e].push_back(i);
-            }
-        }
-    }
-    */
 
     // Compile scripts
     for (unsigned int i = 0; i < scriptCount; i++) {
