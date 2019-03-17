@@ -425,7 +425,7 @@ bool GameFrame() {
 
                 for (int startY = (bg.tileVert ? (bg.y - stretchedH) : 0); startY < ( int )room->height; startY += stretchedH) {
                     for (int startX = (bg.tileHor ? (bg.x - stretchedW) : 0); startX < ( int )room->width; startX += stretchedW) {
-                        RDrawImage(b->image, startX, startY, scaleX, scaleY, 0, 0xFFFFFFFF, 1, INT_MAX);
+                        RDrawImage(b->image, startX, startY, scaleX, scaleY, 0, 0xFFFFFFFF, 1);
                     }
                 }
             }
@@ -435,7 +435,7 @@ bool GameFrame() {
     // Draw all tiles
     for (unsigned int i = 0; i < room->tileCount; i++) {
         RoomTile tile = room->tiles[i];
-        RDrawPartialImage(AssetManager::GetBackground(tile.backgroundIndex)->image, tile.x, tile.y, 1, 1, 0, 0xFFFFFFFF, 1, tile.tileX, tile.tileY, tile.width, tile.height, tile.depth);
+        RDrawPartialImage(AssetManager::GetBackground(tile.backgroundIndex)->image, tile.x, tile.y, 1, 1, 0, 0xFFFFFFFF, 1, tile.tileX, tile.tileY, tile.width, tile.height);
     }
 
     // Run draw event for all instances in depth order
@@ -467,8 +467,7 @@ bool GameFrame() {
                         if (inst.sprite_index >= 0) {
                             Sprite* sprite = AssetManager::GetSprite(inst.sprite_index);
                             if (sprite->exists) {
-                                RDrawImage(sprite->frames[(( int )inst.image_index) % sprite->frameCount], inst.x, inst.y, inst.image_xscale, inst.image_yscale, inst.image_angle, inst.image_blend,
-                                    inst.image_alpha, inst.depth);
+                                RDrawImage(sprite->frames[(( int )inst.image_index) % sprite->frameCount], inst.x, inst.y, inst.image_xscale, inst.image_yscale, inst.image_angle, inst.image_blend, inst.image_alpha);
                             }
                             else {
                                 // Tried to draw non-existent sprite
@@ -497,7 +496,7 @@ bool GameFrame() {
 
             for (int startY = (bg.tileVert ? (bg.y - stretchedH) : 0); startY < ( int )room->height; startY += stretchedH) {
                 for (int startX = (bg.tileHor ? (bg.x - stretchedW) : 0); startX < ( int )room->width; startX += stretchedW) {
-                    RDrawImage(b->image, startX, startY, scaleX, scaleY, 0, 0xFFFFFFFF, 1, INT_MIN);
+                    RDrawImage(b->image, startX, startY, scaleX, scaleY, 0, 0xFFFFFFFF, 1);
                 }
             }
         }

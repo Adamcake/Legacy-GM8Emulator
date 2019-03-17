@@ -219,8 +219,7 @@ bool Runtime::draw_self(unsigned int argc, GMLType* argv, GMLType* out) {
     if (self.sprite_index < 0) return true;
     Sprite* spr = AssetManager::GetSprite(self.sprite_index);
     if (spr->exists) {
-        RDrawImage(
-            spr->frames[static_cast<int>(self.image_index) % spr->frameCount], self.x, self.y, self.image_xscale, self.image_yscale, self.image_angle, self.image_blend, self.image_alpha, self.depth);
+        RDrawImage(spr->frames[static_cast<int>(self.image_index) % spr->frameCount], self.x, self.y, self.image_xscale, self.image_yscale, self.image_angle, self.image_blend, self.image_alpha);
     }
     return true;
 }
@@ -261,7 +260,7 @@ bool Runtime::draw_sprite(unsigned int argc, GMLType* argv, GMLType* out) {
     Instance& self = InstanceList::GetInstance(GetContext().self);
     int frame = _round(argv[1].dVal);
     if (frame < 0) frame = static_cast<int>(::floor(self.image_index));
-    RDrawImage(spr->frames[frame % spr->frameCount], argv[2].dVal, argv[3].dVal, 1.0, 1.0, 0.0, 0xFFFFFFFF, 1.0, self.depth);
+    RDrawImage(spr->frames[frame % spr->frameCount], argv[2].dVal, argv[3].dVal, 1.0, 1.0, 0.0, 0xFFFFFFFF, 1.0);
     return true;
 }
 
@@ -273,7 +272,7 @@ bool Runtime::draw_sprite_ext(unsigned int argc, GMLType* argv, GMLType* out) {
     Instance& self = InstanceList::GetInstance(GetContext().self);
     int frame = _round(argv[1].dVal);
     if (frame < 0) frame = static_cast<int>(::floor(self.image_index));
-    RDrawImage(spr->frames[frame % spr->frameCount], argv[2].dVal, argv[3].dVal, argv[4].dVal, argv[5].dVal, argv[6].dVal, _round(argv[7].dVal), argv[8].dVal, self.depth);
+    RDrawImage(spr->frames[frame % spr->frameCount], argv[2].dVal, argv[3].dVal, argv[4].dVal, argv[5].dVal, argv[6].dVal, _round(argv[7].dVal), argv[8].dVal);
     return true;
 }
 
@@ -351,7 +350,7 @@ bool Runtime::draw_text(unsigned int argc, GMLType* argv, GMLType* out) {
                 unsigned int cCW = *(dmapPos + 4);
                 unsigned int cCO = *(dmapPos + 5);
 
-                RDrawPartialImage(font->image, cursorX + static_cast<int>(cCO), cursorY, 1, 1, 0.0, _drawColour, _drawAlpha, cX, cY, cW, cH, InstanceList::GetInstance(GetContext().self).depth);
+                RDrawPartialImage(font->image, cursorX + static_cast<int>(cCO), cursorY, 1, 1, 0.0, _drawColour, _drawAlpha, cX, cY, cW, cH);
                 cursorX += cCW;
             }
         }
