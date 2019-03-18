@@ -2,9 +2,31 @@
 #include "AssetManager.hpp"
 #include "CRGMLType.hpp"
 #include "Instance.hpp"
-#include <algorithm>
+#include <vector>
+#include <algorithm> // for remove_if
 
-std::vector<Instance> _list;
+struct PooledInstance {
+    bool used = false;
+    Instance instance;
+};
+
+struct InstancePool {
+    bool used;
+    size_t size;
+    PooledInstance* instances;
+    InstancePool(size_t pSize) : size(pSize), used(true) { instances = new PooledInstance[pSize]; }
+};
+std::vector<InstancePool> _pools;
+size_t _largestPoolSize;
+
+std::vector<PooledInstance*> _iterationOrder;
+std::vector<PooledInstance*> _drawOrder;
+
+InstancePool& _addPool(size_t size) {
+    size_t poolCount = _pools.size();
+    _pools.push_back(InstancePool(size));
+    return _pools[poolCount];
+}
 
 // Last dynamic instance ID to be assigned
 unsigned int _lastInstanceID;
@@ -12,13 +34,60 @@ unsigned int _lastInstanceID;
 // Give an Instance its default values - returns false if the Object does not exist and game should close
 bool _InitInstance(Instance* instance, unsigned int id, double x, double y, unsigned int objectId);
 
-void InstanceList::Init() { _list.reserve(1024); }
-void InstanceList::Finalize() { _list.clear(); }
+void InstanceList::Init() {
+    _largestPoolSize = 1024;
+    _addPool(_largestPoolSize);
+    _iterationOrder.reserve(1024);
+    _drawOrder.reserve(1024);
+}
+
+void InstanceList::Finalize() {
+    for (const InstancePool& pool : _pools) {
+        delete[] pool.instances;
+    }
+    _pools.clear();
+    _iterationOrder.clear();
+    _drawOrder.clear();
+}
 
 InstanceHandle InstanceList::AddInstance(unsigned int id, double x, double y, unsigned int objectId) {
-    InstanceHandle ret = static_cast<InstanceHandle>(_list.size());
-    _list.push_back(Instance());
-    if (_InitInstance(&_list[ret], id, x, y, objectId)) {
+    PooledInstance* place = nullptr;
+    // Iterate all our pools looking for an unused spot
+    for (InstancePool& pool : _pools) {
+        if (pool.used) {
+            for (unsigned int i = 0; i < pool.size; i++) {
+                PooledInstance& pooledInst = pool.instances[i];
+                if (!pooledInst.used) {
+                    pooledInst.used = true;
+                    place = &pooledInst;
+                    break;
+                }
+            }
+            if (place != nullptr) {
+                // break out of outer loop if we've already placed the instance
+                break;
+            }
+        }
+    }
+    // If we didn't manage to place the instance yet, we need to add a new pool
+    if (place == nullptr) {
+        // Mark all our pre-existing pools as disused (won't be allocated into, and will be de-allocated when empty)
+        for (InstancePool& pool : _pools) {
+            pool.used = false;
+        }
+        // Make the new pool
+        _largestPoolSize *= 2;
+        InstancePool& pool = _addPool(_largestPoolSize);
+
+        // Use the first element in the instance pool as our new instance
+        pool.instances[0].used = true;
+        place = &pool.instances[0];
+    }
+
+    InstanceHandle ret = _iterationOrder.size();
+    _iterationOrder.push_back(place);
+    _drawOrder.push_back(place);
+    if (_InitInstance(&place->instance, id, x, y, objectId)) {
         return ret;
     }
     else {
@@ -31,46 +100,95 @@ InstanceHandle InstanceList::AddInstance(double x, double y, unsigned int object
     return AddInstance(_lastInstanceID, x, y, objectId);
 }
 
-InstanceHandle InstanceList::AddInstances(std::vector<Instance>& instances) {
-    InstanceHandle ret = (InstanceHandle)_list.size();
-    std::copy(instances.begin(), instances.end(), std::back_inserter(_list));
-    return ret;
+void InstanceList::AddInstances(const std::vector<Instance>& instances) {
+    if (!instances.size()) return;
+    unsigned int pos = 0;
+    // Go through all used pools looking for places to put these instances
+    for (InstancePool& pool : _pools) {
+        if (pool.used) {
+            for (unsigned int i = 0; i < pool.size; i++) {
+                PooledInstance& pooledInst = pool.instances[i];
+                if (!pooledInst.used) {
+                    pooledInst.instance = instances[pos];
+                    pooledInst.used = true;
+                    _iterationOrder.push_back(&pooledInst);
+                    _drawOrder.push_back(&pooledInst);
+                    pos++;
+                    if (pos == instances.size()) return;
+                }
+            }
+        }
+    }
+    // Some instances weren't placed in our pool, so we need a new pool for them
+    unsigned int remainingCount = instances.size() - pos;
+    while (_largestPoolSize < remainingCount) _largestPoolSize *= 2;
+    InstancePool& newPool = _addPool(_largestPoolSize);
+
+    unsigned int poolPos = 0;
+    while (pos < instances.size()) {
+        newPool.instances[poolPos].used = true;
+        newPool.instances[poolPos].instance = instances[pos];
+        poolPos++;
+        pos++;
+    }
 }
 
 void InstanceList::HandleChangedInstance(InstanceHandle handle, unsigned int oldObject, unsigned int newObject) {}
 
 void InstanceList::ClearAll() {
-    _list.clear();
+    for (PooledInstance* inst : _iterationOrder) {
+        inst->used = false;
+    }
+    auto it = std::remove_if(_pools.begin(), _pools.end(), [](InstancePool& pool) { return !pool.used; });
+    _pools.erase(it, _pools.end());
+    _iterationOrder.clear();
+    _drawOrder.clear();
 }
 
 void InstanceList::ClearNonPersistent() {
-    auto it = std::remove_if(_list.begin(), _list.end(), [](Instance& inst) { return (!inst.persistent) || (!inst.exists); });
-    _list.erase(it, _list.end());
+    for (const InstancePool& pool : _pools) {
+        for (unsigned int i = 0; i < pool.size; i++) {
+            PooledInstance& pooledInst = pool.instances[i];
+            if (pooledInst.used) {
+                if ((!pooledInst.instance.persistent) || (!pooledInst.instance.exists)) pooledInst.used = false;
+            }
+        }
+    }
+    auto it = std::remove_if(_iterationOrder.begin(), _iterationOrder.end(), [](PooledInstance* inst) { return !inst->used; });
+    _iterationOrder.erase(it, _iterationOrder.end());
 }
 
 void InstanceList::ClearDeleted() {
-    auto it = std::remove_if(_list.begin(), _list.end(), [](Instance& inst) { return !inst.exists; });
-    _list.erase(it, _list.end());
+    for (const InstancePool& pool : _pools) {
+        for (unsigned int i = 0; i < pool.size; i++) {
+            PooledInstance& pooledInst = pool.instances[i];
+            if (pooledInst.used) {
+                if (!pooledInst.instance.exists) pooledInst.used = false;
+            }
+        }
+    }
+    auto it = std::remove_if(_iterationOrder.begin(), _iterationOrder.end(), [](PooledInstance* inst) { return !inst->used; });
+    _iterationOrder.erase(it, _iterationOrder.end());
 }
 
 Instance* InstanceList::GetInstanceByNumber(unsigned int num, size_t startPos, size_t* endPos) {
     if (num > 100000) {
         // Instance ID
-        for (auto i = _list.begin() + startPos; i != _list.end(); i++) {
-            if ((*i).id == num) {
+        for (auto i = _iterationOrder.begin() + startPos; i != _iterationOrder.end(); i++) {
+            if ((*i)->instance.id == num) {
                 if (endPos) (*endPos) = startPos;
-                return ((*i).exists) ? &(*i) : nullptr;
+                return ((*i)->instance.exists) ? &(*i)->instance : nullptr;
             }
             startPos++;
         }
     }
     else {
         // Object ID
-        for (auto i = _list.begin() + startPos; i != _list.end(); i++) {
-            Object* o = AssetManager::GetObject(i->object_index);
-            if (o->identities.count(num) && (*i).exists) {
+        for (auto i = _iterationOrder.begin() + startPos; i != _iterationOrder.end(); i++) {
+            Object* o = AssetManager::GetObject((*i)->instance.object_index);
+            if (o->identities.count(num) && (*i)->instance.exists) {
                 if (endPos) (*endPos) = startPos;
-                return &(*i);
+                return &(*i)->instance;
             }
             startPos++;
         }
@@ -79,9 +197,12 @@ Instance* InstanceList::GetInstanceByNumber(unsigned int num, size_t startPos, s
     return nullptr;
 }
 
-Instance& InstanceList::GetInstance(InstanceHandle handle) { return _list[handle]; }
-
 Instance _dummy;
+Instance& InstanceList::GetInstance(InstanceHandle handle) {
+    if (handle == DummyInstance) return _dummy;
+    return _iterationOrder[handle]->instance;
+}
+
 InstanceHandle InstanceList::GetDummyInstance() {
     _dummy.id = 0;
     _dummy.object_index = 0;
@@ -132,12 +253,12 @@ InstanceHandle InstanceList::GetDummyInstance() {
     _dummy._fields.clear();
     _dummy._alarms.clear();
 
-    InstanceHandle ret = static_cast<InstanceHandle>(_list.size());
-    _list.push_back(_dummy);
-    return ret;
+    return DummyInstance;
 }
 
-size_t InstanceList::Count() { return _list.size(); }
+size_t InstanceList::Count() {
+    return _iterationOrder.size();
+}
 
 // Private
 
@@ -195,6 +316,7 @@ bool _InitInstance(Instance* instance, unsigned int id, double x, double y, unsi
 
 
 uint32_t InstanceList::NoInstance = static_cast<uint32_t>(-1);
+uint32_t InstanceList::DummyInstance = static_cast<uint32_t>(-2);
 
 InstanceList::Iterator::Iterator(unsigned int id, InstanceHandle startPos) : _pos(startPos), _id(id), _byId(true), _limit(InstanceList::Count()) {}
 
@@ -212,7 +334,7 @@ InstanceHandle InstanceList::Iterator::Next() {
             if (_pos >= _limit) return NoInstance;
             ret = static_cast<InstanceHandle>(_pos);
             _pos++;
-            if (_list[ret].exists) break;
+            if (_iterationOrder[ret]->instance.exists) break;
         }
         return ret;
     }
@@ -220,17 +342,29 @@ InstanceHandle InstanceList::Iterator::Next() {
 
 void InstanceList::SetLastInstanceID(unsigned int i) { _lastInstanceID = i; }
 
-GMLType* InstanceList::GetField(InstanceHandle instance, uint32_t field) { return &_list[instance]._fields[field][0]; }
-void InstanceList::SetField(InstanceHandle instance, uint32_t field, const GMLType& value) { _list[instance]._fields[field][0] = value; }
-GMLType* InstanceList::GetField(InstanceHandle instance, uint32_t field, uint32_t array) { return &_list[instance]._fields[field][array]; }
-void InstanceList::SetField(InstanceHandle instance, uint32_t field, uint32_t array, const GMLType& value) { _list[instance]._fields[field][array] = value; }
-GMLType* InstanceList::GetField(InstanceHandle instance, uint32_t field, uint32_t array1, uint32_t array2) { return &_list[instance]._fields[field][(array1 * 32000) + array2]; }
-void InstanceList::SetField(InstanceHandle instance, uint32_t field, uint32_t array1, uint32_t array2, const GMLType& value) { _list[instance]._fields[field][(array1 * 32000) + array2] = value; }
+GMLType* InstanceList::GetField(InstanceHandle instance, uint32_t field) {
+    return &_iterationOrder[instance]->instance._fields[field][0];
+}
+void InstanceList::SetField(InstanceHandle instance, uint32_t field, const GMLType& value) {
+    _iterationOrder[instance]->instance._fields[field][0] = value;
+}
+GMLType* InstanceList::GetField(InstanceHandle instance, uint32_t field, uint32_t array) {
+    return &_iterationOrder[instance]->instance._fields[field][array];
+}
+void InstanceList::SetField(InstanceHandle instance, uint32_t field, uint32_t array, const GMLType& value) {
+    _iterationOrder[instance]->instance._fields[field][array] = value;
+}
+GMLType* InstanceList::GetField(InstanceHandle instance, uint32_t field, uint32_t array1, uint32_t array2) {
+    return &_iterationOrder[instance]->instance._fields[field][(array1 * 32000) + array2];
+}
+void InstanceList::SetField(InstanceHandle instance, uint32_t field, uint32_t array1, uint32_t array2, const GMLType& value) {
+    _iterationOrder[instance]->instance._fields[field][(array1 * 32000) + array2] = value;
+}
 
 InstanceHandle InstanceList::LambdaIterator::Next() {
     while (_pos < _limit) {
-        if (_list[_pos].exists) {
-            if (func(_list[_pos])) {
+        if (_iterationOrder[_pos]->instance.exists) {
+            if (func(_iterationOrder[_pos]->instance)) {
                 _pos++;
                 return static_cast<InstanceHandle>(_pos - 1);
             }
