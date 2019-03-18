@@ -2,8 +2,8 @@
 #include "AssetManager.hpp"
 #include "CRGMLType.hpp"
 #include "Instance.hpp"
+#include <algorithm>  // for remove_if
 #include <vector>
-#include <algorithm> // for remove_if
 
 struct PooledInstance {
     bool used = false;
@@ -15,6 +15,17 @@ struct InstancePool {
     size_t size;
     PooledInstance* instances;
     InstancePool(size_t pSize) : size(pSize), used(true) { instances = new PooledInstance[pSize]; }
+    InstancePool(const InstancePool& other) = delete;
+    InstancePool(InstancePool&& other) : instances(other.instances), size(other.size), used(other.used) { other.instances = nullptr; }
+    ~InstancePool() { delete[] instances; }
+    InstancePool& operator=(const InstancePool& other) = delete;
+    InstancePool& operator=(InstancePool&& other) {
+        instances = other.instances;
+        size = other.size;
+        used = other.used;
+        other.instances = nullptr;
+        return *this;
+    }
 };
 std::vector<InstancePool> _pools;
 size_t _largestPoolSize;
@@ -42,9 +53,6 @@ void InstanceList::Init() {
 }
 
 void InstanceList::Finalize() {
-    for (const InstancePool& pool : _pools) {
-        delete[] pool.instances;
-    }
     _pools.clear();
     _iterationOrder.clear();
     _drawOrder.clear();
@@ -84,7 +92,7 @@ InstanceHandle InstanceList::AddInstance(unsigned int id, double x, double y, un
         place = &pool.instances[0];
     }
 
-    InstanceHandle ret = _iterationOrder.size();
+    InstanceHandle ret = static_cast<InstanceHandle>(_iterationOrder.size());
     _iterationOrder.push_back(place);
     _drawOrder.push_back(place);
     if (_InitInstance(&place->instance, id, x, y, objectId)) {
@@ -120,7 +128,7 @@ void InstanceList::AddInstances(const std::vector<Instance>& instances) {
         }
     }
     // Some instances weren't placed in our pool, so we need a new pool for them
-    unsigned int remainingCount = instances.size() - pos;
+    size_t remainingCount = instances.size() - pos;
     while (_largestPoolSize < remainingCount) _largestPoolSize *= 2;
     InstancePool& newPool = _addPool(_largestPoolSize);
 
@@ -156,6 +164,8 @@ void InstanceList::ClearNonPersistent() {
     }
     auto it = std::remove_if(_iterationOrder.begin(), _iterationOrder.end(), [](PooledInstance* inst) { return !inst->used; });
     _iterationOrder.erase(it, _iterationOrder.end());
+    auto it2 = std::remove_if(_drawOrder.begin(), _drawOrder.end(), [](PooledInstance* inst) { return !inst->used; });
+    _drawOrder.erase(it2, _drawOrder.end());
 }
 
 void InstanceList::ClearDeleted() {
@@ -169,6 +179,8 @@ void InstanceList::ClearDeleted() {
     }
     auto it = std::remove_if(_iterationOrder.begin(), _iterationOrder.end(), [](PooledInstance* inst) { return !inst->used; });
     _iterationOrder.erase(it, _iterationOrder.end());
+    auto it2 = std::remove_if(_drawOrder.begin(), _drawOrder.end(), [](PooledInstance* inst) { return !inst->used; });
+    _drawOrder.erase(it2, _drawOrder.end());
 }
 
 Instance* InstanceList::GetInstanceByNumber(unsigned int num, size_t startPos, size_t* endPos) {
@@ -256,9 +268,7 @@ InstanceHandle InstanceList::GetDummyInstance() {
     return DummyInstance;
 }
 
-size_t InstanceList::Count() {
-    return _iterationOrder.size();
-}
+size_t InstanceList::Count() { return _iterationOrder.size(); }
 
 // Private
 
@@ -342,21 +352,11 @@ InstanceHandle InstanceList::Iterator::Next() {
 
 void InstanceList::SetLastInstanceID(unsigned int i) { _lastInstanceID = i; }
 
-GMLType* InstanceList::GetField(InstanceHandle instance, uint32_t field) {
-    return &_iterationOrder[instance]->instance._fields[field][0];
-}
-void InstanceList::SetField(InstanceHandle instance, uint32_t field, const GMLType& value) {
-    _iterationOrder[instance]->instance._fields[field][0] = value;
-}
-GMLType* InstanceList::GetField(InstanceHandle instance, uint32_t field, uint32_t array) {
-    return &_iterationOrder[instance]->instance._fields[field][array];
-}
-void InstanceList::SetField(InstanceHandle instance, uint32_t field, uint32_t array, const GMLType& value) {
-    _iterationOrder[instance]->instance._fields[field][array] = value;
-}
-GMLType* InstanceList::GetField(InstanceHandle instance, uint32_t field, uint32_t array1, uint32_t array2) {
-    return &_iterationOrder[instance]->instance._fields[field][(array1 * 32000) + array2];
-}
+GMLType* InstanceList::GetField(InstanceHandle instance, uint32_t field) { return &_iterationOrder[instance]->instance._fields[field][0]; }
+void InstanceList::SetField(InstanceHandle instance, uint32_t field, const GMLType& value) { _iterationOrder[instance]->instance._fields[field][0] = value; }
+GMLType* InstanceList::GetField(InstanceHandle instance, uint32_t field, uint32_t array) { return &_iterationOrder[instance]->instance._fields[field][array]; }
+void InstanceList::SetField(InstanceHandle instance, uint32_t field, uint32_t array, const GMLType& value) { _iterationOrder[instance]->instance._fields[field][array] = value; }
+GMLType* InstanceList::GetField(InstanceHandle instance, uint32_t field, uint32_t array1, uint32_t array2) { return &_iterationOrder[instance]->instance._fields[field][(array1 * 32000) + array2]; }
 void InstanceList::SetField(InstanceHandle instance, uint32_t field, uint32_t array1, uint32_t array2, const GMLType& value) {
     _iterationOrder[instance]->instance._fields[field][(array1 * 32000) + array2] = value;
 }
