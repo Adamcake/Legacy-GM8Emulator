@@ -983,6 +983,8 @@ bool GameLoad(const char* pFilename) {
         free(d);
     }
 
+	return false;
+
     // Timelines
 
     pos += 4;
