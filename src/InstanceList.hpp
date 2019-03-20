@@ -13,19 +13,20 @@ namespace InstanceList {
     void Init();
     void Finalize();
 
-    // Adds a new instance and returns the pointer. This should always be used instead of Instance's constructor. This is like instance_create() in GML.
+    // Adds a new instance and returns the handle. This should always be used instead of Instance's constructor. This is like instance_create() in GML.
     // The instance's ID, x and y will be set appropriately. All other values will be default for that object type or global default where applicable.
-    // If this returns a null pointer, there was an error and the game should close.
-    InstanceHandle AddInstance(unsigned int id, double x, double y, unsigned int objectId);
+    // If this returns InstanceList::NoInstance, there was an error and the game should close.
+    InstanceHandle AddInstance(InstanceID id, double x, double y, unsigned int objectId);
 
     // As above, but using a dynamic instance ID
     InstanceHandle AddInstance(double x, double y, unsigned int objectId);
 
+    // Adds a new tile and returns the ID  - like above, but imitates tile_add() in GML
+    unsigned int AddTile(unsigned int id, int background, int left, int top, unsigned int width, unsigned int height, double x, double y, int depth);
+    unsigned int AddTile(int background, int left, int top, unsigned int width, unsigned int height, double x, double y, int depth);
+
     // Restore list of instances
     void AddInstances(const std::vector<Instance>& instances);
-
-    // Used to inform InstanceList that an instance has changed object type
-    void HandleChangedInstance(InstanceHandle handle, unsigned int oldObject, unsigned int newObject);
 
     // Remove all instances
     void ClearAll();
@@ -35,6 +36,9 @@ namespace InstanceList {
 
     // Remove all instances that no longer exist
     void ClearDeleted();
+
+    // Draws all the tiles and instances held by InstanceList
+    bool DrawEverything();
 
     // Gets instance by a number. Similar to GML, if the number is > 100000 it'll be treated as an instance ID, otherwise an object ID.
     Instance* GetInstanceByNumber(unsigned int id, size_t startPos = 0, size_t* endPos = nullptr);
@@ -46,8 +50,8 @@ namespace InstanceList {
     // Get the number of active instances
     size_t Count();
 
-    // Set the next instance ID to assign after all the static instances are loaded
-    void SetLastInstanceID(unsigned int i);
+    // Set the next IDs to assign after all the static instances are loaded
+    void SetLastIDs(unsigned int instance, unsigned int tile);
 
     // Get instance reference from InstanceHandle
     // Note: Instance references should NEVER be stored, as the underlying buffer may be reallocated at any time

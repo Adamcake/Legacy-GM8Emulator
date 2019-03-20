@@ -1205,9 +1205,9 @@ bool GameLoad(const char* pFilename) {
     }
 
     // Last instance and tile ID placed
-    InstanceList::SetLastInstanceID(ReadDword(buffer, &pos));
-    unsigned int lastTileID = ReadDword(buffer, &pos);  // todo - unused
-
+    unsigned int lastInstanceID = ReadDword(buffer, &pos);
+    unsigned int lastTileID = ReadDword(buffer, &pos);
+    InstanceList::SetLastIDs(lastInstanceID, lastTileID);
 
     // Include files
 

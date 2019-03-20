@@ -72,7 +72,7 @@ struct RoomInstance {
 struct RoomTile {
     int x;
     int y;
-    unsigned int backgroundIndex;
+    int backgroundIndex;
     int tileX;
     int tileY;
     unsigned int width;

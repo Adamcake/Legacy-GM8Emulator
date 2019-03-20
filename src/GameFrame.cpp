@@ -77,6 +77,12 @@ bool GameLoadRoom(int id) {
     _globals.room_width = room->width;
     _globals.room_height = room->height;
 
+    // Create all tiles in new room
+    for (unsigned int i = 0; i < room->tileCount; i++) {
+        RoomTile& tile = room->tiles[i];
+        InstanceList::AddTile(tile.id, tile.backgroundIndex, tile.tileX, tile.tileY, tile.width, tile.height, tile.x, tile.y, tile.depth);
+    }
+
     // Create all instances in new room
     for (unsigned int i = 0; i < room->instanceCount; i++) {
         unsigned int id = room->instances[i].id;
@@ -432,6 +438,7 @@ bool GameFrame() {
         }
     }
 
+    /*
     // Draw all tiles
     for (unsigned int i = 0; i < room->tileCount; i++) {
         RoomTile tile = room->tiles[i];
@@ -483,6 +490,11 @@ bool GameFrame() {
         }
         if (nextDepth == INT_MIN) break;
     }
+    */
+
+    // Draw all tiles and instances
+    if (!InstanceList::DrawEverything()) return false;
+    if (_globals.changeRoom) return GameLoadRoom(_globals.roomTarget);
 
     // Draw room foregrounds
     for (unsigned int i = 0; i < room->backgroundCount; i++) {
