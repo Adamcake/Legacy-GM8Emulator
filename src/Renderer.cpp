@@ -11,6 +11,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <iostream>
 
 const GLchar* fragmentShaderCode =
     "#version 330\n"
@@ -150,12 +151,21 @@ void RTerminate() {
 bool RMakeGameWindow(GameSettings* settings, unsigned int w, unsigned int h) {
     // Fail if we already did this
     if (_contextSet) return false;
+    
+    glfwSetErrorCallback([] (int code, const char *desc) -> void {
+        std::cout << "GLFW Error " << code << ": " << desc << std::endl;
+    });
 
     // Init glfw
     if (!glfwInit()) {
         // Failed to initialize GLFW
         return false;
     }
+
+    // Hint OpenGL 3.3 Target
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Create window
     _window = glfwCreateWindow(w, h, "", NULL, NULL);
@@ -171,6 +181,7 @@ bool RMakeGameWindow(GameSettings* settings, unsigned int w, unsigned int h) {
 
     // Load OpenGL Stuff
     if (!gladLoadGL()) {
+        std::cout << "GLAD could not load OpenGL!" << std::endl;
         return false;
     }
 
@@ -201,6 +212,17 @@ bool RMakeGameWindow(GameSettings* settings, unsigned int w, unsigned int h) {
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &fragmentCompiled);
     if ((!vertexCompiled) || (!fragmentCompiled)) {
         // Failed to compile shaders
+        GLint logSizeVert, logSizeFrag;
+        glGetShaderiv(vertexShader, GL_INFO_LOG_LENGTH, &logSizeVert);
+        glGetShaderiv(fragmentShader, GL_INFO_LOG_LENGTH, &logSizeFrag);
+        auto logVert = new GLchar[logSizeVert];
+        auto logFrag = new GLchar[logSizeFrag];
+        glGetShaderInfoLog(vertexShader, logSizeVert, &logSizeVert, logVert);
+        glGetShaderInfoLog(fragmentShader, logSizeFrag, &logSizeFrag, logFrag);
+        std::cout << "-- VERTEX SHADER LOG --\n" << logVert <<
+            "\n-- FRAGMENT SHADER LOG --\n" << logFrag << std::endl;
+        delete[] logVert;
+        delete[] logFrag;
         return false;
     }
     _glProgram = glCreateProgram();
@@ -230,7 +252,19 @@ bool RMakeGameWindow(GameSettings* settings, unsigned int w, unsigned int h) {
 
     glEnableVertexAttribArray(0);
 
-    return !glGetError();
+    if (auto err = glGetError(); err != GL_NO_ERROR) {
+        const char *error = "";
+        switch(err) {
+            case GL_INVALID_OPERATION: error = "INVALID_OPERATION"; break;
+            case GL_INVALID_ENUM: return true;
+            case GL_INVALID_VALUE: error = "INVALID_VALUE"; break;
+            case GL_OUT_OF_MEMORY: error = "OUT_OF_MEMORY"; break;
+            case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION";  break;
+        }
+        std::cout << "glGetError returned " << error << std::endl;
+        return false;
+    }
+    return true;
 }
 
 void RResizeGameWindow(unsigned int w, unsigned int h) {
