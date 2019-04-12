@@ -1,5 +1,6 @@
 #include "InputHandler.hpp"
 #include <GLFW/glfw3.h>
+#include <cstring>
 
 // As far as I know, the GM8 keycodes go up to 124 (vk_f12)
 constexpr size_t NUM_KEYS = 124;

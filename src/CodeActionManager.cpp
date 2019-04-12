@@ -6,6 +6,7 @@
 #include "InstanceList.hpp"
 #include "StreamUtil.hpp"
 
+#include <cstring>
 #include <string>
 
 // Private vars

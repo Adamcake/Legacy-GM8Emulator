@@ -7,6 +7,7 @@
 #include "InputHandler.hpp"
 #include "Instance.hpp"
 #include "Renderer.hpp"
+#include <cmath>
 
 bool GameLoadRoom(int id) {
     // Check room index is valid

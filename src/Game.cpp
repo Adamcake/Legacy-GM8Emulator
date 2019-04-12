@@ -52,7 +52,7 @@ bool Decrypt81(unsigned char* pStream, unsigned int pStreamLength, unsigned int*
 
     // Convert hash key into UTF-16
     // OLD WAY: sprintf(tmpBuffer, "_MJD%d#RWK", ReadDword(pStream, pPos));
-    sprintf_s(tmpBuffer, 64, "_MJD%d#RWK", ReadDword(pStream, pPos));
+    snprintf(tmpBuffer, 64, "_MJD%d#RWK", ReadDword(pStream, pPos));
     for (size_t i = 0; i < strlen(tmpBuffer); i++) {
         buffer[i * 2] = tmpBuffer[i];
         buffer[(i * 2) + 1] = 0;

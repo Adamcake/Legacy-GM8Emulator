@@ -1,9 +1,9 @@
-
-
 #include "AssetManager.hpp"
 #include "Collision.hpp"
 #include "Instance.hpp"
 #include "InstanceList.hpp"
+#include <cmath>
+
 #define PI 3.141592653589793
 
 int dRound(double d) {

@@ -9,6 +9,9 @@
 #include <GLFW/glfw3.h>
 #include <finders_interface.h>  // rectpack2D
 
+#include <cmath>
+#include <cstring>
+
 const GLchar* fragmentShaderCode =
     "#version 330\n"
     "uniform sampler2D tex;\n"

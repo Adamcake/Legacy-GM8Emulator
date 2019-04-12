@@ -1,6 +1,7 @@
 #include "Tokenizer.hxx"
 #include <algorithm>
 #include <ctype.h>
+#include <cstring>
 
 // Extra functions that are not in ctype.h for obvious reasons
 constexpr bool isunderscore(char& c) { return c == '_'; }

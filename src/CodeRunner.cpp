@@ -9,6 +9,7 @@
 #include "Compiler/Tokenizer.hxx"
 #include "InstanceList.hpp"
 #include "RNG.hpp"
+#include <cstring>
 #include <stdexcept>
 
 // Internal code object

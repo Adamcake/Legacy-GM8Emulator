@@ -3,6 +3,7 @@
 #include "CRRuntime.hpp"
 #include "Compiled.hpp"
 #include "Constants.hpp"
+#include <algorithm>
 
 namespace GM8Emulator {
     namespace Compiler {
