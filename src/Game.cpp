@@ -724,11 +724,11 @@ bool GameLoad(const char* pFilename) {
             for (i = 0; i < sprite->frameCount; i++) {
                 dataPos += 4;
 
-                sprite->width = ReadDword(data, &dataPos);
-                sprite->height = ReadDword(data, &dataPos);
+                unsigned int frameW = ReadDword(data, &dataPos);
+                unsigned int frameH = ReadDword(data, &dataPos);
                 unsigned int pixelDataLength = ReadDword(data, &dataPos);
 
-                if (pixelDataLength != (sprite->width * sprite->height * 4)) {
+                if (pixelDataLength != (frameW * frameH * 4)) {
                     // This should never happen
                     free(data);
                     delete[] buffer;
@@ -745,7 +745,13 @@ bool GameLoad(const char* pFilename) {
                     data[dataPos + 2] = tmp;
                 }
 
-                sprite->frames[i] = RMakeImage(sprite->width, sprite->height, sprite->originX, sprite->originY, pixelData);
+                sprite->frames[i] = RMakeImage(frameW, frameH, sprite->originX, sprite->originY, pixelData);
+
+                // Sprite inherits its width and size from the first frame of animation
+                if (i == 0) {
+                    sprite->width = frameW;
+                    sprite->height = frameH;
+                }
             }
 
             // Collision data
@@ -794,8 +800,8 @@ bool GameLoad(const char* pFilename) {
         }
         else {
             // No frames
-            sprite->width = 0;
-            sprite->height = 0;
+            sprite->width = 1;
+            sprite->height = 1;
         }
     }
 
