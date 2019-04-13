@@ -151,34 +151,36 @@ bool CodeActionManager::Read(const unsigned char* stream, unsigned int* pos, Cod
             double direction = 0.0;
             unsigned int dirCount = 0;
             if (args[0][0] == '1') {
-                direction += 135;
+                direction += 225.0;
                 dirCount++;
             }
             if (args[0][1] == '1') {
-                direction += 90;
+                direction += 270.0;
                 dirCount++;
             }
             if (args[0][2] == '1') {
-                direction += 45;
+                direction += 315.0;
                 dirCount++;
             }
             if (args[0][3] == '1') {
-                direction += 180;
+                direction += 180.0;
                 dirCount++;
             }
+            // skip button 4 as it's a neutral direction which does nothing
             if (args[0][5] == '1') {
+                // Right button, so direction is 0 - no need to add
                 dirCount++;
             }
             if (args[0][6] == '1') {
-                direction += 225;
+                direction += 135.0;
                 dirCount++;
             }
             if (args[0][7] == '1') {
-                direction += 270;
+                direction += 90.0;
                 dirCount++;
             }
             if (args[0][8] == '1') {
-                direction += 315;
+                direction += 45.0;
                 dirCount++;
             }
             if (dirCount) direction /= dirCount;
