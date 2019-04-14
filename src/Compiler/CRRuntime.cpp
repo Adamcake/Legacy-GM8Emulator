@@ -736,7 +736,7 @@ bool _getInstanceVar(Instance& instance, CRInstanceVar index, unsigned int array
             }
             else {
                 Sprite* s = AssetManager::GetSprite(instance.sprite_index);
-                out->dVal = (s->exists ? s->width : 0);
+                out->dVal = (s->exists ? (static_cast<double>(s->width) * instance.image_xscale) : 0.0);
             }
             break;
         case IV_SPRITE_HEIGHT:
@@ -745,7 +745,7 @@ bool _getInstanceVar(Instance& instance, CRInstanceVar index, unsigned int array
             }
             else {
                 Sprite* s = AssetManager::GetSprite(instance.sprite_index);
-                out->dVal = (s->exists ? s->height : 0);
+                out->dVal = (s->exists ? (static_cast<double>(s->height) * instance.image_yscale) : 0.0);
             }
             break;
         case IV_MASK_INDEX:
